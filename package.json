@@ -1,6 +1,6 @@
 {
   "name": "@tioniq/disposiq",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A library providing utilities for implementing the Disposable pattern, facilitating resource management and cleanup in JavaScript and TypeScript applications. This library is a collection of common utilities for managing resources and cleaning up after them using the Disposable pattern.",
   "private": false,
   "author": {
@@ -18,8 +18,8 @@
   "license": "MIT",
   "type": "module",
   "types": "./dist/index.d.ts",
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "files": [
     "dist"
   ],
