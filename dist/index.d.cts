@@ -306,6 +306,11 @@ declare class BoolDisposable implements DisposableAwareCompat {
  * @param disposables an array of disposables
  */
 declare function disposeAll(disposables: DisposableLike[]): void;
+/**
+ * Dispose all disposables in the array unsafely. During the disposal process, the array is not safe to modify
+ * @param disposables an array of disposables
+ */
+declare function disposeAllUnsafe(disposables: DisposableLike[]): void;
 
 interface EventEmitterLike {
     on<K extends string | symbol>(event: K, listener: (...args: any[]) => void): any;
@@ -479,4 +484,4 @@ declare function isSystemDisposable(value: any): value is Disposable;
  */
 declare function isSystemAsyncDisposable(value: any): value is AsyncDisposable;
 
-export { AbortDisposable, AsyncDisposableAction, type AsyncDisposableAware, type AsyncDisposableAwareCompat, type AsyncDisposableCompat, type AsyncDisposeFunc, BoolDisposable, BooleanDisposable, CompositeDisposable, Disposable$1 as Disposable, DisposableAction, type DisposableAware, type DisposableAwareCompat, type DisposableCompat, DisposableContainer, type DisposableLike, DisposableStore, type DisposeFunc, type IAsyncDisposable, type IDisposable, type IDisposablesContainer, ObjectDisposedException, SafeActionDisposable, SafeAsyncActionDisposable, SerialDisposable, createDisposable, createDisposableCompat, disposableFromEvent, disposableFromEventOnce, disposeAllSafe, emptyDisposable, isAsyncDisposableCompat, isDisposable, isDisposableCompat, isDisposableLike, isSystemAsyncDisposable, isSystemDisposable, on, once, safeDisposableExceptionHandlerManager, toDisposable, toDisposableCompat };
+export { AbortDisposable, AsyncDisposableAction, type AsyncDisposableAware, type AsyncDisposableAwareCompat, type AsyncDisposableCompat, type AsyncDisposeFunc, BoolDisposable, BooleanDisposable, CompositeDisposable, Disposable$1 as Disposable, DisposableAction, type DisposableAware, type DisposableAwareCompat, type DisposableCompat, DisposableContainer, type DisposableLike, DisposableStore, type DisposeFunc, type IAsyncDisposable, type IDisposable, type IDisposablesContainer, ObjectDisposedException, SafeActionDisposable, SafeAsyncActionDisposable, SerialDisposable, createDisposable, createDisposableCompat, disposableFromEvent, disposableFromEventOnce, disposeAll, disposeAllSafe, disposeAllUnsafe, emptyDisposable, isAsyncDisposableCompat, isDisposable, isDisposableCompat, isDisposableLike, isSystemAsyncDisposable, isSystemDisposable, on, once, safeDisposableExceptionHandlerManager, toDisposable, toDisposableCompat };
