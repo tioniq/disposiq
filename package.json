@@ -6,13 +6,13 @@
     "email": "timoniann@gmail.com",
     "name": "Tim"
   },
-  "homepage": "https://github.com/Timoniann/disposiq/blob/main/README.md",
+  "homepage": "https://github.com/tioniq/disposiq/blob/main/README.md",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Timoniann/disposiq.git"
+    "url": "https://github.com/tioniq/disposiq.git"
   },
   "bugs": {
-    "url": "https://github.com/Timoniann/disposiq/issues"
+    "url": "https://github.com/tioniq/disposiq/issues"
   },
   "license": "MIT",
   "type": "module",
