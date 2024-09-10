@@ -421,7 +421,7 @@ declare const safeDisposableExceptionHandlerManager: ExceptionHandlerManager;
  * Represents a safe action that can be disposed. The action is invoked when the action is disposed.
  */
 declare class SafeActionDisposable implements DisposableAwareCompat {
-    constructor(action?: () => void);
+    constructor(action: () => void);
     /**
      * Returns true if the action has been disposed.
      */
