@@ -1,0 +1,59 @@
+{
+  "name": "disposiq",
+  "version": "1.0.0",
+  "description": "A library providing utilities for implementing the Disposable pattern, facilitating resource management and cleanup in JavaScript and TypeScript applications. This library is a collection of common utilities for managing resources and cleaning up after them using the Disposable pattern.",
+  "author": {
+    "email": "timoniann@gmail.com",
+    "name": "Tim"
+  },
+  "homepage": "https://github.com/Timoniann/disposiq/blob/main/README.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Timoniann/disposiq.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Timoniann/disposiq/issues"
+  },
+  "license": "MIT",
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "disposable",
+    "disposable pattern",
+    "dispose",
+    "utilities",
+    "common utilities",
+    "resource management",
+    "cleanup",
+    "auto-dispose",
+    "autodispose"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "jest",
+    "test:coverage": "jest --coverage --collect-coverage",
+    "test:badges": "coverage-badges",
+    "build:watch": "tsup --watch",
+    "run:example": "npx tsx ./example/index.ts",
+    "//run:example": "node --no-warnings=ExperimentalWarning --loader ts-node/esm ./example/index.ts",
+    "prepublishOnly": "npm run build && npm run test:coverage && npm run test:badges"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^22.5.2",
+    "coverage-badges-cli": "^1.2.5",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.2.4",
+    "typescript": "^5.5.4"
+  },
+  "contributors": [
+    "Tim (https://github.com/Timoniann)"
+  ]
+}

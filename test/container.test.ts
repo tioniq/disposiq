@@ -1,0 +1,72 @@
+import {DisposableAction, DisposableContainer} from "../src";
+
+describe("container", () => {
+  it("should be disposed", () => {
+    const container = new DisposableContainer()
+    expect(container.disposed).toBe(false)
+    container.dispose()
+    expect(container.disposed).toBe(true)
+  })
+  it("should set disposable", () => {
+    const container = new DisposableContainer()
+    const action = jest.fn()
+    container.set(new DisposableAction(action))
+    expect(action).toHaveBeenCalledTimes(0)
+    container.dispose()
+    expect(action).toHaveBeenCalledTimes(1)
+    container.set(new DisposableAction(action))
+    expect(action).toHaveBeenCalledTimes(2)
+    container.dispose()
+    expect(action).toHaveBeenCalledTimes(2)
+  })
+  it("should replace disposable", () => {
+    const container = new DisposableContainer()
+    const action = jest.fn()
+    container.set(new DisposableAction(action))
+    expect(action).toHaveBeenCalledTimes(0)
+    container.replace(new DisposableAction(action))
+    expect(action).toHaveBeenCalledTimes(0)
+    container.dispose()
+    expect(action).toHaveBeenCalledTimes(1)
+    container.replace(new DisposableAction(action))
+    expect(action).toHaveBeenCalledTimes(2)
+  })
+  it("should return last disposable", () => {
+    const container = new DisposableContainer()
+    expect(container.disposable).toBeUndefined()
+    const disposable = new DisposableAction(() => {
+    })
+    container.set(disposable)
+    expect(container.disposable).toBe(disposable)
+    const disposable2 = new DisposableAction(() => {
+    })
+    container.replace(disposable2)
+    expect(container.disposable).toBe(disposable2)
+    container.replace(disposable)
+    expect(container.disposable).toBe(disposable)
+    container.dispose()
+    expect(container.disposable).toBeUndefined()
+  })
+  it("should set dispose current disposable", () => {
+    const container = new DisposableContainer()
+    const action = jest.fn()
+    container.set(new DisposableAction(action))
+    expect(action).toHaveBeenCalledTimes(0)
+    container.set(new DisposableAction(action))
+    expect(action).toHaveBeenCalledTimes(1)
+    container.dispose()
+    expect(action).toHaveBeenCalledTimes(2)
+    container.set(new DisposableAction(action))
+    expect(action).toHaveBeenCalledTimes(3)
+    container.dispose()
+    expect(action).toHaveBeenCalledTimes(3)
+  })
+  it("can use global Disposable API", () => {
+    const action = jest.fn()
+    {
+      using _ = new DisposableContainer(new DisposableAction(action))
+      expect(action).toHaveBeenCalledTimes(0)
+    }
+    expect(action).toHaveBeenCalledTimes(1)
+  })
+})

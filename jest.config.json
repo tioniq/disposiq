@@ -1,0 +1,22 @@
+{
+  "preset": "ts-jest",
+  "testEnvironment": "node",
+  "moduleFileExtensions": [
+    "ts",
+    "js"
+  ],
+  "testMatch": [
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ],
+  "coverageReporters": [
+    "lcov",
+    "json-summary"
+  ],
+  "transform": {
+    "^.+\\.(ts|tsx)$": "ts-jest"
+  },
+  "testPathIgnorePatterns": [
+    "/node_modules/"
+  ]
+}
