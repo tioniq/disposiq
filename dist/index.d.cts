@@ -273,6 +273,10 @@ declare class DisposableContainer implements DisposableAwareCompat {
      */
     replace(disposable: IDisposable): void;
     /**
+     * Dispose only the current disposable object without affecting the container's state.
+     */
+    disposeCurrent(): void;
+    /**
      * Dispose the disposable object. All next set or replace calls will dispose the new disposable object
      */
     dispose(): void;

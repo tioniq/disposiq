@@ -66,6 +66,17 @@ export class DisposableContainer implements DisposableAwareCompat {
   }
 
   /**
+   * Dispose only the current disposable object without affecting the container's state.
+   */
+  disposeCurrent(): void {
+    const disposable = this._disposable
+    if (disposable != undefined) {
+      this._disposable = undefined;
+      disposable.dispose();
+    }
+  }
+
+  /**
    * Dispose the disposable object. All next set or replace calls will dispose the new disposable object
    */
   dispose(): void {

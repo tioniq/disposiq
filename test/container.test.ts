@@ -69,4 +69,15 @@ describe("container", () => {
     }
     expect(action).toHaveBeenCalledTimes(1)
   })
+  it("should dispose only current disposable", () => {
+    const container = new DisposableContainer()
+    const fun = jest.fn()
+    container.set(new DisposableAction(fun))
+    container.disposeCurrent()
+    expect(fun).toHaveBeenCalledTimes(1)
+    container.set(new DisposableAction(fun))
+    expect(fun).toHaveBeenCalledTimes(1)
+    container.dispose()
+    expect(fun).toHaveBeenCalledTimes(2)
+  })
 })
