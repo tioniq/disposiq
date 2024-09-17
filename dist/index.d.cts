@@ -131,6 +131,16 @@ declare abstract class Disposable$1 implements DisposableCompat {
      */
     protected register<T extends IDisposable>(t: T): T;
     /**
+     * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
+     * @param disposable a disposable to add
+     */
+    addDisposable(disposable: DisposableLike): void;
+    /**
+     * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
+     * @param disposables disposables to add
+     */
+    addDisposables(...disposables: DisposableLike[]): void;
+    /**
      * Dispose the object. If the object has already been disposed, this is a no-op.
      * If the object has not been disposed, all disposables added to the object will be disposed.
      */

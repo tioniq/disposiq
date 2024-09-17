@@ -47,10 +47,11 @@ export class DisposableContainer implements DisposableAwareCompat {
       disposable.dispose()
       return
     }
-    if (this._disposable != undefined) {
-      this._disposable.dispose()
-    }
+    const oldDisposable = this._disposable
     this._disposable = disposable
+    if (oldDisposable != undefined) {
+      oldDisposable.dispose()
+    }
   }
 
   /**

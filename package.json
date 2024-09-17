@@ -1,6 +1,6 @@
 {
   "name": "@tioniq/disposiq",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A library providing utilities for implementing the Disposable pattern, facilitating resource management and cleanup in JavaScript and TypeScript applications. This library is a collection of common utilities for managing resources and cleaning up after them using the Disposable pattern.",
   "private": false,
   "author": {
@@ -10,7 +10,7 @@
   "homepage": "https://github.com/tioniq/disposiq/blob/main/README.md",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tioniq/disposiq.git"
+    "url": "git+https://github.com/tioniq/disposiq.git"
   },
   "bugs": {
     "url": "https://github.com/tioniq/disposiq/issues"
@@ -32,7 +32,8 @@
     "resource management",
     "cleanup",
     "auto-dispose",
-    "autodispose"
+    "autodispose",
+    "pattern"
   ],
   "scripts": {
     "build": "tsup",
@@ -42,7 +43,8 @@
     "build:watch": "tsup --watch",
     "run:example": "npx tsx ./example/index.ts",
     "//run:example": "node --no-warnings=ExperimentalWarning --loader ts-node/esm ./example/index.ts",
-    "prepublishOnly": "npm run build && npm run test:coverage && npm run test:badges"
+    "prepublishOnly": "npm run build && npm run test:coverage && npm run test:badges",
+    "run:publish": "npm publish --access public"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

@@ -1,4 +1,4 @@
-import {DisposableCompat, IDisposable} from "./declarations";
+import {DisposableCompat, DisposableLike, IDisposable} from "./declarations";
 import {DisposableStore} from "./store";
 
 /**
@@ -26,6 +26,22 @@ export abstract class Disposable implements DisposableCompat {
   protected register<T extends IDisposable>(t: T): T {
     this._store.addOne(t)
     return t
+  }
+
+  /**
+   * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
+   * @param disposable a disposable to add
+   */
+  addDisposable(disposable: DisposableLike): void {
+    this._store.addOne(disposable)
+  }
+
+  /**
+   * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
+   * @param disposables disposables to add
+   */
+  addDisposables(...disposables: DisposableLike[]): void {
+    this._store.addAll(disposables)
   }
 
   /**

@@ -30,6 +30,9 @@ export class ObjectPool<T> {
       this._scrap.enqueue(item)
       return null
     }
+    if (this._size === 0) {
+      return item
+    }
     const recycled = this._scrap.dequeue()
     this._scrap.enqueue(item)
     return recycled
