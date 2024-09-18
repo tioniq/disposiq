@@ -2,35 +2,27 @@
 
 ![Coverage](./coverage/badges.svg)
 ![npm version](https://img.shields.io/npm/v/@tioniq/disposiq)
+[![npm bundle size](https://img.shields.io/bundlephobia/minzip/@tioniq/disposiq)](https://bundlephobia.com/package/@tioniq/disposiq)
+![license](https://img.shields.io/npm/l/@tioniq/disposiq)
 
-**Disposiq** is a library providing utilities for implementing the Disposable pattern, facilitating resource management
-and cleanup. This library is a collection of common utilities for managing resources and cleaning up after them using
-the Disposable pattern.
+[//]: # ([![install size]&#40;https://packagephobia.com/badge?p=@tioniq/disposiq&#41;]&#40;https://packagephobia.com/result?p=@tioniq/disposiq&#41;)
 
-## Table of Contents
+**Disposiq** is a utility collection
+of [Disposable (or Dispose) pattern](https://en.wikipedia.org/wiki/Dispose_pattern).
 
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [API](#api)
-- [Contributing](#contributing)
-- [License](#license)
+> This library is compatible with
+> upcoming [Explicit Resource Management API](https://github.com/tc39/proposal-explicit-resource-management)
+> which is already
+> [implemented in Typescript 5.2](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-2.html)
 
-## Features
+Are **you lazy** about cleaning up resources? Does **your code look messy**, and do you want to make it cleaner and
+easier to read?
+Are you **tired of writing the same code** for cleaning up resources over and over again? Have you **wanted to use the
+Disposable pattern** in your project, but you don't know how to start? Then this library is for you!
 
-- Easy common approach to resource management
-- Lightweight and fast with minimal overhead
-- No dependencies
-- Automatic cleanup support (using 'using' keyword)
-- Support dispose a store disposables without disposing the store itself in safe way
-- Support timeout and interval callbacks
-- Support basing event conversion to disposables (e.g. 'on' and 'once' methods of EventEmitter-like objects)
-- Support AbortController as a disposable
-- Most of the classes are compatible with both `IDisposable`, global `Disposable` APIs and are aware of their disposal
-  state
-- Support aliases out of the box for custom use cases
+## Stop talking, show me the code!
 
-## Installation
+### Installation
 
 You can install the library using npm:
 
@@ -38,9 +30,7 @@ You can install the library using npm:
 npm install @tioniq/disposiq
 ```
 
-## Usage
-
-- Action-based disposable:
+### Function as a disposable
 
 ```typescript
 import {DisposableAction} from '@tioniq/disposiq'
@@ -50,23 +40,35 @@ const disposable = new DisposableAction(() => {
   console.log('Resource cleaned up')
 })
 disposable.dispose() // Output: Resource cleaned up
+disposable.dispose() // No output
 ```
 
-- Action-based disposable with global Disposable API:
+### Store-based disposable
 
 ```typescript
-import {DisposableAction} from '@tioniq/disposiq'
+import {DisposableStore, DisposableAction} from '@tioniq/disposiq'
 
-// If we use the new keyword 'using', the disposable will be disposed automatically when it goes out of scope
-{
-  using disposable = new DisposableAction(() => {
-    console.log('Resource cleaned up')
-  })
+const store = new DisposableStore()
+const disposable1 = new DisposableAction(() => {
+  console.log('Resource cleaned up 1')
+})
+// DisposableStore accepts functions as disposables
+const disposable2 = () => {
+  console.log('Resource cleaned up 2')
 }
-// Output: Resource cleaned up
+store.add(disposable1)
+store.add(disposable2)
+store.dispose() // Output: Resource cleaned up 1, Resource cleaned up 2
+
+const disposable3 = () => {
+  console.log('Resource cleaned up 3')
+}
+
+// After disposing of the store, all disposables added to the store will be disposed of immediately
+store.add(disposable3) // Output: Resource cleaned up 3
 ```
 
-- Store-based disposable:
+### Store-based disposable to dispose temporary resources
 
 ```typescript
 import {DisposableStore, DisposableAction} from '@tioniq/disposiq'
@@ -78,182 +80,142 @@ const disposable1 = new DisposableAction(() => {
 const disposable2 = new DisposableAction(() => {
   console.log('Resource cleaned up 2')
 })
-store.add(disposable1)
-store.add(disposable2)
-store.dispose() // Output: Resource cleaned up 1, Resource cleaned up 2
+// You can add multiple disposables at once
+store.add(disposable1, disposable2)
 
-// Second dispose will not do anything since the store is already disposed
-store.dispose()
+// Dispose of the current disposables in the store without disposing of the store itself
+store.disposeCurrent() // Output: Resource cleaned up 1, Resource cleaned up 2
 
-// So, the next disposables that are added to the store will be disposed immediately
-const disposableAction3 = new DisposableAction(() => {
+// The store is still active, but all contained disposables are disposed of and removed from the store
+// You can now add new disposables to the store
+store.add(() => {
   console.log('Resource cleaned up 3')
-})
-store.add(disposableAction3) // Output: Resource cleaned up 3
+}) // No output
+
+// Dispose the store completely
+store.dispose() // Output: Resource cleaned up 3
 ```
 
-- Store-based disposable to dispose temporary resources:
+### [Explicit Resource Management API](https://github.com/tc39/proposal-explicit-resource-management) support (aka 'using' keyword)
 
 ```typescript
 import {DisposableStore, DisposableAction} from '@tioniq/disposiq'
 
-const store = new DisposableStore()
-const disposable1 = new DisposableAction(() => {
-  console.log('Resource cleaned up 1')
-})
-store.add(disposable1)
-// Dispose the current disposables in the store without disposing the store itself
-store.disposeCurrent() // Output: Resource cleaned up 1
+// When using the new 'using' keyword, the disposable will be disposed of automatically when it goes out of scope
+{
+  using disposable = new DisposableAction(() => {
+    console.log('Resource cleaned up')
+  })
+}
+// Output: Resource cleaned up
 
-// Store is still active, but all contained disposables are disposed and removed from the store
-// We can add new disposables to the store
-
-// Also, you can add a function as a disposable to the store
-store.add(() => {
-  console.log('Resource cleaned up 2')
-})
-
-// Dispose the store completely
-store.dispose() // Output: Resource cleaned up 2
-
-// The next disposables that are added to the store will be disposed immediately 
+// It also works with other disposable objects from the library. For example, DisposableStore:
+{
+  using store = new DisposableStore()
+  store.add(new DisposableAction(() => {
+    console.log('Resource cleaned up')
+  }))
+} // Output: Resource cleaned up
 ```
 
-## API
+### If you cannot use 'using' keyword
 
-### IDisposable
+There is a way to achieve the same result without use of the 'using' keyword. You can use the 'using' function instead.
 
-An interface representing a disposable object.
+```typescript
+import {DisposableStore, DisposableAction, Disposable, using} from '@tioniq/disposiq'
 
-#### Methods
+using(new Client(), async (client) => {
+  await client.makeRequest() // Output: Request made
+}) // Output: Resource cleaned up
 
-- `dispose(): void` - Dispose the object. This method should be idempotent. Implementations should not throw exceptions.
-  The method should be safe to call multiple times.
+class Client extends Disposable {
+  constructor() {
+    super()
+    addDisposable(() => {
+      console.log('Resource cleaned up')
+    })
+  }
 
-### IAsyncDisposable
+  async makeRequest() {
+    console.log('Request made')
+  }
+}
+```
 
-An interface representing an asynchronous disposable object.
+You can find a simple example [here](https://github.com/tioniq/disposiq/blob/main/example/peer.ts).
+<br>
+Also, check out another project built with Disposiq: [Eventiq](https://www.npmjs.com/package/@tioniq/eventiq).
+It's an implementation of the Observer pattern using Disposiq. It's an interesting project worth exploring!
 
-#### Methods
+## Inspiration
 
-- `dispose(): Promise<void>` - Dispose the object. This method should be idempotent. Implementations should not throw
-  exceptions. The method should be safe to call multiple times.
+This library is inspired by the
 
-### DisposableAware
+- [Dispose pattern](https://en.wikipedia.org/wiki/Dispose_pattern) and its principles
+- The usage of disposables
+  in [RxJava](https://github.com/ReactiveX/RxJava/blob/3.x/src/main/java/io/reactivex/rxjava3/disposables/Disposable.java)
+  and [ReactiveX](https://github.com/dotnet/reactive/blob/840fa395d4a6e36ba4727d7943ea4773897affce/Rx.NET/Source/src/System.Reactive/Disposables/Disposable.cs)
+- The C# [IDisposable](https://learn.microsoft.com/en-us/dotnet/api/system.idisposable?view=net-8.0) interface
+- The core concept used by major projects like Angular, React, Vue, etc., which utilize a return function or component
+  method to clean up resources
 
-A type representing a disposable object that is aware of its disposal state.
+## Documentation
 
-### DisposableCompat
+### Interfaces & Types
 
-A type representing a disposable object that is compatible with both `IDisposable` and global `Disposable` (
-`Symbol.dispose`) APIs.
+| Interface                    | Short Description                                              |
+|------------------------------|----------------------------------------------------------------|
+| `IDisposable`                | Base interface for disposables                                 |
+| `IAsyncDisposable`           | Base interface for asynchronous disposables                    |
+| `DisposeFunc`                | A function with no parameters                                  |
+| `DisposableLike`             | A function or disposable object                                |
+| `AsyncDisposeFunc`           | An asynchronous function with no parameters                    |
+| `IDisposablesContainer`      | A container for a collection of disposables                    |
+| `DisposableAware`            | Represents a disposable that is aware of its state             |
+| `DisposableCompat`           | Represents a disposable compatible with the 'using' keyword    |
+| `DisposableAwareCompat`      | Combines `DisposableAware` and `DisposableCompat`              |
+| `AsyncDisposableAware`       | An asynchronous disposable that is aware of its state          |
+| `AsyncDisposableCompat`      | An asynchronous disposable compatible with the 'using' keyword |
+| `AsyncDisposableAwareCompat` | Combines `AsyncDisposableAware` and `AsyncDisposableCompat`    |
 
-### DisposableAction
+### Classes
 
-A class representing a disposable action. The action will be executed only once when the disposable is disposed.
-This is a simple disposable implementation that takes a function to execute when disposed.
+| Class                       | Short Description                                                         | Aliases             |
+|-----------------------------|---------------------------------------------------------------------------|---------------------|
+| `DisposableAction`          | A container for a function to be called on dispose                        | -                   |
+| `AsyncDisposableAction`     | A container for an asynchronous function to be called on dispose          | -                   |
+| `DisposableStore`           | A container for disposables                                               | `DisposableStore`   |
+| `DisposableContainer`       | A container for a disposable object                                       | `SerialDisposable`  |
+| `BoolDisposable`            | A object that aware of its disposed state                                 | `BooleanDisposable` |
+| `SafeActionDisposable`      | A container for a function that is safely called on dispose               | -                   |
+| `SafeAsyncActionDisposable` | A container for an asynchronous function that is safely called on dispose | -                   |
+| `AbortDisposable`           | A wrapper for AbortController to make it disposable                       | -                   |
+| `ObjectDisposedException`   | An exception thrown when an object is already disposed                    | -                   |
 
-#### Implements
+### Functions
 
-- `DisposableAwareCompat`
+| Class                     | Short Description                                                                                    | Aliases            |
+|---------------------------|------------------------------------------------------------------------------------------------------|--------------------|
+| `disposeAll`              | Dispose of all disposables in the array safely, allowing array modification during disposal          | disposeAllSafe     |
+| `disposeAllUnsafe`        | Dispose of all disposables in the array unsafely, allowing array modification during disposal        | -                  |
+| `createDisposable`        | Create a disposable object from a given parameter                                                    | toDisposable       |
+| `createDisposableCompat`  | Create a disposable object from a given parameter compatible with the 'using' keyword                | toDisposableCompat |
+| `disposableFromEvent`     | Create a disposable object from an event listener                                                    | on                 |
+| `disposableFromEventOnce` | Create a disposable object from an event listener that disposes after the first call                 | once               |
+| `isDisposable`            | Check if the object is a disposable object                                                           | -                  |
+| `isDisposableLike`        | Check if the object is a disposable-like                                                             | -                  |
+| `isDisposableCompat`      | Check if the object is a disposable object that is compatible with the 'using' keyword               | -                  |
+| `isAsyncDisposableCompat` | Check if the object is an asynchronous disposable object that is compatible with the 'using' keyword | -                  |
+| `isSystemDisposable`      | Check if the object is compatible with the system 'using' keyword                                    | -                  |
+| `isSystemAsyncDisposable` | Check if the object is compatible with the system 'await using' keyword                              | -                  |
 
-### DisposableStore
-
-A container for disposables. It will dispose all added disposables when it is disposed.
-
-#### Implements
-
-- `IDisposablesContainer`
-- `DisposableAwareCompat`
-
-#### Methods
-
-- `add(...disposables: DisposableLike[]): void` - Add disposables to the store.
-- `add(disposables: DisposableLike[]): void` - Add an array of disposables to the store.
-- `addOne(disposable: DisposableLike): void` - Add a single disposable to the store.
-- `remove(disposable: IDisposable): boolean` - Remove a disposable from the store.
-- `dispose(): void` - Dispose the store and all its disposables.
-- `disposeCurrent(): void` - Dispose all disposables in the store without disposing the store itself. The store can be
-  used to add new disposables.
-- `addTimeout(callback: () => void, timeout: number): void` - Add a timeout callback to the store. The timeout will be
-  cleared on dispose.
-- `addTimeout(timeout: ReturnType<typeof setTimeout>): void` - Add an existing timeout to the store. The timeout will be
-  cleared on dispose.
-- `addInterval(callback: () => void, interval: number): void` - Add an interval callback to the store. The interval will
-  be cleared on dispose.
-- `addInterval(interval: ReturnType<typeof setInterval>): void` - Add an existing interval to the store. The interval
-  will be cleared on dispose.
-
-### AbortDisposable
-
-A wrapper around an AbortController that can be used as a disposable object.
-
-#### Implements
-
-- `DisposableAwareCompat`
-
-### BoolDisposable
-
-A utility class that can be used to check if a disposable is disposed.
-
-#### Implements
-
-- `DisposableAwareCompat`
-
-### DisposableContainer
-
-A container for a single disposable object that can be set and disposed.
-
-#### Implements
-
-- `DisposableAwareCompat`
-
-#### Methods
-
-- `set(disposable: DisposableLike): void` - Set a new disposable object and dispose the previous one.
-- `replace(disposable: DisposableLike): void` - Replace the current disposable object with a new one without disposing
-  the previous one.
-
-### Disposable
-
-An abstract class for disposable objects. It provides a default implementation of the `dispose` method. The main purpose
-of this class is to use `register` method to register a disposable object to be disposed when the current object is
-disposed.
-
-#### Implements
-
-- `DisposableCompat`
-
-#### Methods
-
-- `protected register<T extends IDisposable>(t: T): T` - Register a disposable object to be disposed when the current
-  object is disposed.
-
-### SafeActionDisposable
-
-A class representing a disposable action that handles exception during disposal.
-
-#### Implements
-
-- `DisposableAwareCompat`
-
-### SafeAsyncActionDisposable
-
-A class representing an asynchronous disposable action that handles exception during disposal. The same as
-`SafeActionDisposable`, but for asynchronous disposables.
-
-### isDisposable (function)
-
-A function that checks if an object is disposable.
-
-### createDisposable (function)
-
-A function that creates a disposable object from a function, an object that is similar to a disposable, or a system
-disposable object.
+For more information, please check the [type definitions](https://github.com/tioniq/disposiq/blob/main/dist/index.d.ts)
+file.
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request on GitHub.
+Contributions are welcome! Please open an issue or submit a pull request on GitHub. Remember to write tests for your changes.
 
 ## License
 
