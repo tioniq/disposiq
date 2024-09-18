@@ -123,7 +123,7 @@ import {DisposableStore, DisposableAction} from '@tioniq/disposiq'
 There is a way to achieve the same result without use of the 'using' keyword. You can use the 'using' function instead.
 
 ```typescript
-import {DisposableStore, DisposableAction, Disposable, using} from '@tioniq/disposiq'
+import {Disposable, using} from '@tioniq/disposiq'
 
 using(new Client(), async (client) => {
   await client.makeRequest() // Output: Request made
@@ -132,7 +132,7 @@ using(new Client(), async (client) => {
 class Client extends Disposable {
   constructor() {
     super()
-    addDisposable(() => {
+    this.addDisposable(() => {
       console.log('Resource cleaned up')
     })
   }

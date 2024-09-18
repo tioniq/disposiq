@@ -1,7 +1,7 @@
 {
   "name": "@tioniq/disposiq",
-  "version": "1.0.4",
-  "description": "A library providing utilities for implementing the Disposable pattern, facilitating resource management and cleanup in JavaScript and TypeScript applications. This library is a collection of common utilities for managing resources and cleaning up after them using the Disposable pattern.",
+  "version": "1.0.5",
+  "description": "Disposiq is a utility collection of Disposable (aka Dispose) pattern",
   "private": false,
   "author": {
     "email": "timoniann@gmail.com",
@@ -25,15 +25,26 @@
   ],
   "keywords": [
     "disposable",
-    "disposable pattern",
+    "disposable-pattern",
     "dispose",
+    "dispose-pattern",
     "utilities",
     "common utilities",
-    "resource management",
+    "resource-management",
     "cleanup",
     "auto-dispose",
     "autodispose",
-    "pattern"
+    "pattern",
+    "async-disposable",
+    "resource-cleanup",
+    "resource-management",
+    "memory-management",
+    "resource-handling",
+    "type-safe",
+    "resource",
+    "disposables",
+    "cleanup-resources",
+    "disposal"
   ],
   "scripts": {
     "build": "tsup",
