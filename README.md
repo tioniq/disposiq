@@ -5,8 +5,6 @@
 [![npm bundle size](https://img.shields.io/bundlephobia/minzip/@tioniq/disposiq)](https://bundlephobia.com/package/@tioniq/disposiq)
 ![license](https://img.shields.io/npm/l/@tioniq/disposiq)
 
-[//]: # ([![install size]&#40;https://packagephobia.com/badge?p=@tioniq/disposiq&#41;]&#40;https://packagephobia.com/result?p=@tioniq/disposiq&#41;)
-
 **Disposiq** is a utility collection
 of [Disposable (or Dispose) pattern](https://en.wikipedia.org/wiki/Dispose_pattern).
 
@@ -181,24 +179,24 @@ This library is inspired by the
 
 ### Classes
 
-| Class                       | Short Description                                                         | Aliases             |
-|-----------------------------|---------------------------------------------------------------------------|---------------------|
-| `DisposableAction`          | A container for a function to be called on dispose                        | -                   |
-| `AsyncDisposableAction`     | A container for an asynchronous function to be called on dispose          | -                   |
-| `DisposableStore`           | A container for disposables                                               | `DisposableStore`   |
-| `DisposableContainer`       | A container for a disposable object                                       | `SerialDisposable`  |
-| `BoolDisposable`            | A object that aware of its disposed state                                 | `BooleanDisposable` |
-| `SafeActionDisposable`      | A container for a function that is safely called on dispose               | -                   |
-| `SafeAsyncActionDisposable` | A container for an asynchronous function that is safely called on dispose | -                   |
-| `AbortDisposable`           | A wrapper for AbortController to make it disposable                       | -                   |
-| `ObjectDisposedException`   | An exception thrown when an object is already disposed                    | -                   |
+| Class                       | Short Description                                                         | Aliases               |
+|-----------------------------|---------------------------------------------------------------------------|-----------------------|
+| `DisposableAction`          | A container for a function to be called on dispose                        | -                     |
+| `AsyncDisposableAction`     | A container for an asynchronous function to be called on dispose          | -                     |
+| `DisposableStore`           | A container for disposables                                               | `CompositeDisposable` |
+| `DisposableContainer`       | A container for a disposable object                                       | `SerialDisposable`    |
+| `BoolDisposable`            | A object that aware of its disposed state                                 | `BooleanDisposable`   |
+| `SafeActionDisposable`      | A container for a function that is safely called on dispose               | -                     |
+| `SafeAsyncActionDisposable` | A container for an asynchronous function that is safely called on dispose | -                     |
+| `AbortDisposable`           | A wrapper for AbortController to make it disposable                       | -                     |
+| `ObjectDisposedException`   | An exception thrown when an object is already disposed                    | -                     |
 
 ### Functions
 
 | Class                     | Short Description                                                                                    | Aliases            |
 |---------------------------|------------------------------------------------------------------------------------------------------|--------------------|
 | `disposeAll`              | Dispose of all disposables in the array safely, allowing array modification during disposal          | disposeAllSafe     |
-| `disposeAllUnsafe`        | Dispose of all disposables in the array unsafely, allowing array modification during disposal        | -                  |
+| `disposeAllUnsafe`        | Dispose of all disposables in the array unsafely, array modification during disposal is dangerous    | -                  |
 | `createDisposable`        | Create a disposable object from a given parameter                                                    | toDisposable       |
 | `createDisposableCompat`  | Create a disposable object from a given parameter compatible with the 'using' keyword                | toDisposableCompat |
 | `disposableFromEvent`     | Create a disposable object from an event listener                                                    | on                 |
@@ -215,7 +213,8 @@ file.
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request on GitHub. Remember to write tests for your changes.
+Contributions are welcome! Please open an issue or submit a pull request on GitHub. Remember to write tests for your
+changes.
 
 ## License
 
