@@ -352,9 +352,6 @@ declare function disposableFromEvent<K extends string | symbol>(emitter: EventEm
  */
 declare function disposableFromEventOnce<K extends string | symbol>(emitter: EventEmitterLike, event: K, listener: (...args: any[]) => void): DisposableAwareCompat;
 
-declare const CompositeDisposable: typeof DisposableStore;
-declare const SerialDisposable: typeof DisposableContainer;
-declare const BooleanDisposable: typeof BoolDisposable;
 declare const disposeAllSafe: typeof disposeAll;
 declare const on: typeof disposableFromEvent;
 declare const once: typeof disposableFromEventOnce;
@@ -498,4 +495,4 @@ declare function isSystemDisposable(value: any): value is Disposable;
  */
 declare function isSystemAsyncDisposable(value: any): value is AsyncDisposable;
 
-export { AbortDisposable, AsyncDisposableAction, type AsyncDisposableAware, type AsyncDisposableAwareCompat, type AsyncDisposableCompat, type AsyncDisposeFunc, BoolDisposable, BooleanDisposable, CompositeDisposable, Disposable$1 as Disposable, DisposableAction, type DisposableAware, type DisposableAwareCompat, type DisposableCompat, DisposableContainer, type DisposableLike, DisposableStore, type DisposeFunc, type IAsyncDisposable, type IDisposable, type IDisposablesContainer, ObjectDisposedException, SafeActionDisposable, SafeAsyncActionDisposable, SerialDisposable, createDisposable, createDisposableCompat, disposableFromEvent, disposableFromEventOnce, disposeAll, disposeAllSafe, disposeAllUnsafe, emptyDisposable, isAsyncDisposableCompat, isDisposable, isDisposableCompat, isDisposableLike, isSystemAsyncDisposable, isSystemDisposable, on, once, safeDisposableExceptionHandlerManager, toDisposable, toDisposableCompat };
+export { AbortDisposable, AsyncDisposableAction, type AsyncDisposableAware, type AsyncDisposableAwareCompat, type AsyncDisposableCompat, type AsyncDisposeFunc, BoolDisposable, BoolDisposable as BooleanDisposable, DisposableStore as CompositeDisposable, Disposable$1 as Disposable, DisposableAction, type DisposableAware, type DisposableAwareCompat, type DisposableCompat, DisposableContainer, type DisposableLike, DisposableStore, type DisposeFunc, type IAsyncDisposable, type IDisposable, type IDisposablesContainer, ObjectDisposedException, SafeActionDisposable, SafeAsyncActionDisposable, DisposableContainer as SerialDisposable, createDisposable, createDisposableCompat, disposableFromEvent, disposableFromEventOnce, disposeAll, disposeAllSafe, disposeAllUnsafe, emptyDisposable, isAsyncDisposableCompat, isDisposable, isDisposableCompat, isDisposableLike, isSystemAsyncDisposable, isSystemDisposable, on, once, safeDisposableExceptionHandlerManager, toDisposable, toDisposableCompat };
