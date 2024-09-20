@@ -5,9 +5,11 @@ import {disposeAll} from "./dispose-batch";
 import {disposableFromEvent, disposableFromEventOnce} from "./event";
 import {createDisposable, createDisposableCompat} from "./create";
 
-export const CompositeDisposable = DisposableStore
-export const SerialDisposable = DisposableContainer
-export const BooleanDisposable = BoolDisposable
+export {
+  BoolDisposable as BooleanDisposable,
+  DisposableContainer as SerialDisposable,
+  DisposableStore as CompositeDisposable
+}
 export const disposeAllSafe = disposeAll
 export const on = disposableFromEvent
 export const once = disposableFromEventOnce
