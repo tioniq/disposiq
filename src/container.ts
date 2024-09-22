@@ -1,4 +1,5 @@
 import {DisposableAwareCompat, IDisposable} from "./declarations";
+import {Disposiq} from "./disposiq";
 
 /**
  * A container for a disposable object. It can be replaced with another disposable object.
@@ -9,7 +10,7 @@ import {DisposableAwareCompat, IDisposable} from "./declarations";
  * container.dispose() // disposed
  * container.set(createDisposable(() => console.log("disposed again"))) // disposed again
  */
-export class DisposableContainer implements DisposableAwareCompat {
+export class DisposableContainer extends Disposiq implements DisposableAwareCompat {
   /**
    * @internal
    */
@@ -21,6 +22,7 @@ export class DisposableContainer implements DisposableAwareCompat {
   private _disposed: boolean = false
 
   constructor(disposable: IDisposable | undefined = undefined) {
+    super()
     this._disposable = disposable
   }
 
@@ -90,12 +92,5 @@ export class DisposableContainer implements DisposableAwareCompat {
     }
     this._disposable.dispose()
     this._disposable = undefined
-  }
-
-  /**
-   * Support for the internal Disposable API
-   */
-  [Symbol.dispose](): void {
-    this.dispose()
   }
 }

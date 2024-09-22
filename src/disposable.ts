@@ -1,10 +1,11 @@
 import {DisposableCompat, DisposableLike, IDisposable} from "./declarations";
 import {DisposableStore} from "./store";
+import {Disposiq} from "./disposiq";
 
 /**
  * Disposable is a base class for disposables. It will dispose all added disposables when it is disposed.
  */
-export abstract class Disposable implements DisposableCompat {
+export abstract class Disposable extends Disposiq implements DisposableCompat {
   /**
    * @internal
    */
@@ -50,12 +51,5 @@ export abstract class Disposable implements DisposableCompat {
    */
   dispose(): void {
     this._store.dispose()
-  }
-
-  /**
-   * Support for the internal Disposable API
-   */
-  [Symbol.dispose](): void {
-    this.dispose()
   }
 }

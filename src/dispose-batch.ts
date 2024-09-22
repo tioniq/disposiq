@@ -36,6 +36,9 @@ export function disposeAll(disposables: DisposableLike[]) {
     }
   }
   holder.fill(undefined!, 0, size)
+  if (pool.full) {
+    pool.size *= 2
+  }
   pool.throw(holder)
 }
 

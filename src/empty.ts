@@ -1,17 +1,24 @@
-import {DisposableCompat} from "./declarations";
+import {AsyncDisposableCompat, DisposableCompat} from "./declarations";
+import {AsyncDisposiq, Disposiq} from "./disposiq";
 
-const emptyDisposableImpl: DisposableCompat = {
-  dispose: function () {
-  },
+const emptyPromise = Promise.resolve()
 
-  /**
-   * Support for the internal Disposable API
-   */
-  [Symbol.dispose]: function () {
+class EmptyDisposable extends AsyncDisposiq implements DisposableCompat, AsyncDisposableCompat {
+  dispose(): Promise<void> {
+    return emptyPromise
+  }
+
+  override [Symbol.dispose](): void {
+  }
+
+  override [Symbol.asyncDispose](): Promise<void> {
+    return emptyPromise
   }
 }
+
+const emptyDisposableImpl = new EmptyDisposable()
 
 /**
  * An empty disposable that does nothing when disposed.
  */
-export const emptyDisposable: DisposableCompat = Object.freeze(emptyDisposableImpl)
+export const emptyDisposable: Disposiq & AsyncDisposiq & DisposableCompat & AsyncDisposableCompat = Object.freeze(emptyDisposableImpl)

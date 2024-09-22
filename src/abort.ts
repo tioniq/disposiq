@@ -1,15 +1,17 @@
 import {DisposableAwareCompat} from "./declarations";
+import {Disposiq} from "./disposiq";
 
 /**
  * Disposable container for AbortController. It will abort the signal when it is disposed.
  */
-export class AbortDisposable implements DisposableAwareCompat {
+export class AbortDisposable extends Disposiq implements DisposableAwareCompat {
   /**
    * @internal
    */
   private readonly _controller: AbortController
 
   constructor(controller: AbortController) {
+    super()
     this._controller = controller
   }
 
@@ -32,12 +34,5 @@ export class AbortDisposable implements DisposableAwareCompat {
    */
   dispose(): void {
     this._controller.abort()
-  }
-
-  /**
-   * Support for the internal Disposable API
-   */
-  [Symbol.dispose](): void {
-    this.dispose()
   }
 }

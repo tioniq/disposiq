@@ -1,4 +1,4 @@
-import {disposeAll, disposeAllUnsafe} from "../src/dispose-batch";
+import {disposeAll, disposeAllUnsafe} from "../src";
 import {DisposableLike, IDisposable} from "../src";
 
 describe('dispose-all-unsafe', () => {
@@ -108,5 +108,51 @@ describe('dispose-all-safe', () => {
     disposables.push(disposable1)
     disposeAll(disposables)
     expect(disposable2.dispose).not.toHaveBeenCalled()
+  })
+  it('should handle many dispose at the same time', () => {
+    const disposablesOfDisposables: DisposableLike[][] = []
+    const disposableFunc = jest.fn()
+    const iCount = 100
+    for (let i = 0; i < iCount; i++) {
+      const disposables: DisposableLike[] = []
+      disposablesOfDisposables.push(disposables)
+      for (let j = 0; j < 10 + i; j++) {
+        const index = i
+        if (j == 0 && index != iCount - 1) {
+          disposables.push(() => {
+            disposeAll(disposablesOfDisposables[index + 1])
+          })
+        } else {
+          disposables.push(disposableFunc)
+        }
+      }
+    }
+
+    disposeAll(disposablesOfDisposables[0])
+
+    expect(disposableFunc).toHaveBeenCalledTimes(iCount * 9 + 1 + Math.floor((iCount * (iCount - 1) / 2)))
+
+    // Check if disposeAll is reusable
+    const disposablesOfDisposables2: DisposableLike[][] = []
+    const disposableFunc2 = jest.fn()
+    const iCount2 = 200
+    for (let i = 0; i < iCount2; i++) {
+      const disposables: DisposableLike[] = []
+      disposablesOfDisposables2.push(disposables)
+      for (let j = 0; j < 20 + i; j++) {
+        const index = i
+        if (j == 0 && index != iCount2 - 1) {
+          disposables.push(() => {
+            disposeAll(disposablesOfDisposables2[index + 1])
+          })
+        } else {
+          disposables.push(disposableFunc2)
+        }
+      }
+    }
+
+    disposeAll(disposablesOfDisposables2[0])
+
+    expect(disposableFunc2).toHaveBeenCalledTimes(iCount2 * 19 + 1 + Math.floor((iCount2 * (iCount2 - 1) / 2)))
   })
 })

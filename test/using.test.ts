@@ -1,4 +1,4 @@
-import {using} from "../src/using";
+import {using} from "../src";
 import {AsyncDisposableAction, DisposableAction} from "../src";
 import {noop} from "../src/utils/noop";
 

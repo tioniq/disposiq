@@ -75,6 +75,46 @@ interface AsyncDisposableCompat extends IAsyncDisposable, AsyncDisposable {
 interface AsyncDisposableAwareCompat extends AsyncDisposableAware, AsyncDisposableCompat {
 }
 
+declare abstract class AsyncDisposiq extends Disposiq {
+    abstract dispose(): Promise<void>;
+    /**
+     * Support for the internal Disposable API
+     */
+    [Symbol.asyncDispose](): Promise<void>;
+}
+/**
+ * Disposiq is a base class for disposables. The only reason is to have ability to extend it with additional functionality.
+ */
+declare abstract class Disposiq implements DisposableCompat {
+    abstract dispose(): void;
+    /**
+     * Support for the internal Disposable API
+     */
+    [Symbol.dispose](): void;
+}
+interface Disposiq {
+    disposeWith(container: IDisposablesContainer): void;
+}
+
+/**
+ * Disposable container for AbortController. It will abort the signal when it is disposed.
+ */
+declare class AbortDisposable extends Disposiq implements DisposableAwareCompat {
+    constructor(controller: AbortController);
+    /**
+     * Returns true if the signal is aborted
+     */
+    get disposed(): boolean;
+    /**
+     * Returns the signal of the AbortController
+     */
+    get signal(): AbortSignal;
+    /**
+     * Abort the signal
+     */
+    dispose(): void;
+}
+
 /**
  * Represents an action that can be disposed. The action is invoked when the action is disposed.
  * The action is only invoked once.
@@ -85,7 +125,7 @@ interface AsyncDisposableAwareCompat extends AsyncDisposableAware, AsyncDisposab
  * action.dispose() // disposed
  * action.dispose() // no-op
  */
-declare class DisposableAction implements DisposableAwareCompat {
+declare class DisposableAction extends Disposiq implements DisposableAwareCompat {
     constructor(action: DisposeFunc);
     /**
      * Returns true if the action has been disposed.
@@ -98,70 +138,40 @@ declare class DisposableAction implements DisposableAwareCompat {
      * is marked as disposed.
      */
     dispose(): void;
-    /**
-     * Support for the internal Disposable API
-     */
-    [Symbol.dispose](): void;
 }
-declare class AsyncDisposableAction implements AsyncDisposableAwareCompat {
+/**
+ * Represents an async action that can be disposed. The action is invoked when the action is disposed.
+ * The action is only invoked once.
+ * @example
+ * const action = new AsyncDisposableAction(async () => {
+ *    console.log("disposed")
+ * })
+ * await action.dispose() // disposed
+ * await action.dispose() // no-op
+ */
+declare class AsyncDisposableAction extends AsyncDisposiq implements AsyncDisposableAwareCompat {
     private readonly _action;
     private _disposed;
     constructor(action: () => Promise<void>);
+    /**
+     * Returns true if the action has been disposed.
+     */
     get disposed(): boolean;
+    /**
+     * Dispose the action. If the action has already been disposed, this is a
+     * no-op.
+     * If the action has not been disposed, the action is invoked and the action
+     * is marked as disposed.
+     */
     dispose(): Promise<void>;
-    /**
-     * Support for the internal Disposable API
-     */
-    [Symbol.asyncDispose](): Promise<void>;
 }
-
-/**
- * Disposable is a base class for disposables. It will dispose all added disposables when it is disposed.
- */
-declare abstract class Disposable$1 implements DisposableCompat {
-    /**
-     * Returns true if the object has been disposed.
-     */
-    protected get disposed(): boolean;
-    /**
-     * Register a disposable object. The object will be disposed when the current object is disposed.
-     * @param t a disposable object
-     * @protected inherited classes should use this method to register disposables
-     * @returns the disposable object
-     */
-    protected register<T extends IDisposable>(t: T): T;
-    /**
-     * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
-     * @param disposable a disposable to add
-     */
-    addDisposable(disposable: DisposableLike): void;
-    /**
-     * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
-     * @param disposables disposables to add
-     */
-    addDisposables(...disposables: DisposableLike[]): void;
-    /**
-     * Dispose the object. If the object has already been disposed, this is a no-op.
-     * If the object has not been disposed, all disposables added to the object will be disposed.
-     */
-    dispose(): void;
-    /**
-     * Support for the internal Disposable API
-     */
-    [Symbol.dispose](): void;
-}
-
-/**
- * An empty disposable that does nothing when disposed.
- */
-declare const emptyDisposable: DisposableCompat;
 
 /**
  * DisposableStore is a container for disposables. It will dispose all added disposables when it is disposed.
  * The store has a disposeCurrent method that will dispose all disposables in the store without disposing the store itself.
  * The store can continue to be used after this method is ¬called.
  */
-declare class DisposableStore implements IDisposablesContainer, DisposableAwareCompat {
+declare class DisposableStore extends Disposiq implements IDisposablesContainer, DisposableAwareCompat {
     constructor();
     /**
      * Returns true if the object has been disposed.
@@ -223,35 +233,7 @@ declare class DisposableStore implements IDisposablesContainer, DisposableAwareC
      * this method will safely add the disposable to the store without disposing it immediately.
      */
     disposeCurrent(): void;
-    /**
-     * Support for the internal Disposable API
-     */
-    [Symbol.dispose](): void;
 }
-
-/**
- * Create a disposable from a disposable like object. The object can be a function, an object with a dispose method,
- * an AbortController, or an object with an internal Symbol.dispose/Symbol.asyncDispose method.
- * @param disposableLike a disposable like object
- * @returns a disposable object. If the input is already a disposable object, it will be returned as is.
- * If the input is a function, it will be wrapped in a DisposableAction object.
- * If the input has internal Symbol.dispose/Symbol.asyncDispose method, it will be wrapped in a DisposableAction object.
- * If the input is an AbortController, it will be wrapped in an AbortDisposable object.
- * If the input is invalid, an empty disposable object will be returned.
- */
-declare function createDisposable(disposableLike: DisposableLike | Disposable | AsyncDisposable | AbortController): IDisposable;
-/**
- * Create a system-compatible disposable from a disposable like object. The object can be a function, an object with a dispose method,
- * an AbortController, or an object with an internal Symbol.dispose/Symbol.asyncDispose method. This function is used to create
- * a disposable object that is compatible with the system's internal disposable object
- * @param disposableLike a disposable like object
- * @returns a disposable object. If the input is already a disposable object with Symbol.dispose/Symbol.asyncDispose, it will be returned as is.
- * If the input is a function, it will be wrapped in a DisposableAction object.
- * If the input has internal Symbol.dispose/Symbol.asyncDispose method, it will be wrapped in a DisposableAction object.
- * If the input is an AbortController, it will be wrapped in an AbortDisposable object.
- * If the input is invalid, an empty disposable object will be returned.
- */
-declare function createDisposableCompat(disposableLike: DisposableLike | Disposable | AsyncDisposable | AbortController): DisposableCompat;
 
 /**
  * A container for a disposable object. It can be replaced with another disposable object.
@@ -262,7 +244,7 @@ declare function createDisposableCompat(disposableLike: DisposableLike | Disposa
  * container.dispose() // disposed
  * container.set(createDisposable(() => console.log("disposed again"))) // disposed again
  */
-declare class DisposableContainer implements DisposableAwareCompat {
+declare class DisposableContainer extends Disposiq implements DisposableAwareCompat {
     constructor(disposable?: IDisposable | undefined);
     /**
      * Returns true if the container is disposed
@@ -290,16 +272,12 @@ declare class DisposableContainer implements DisposableAwareCompat {
      * Dispose the disposable object. All next set or replace calls will dispose the new disposable object
      */
     dispose(): void;
-    /**
-     * Support for the internal Disposable API
-     */
-    [Symbol.dispose](): void;
 }
 
 /**
  * Class of a disposable that can be checked for disposal status.
  */
-declare class BoolDisposable implements DisposableAwareCompat {
+declare class BoolDisposable extends Disposiq implements DisposableAwareCompat {
     constructor(disposed?: boolean);
     /**
      * Returns true if the disposable is disposed
@@ -309,10 +287,6 @@ declare class BoolDisposable implements DisposableAwareCompat {
      * Dispose the object
      */
     dispose(): void;
-    /**
-     * Support for the internal Disposable API
-     */
-    [Symbol.dispose](): void;
 }
 
 /**
@@ -352,6 +326,30 @@ declare function disposableFromEvent<K extends string | symbol>(emitter: EventEm
  */
 declare function disposableFromEventOnce<K extends string | symbol>(emitter: EventEmitterLike, event: K, listener: (...args: any[]) => void): DisposableAwareCompat;
 
+/**
+ * Create a disposable from a disposable like object. The object can be a function, an object with a dispose method,
+ * an AbortController, or an object with an internal Symbol.dispose/Symbol.asyncDispose method.
+ * @param disposableLike a disposable like object
+ * @returns a disposable object. If the input is already a disposable object, it will be returned as is.
+ * If the input is a function, it will be wrapped in a DisposableAction object.
+ * If the input has internal Symbol.dispose/Symbol.asyncDispose method, it will be wrapped in a DisposableAction object.
+ * If the input is an AbortController, it will be wrapped in an AbortDisposable object.
+ * If the input is invalid, an empty disposable object will be returned.
+ */
+declare function createDisposable(disposableLike: DisposableLike | Disposable | AsyncDisposable | AbortController): IDisposable;
+/**
+ * Create a system-compatible disposable from a disposable like object. The object can be a function, an object with a dispose method,
+ * an AbortController, or an object with an internal Symbol.dispose/Symbol.asyncDispose method. This function is used to create
+ * a disposable object that is compatible with the system's internal disposable object
+ * @param disposableLike a disposable like object
+ * @returns a disposable object. If the input is already a disposable object with Symbol.dispose/Symbol.asyncDispose, it will be returned as is.
+ * If the input is a function, it will be wrapped in a DisposableAction object.
+ * If the input has internal Symbol.dispose/Symbol.asyncDispose method, it will be wrapped in a DisposableAction object.
+ * If the input is an AbortController, it will be wrapped in an AbortDisposable object.
+ * If the input is invalid, an empty disposable object will be returned.
+ */
+declare function createDisposableCompat(disposableLike: DisposableLike | Disposable | AsyncDisposable | AbortController): DisposableCompat;
+
 declare const disposeAllSafe: typeof disposeAll;
 declare const on: typeof disposableFromEvent;
 declare const once: typeof disposableFromEventOnce;
@@ -359,115 +357,47 @@ declare const toDisposable: typeof createDisposable;
 declare const toDisposableCompat: typeof createDisposableCompat;
 
 /**
- * Disposable container for AbortController. It will abort the signal when it is disposed.
+ * Disposable is a base class for disposables. It will dispose all added disposables when it is disposed.
  */
-declare class AbortDisposable implements DisposableAwareCompat {
-    constructor(controller: AbortController);
+declare abstract class Disposable$1 extends Disposiq implements DisposableCompat {
     /**
-     * Returns true if the signal is aborted
+     * Returns true if the object has been disposed.
      */
-    get disposed(): boolean;
+    protected get disposed(): boolean;
     /**
-     * Returns the signal of the AbortController
+     * Register a disposable object. The object will be disposed when the current object is disposed.
+     * @param t a disposable object
+     * @protected inherited classes should use this method to register disposables
+     * @returns the disposable object
      */
-    get signal(): AbortSignal;
+    protected register<T extends IDisposable>(t: T): T;
     /**
-     * Abort the signal
+     * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
+     * @param disposable a disposable to add
+     */
+    addDisposable(disposable: DisposableLike): void;
+    /**
+     * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
+     * @param disposables disposables to add
+     */
+    addDisposables(...disposables: DisposableLike[]): void;
+    /**
+     * Dispose the object. If the object has already been disposed, this is a no-op.
+     * If the object has not been disposed, all disposables added to the object will be disposed.
      */
     dispose(): void;
-    /**
-     * Support for the internal Disposable API
-     */
-    [Symbol.dispose](): void;
 }
+
+/**
+ * An empty disposable that does nothing when disposed.
+ */
+declare const emptyDisposable: Disposiq & AsyncDisposiq & DisposableCompat & AsyncDisposableCompat;
 
 /**
  * Exception class for scenarios where an exception needs to be thrown when an object is disposed
  */
 declare class ObjectDisposedException extends Error {
     constructor(message?: string | undefined);
-}
-
-type ExceptionHandler = (error: Error) => void;
-/**
- * Exception handler manager
- */
-declare class ExceptionHandlerManager {
-    /**
-     * Create a new ExceptionHandlerManager with the default handler
-     * @param defaultHandler the default handler. If not provided, the default handler will be a no-op
-     */
-    constructor(defaultHandler?: ExceptionHandler | null);
-    /**
-     * Get the handler for the manager
-     */
-    get handler(): ExceptionHandler;
-    /**
-     * Set the handler for the manager
-     */
-    set handler(value: ExceptionHandler | undefined | null);
-    /**
-     * Reset the handler to the default handler
-     */
-    reset(): void;
-    /**
-     * Handle an exception
-     * @param error the exception to handle
-     */
-    handle(error: Error): void;
-    /**
-     * Handle an exception
-     * @param error the exception to handle
-     */
-    handleAny(error: any): void;
-    /**
-     * Handle an exception safely
-     * @param error the exception to handle
-     */
-    handleSafe(error: Error): void;
-    /**
-     * Handle an exception safely
-     * @param error the exception to handle
-     */
-    handleAnySafe(error: any): void;
-}
-
-declare const safeDisposableExceptionHandlerManager: ExceptionHandlerManager;
-/**
- * Represents a safe action that can be disposed. The action is invoked when the action is disposed.
- */
-declare class SafeActionDisposable implements DisposableAwareCompat {
-    constructor(action: () => void);
-    /**
-     * Returns true if the action has been disposed.
-     */
-    get disposed(): boolean;
-    /**
-     * Dispose the action. If the action has already been disposed, this is a no-op.
-     */
-    dispose(): void;
-    /**
-     * Support for the internal Disposable API
-     */
-    [Symbol.dispose](): void;
-}
-/**
- * Represents a safe async action that can be disposed. The action is invoked when the action is disposed.
- */
-declare class SafeAsyncActionDisposable implements AsyncDisposableAwareCompat {
-    constructor(action: () => Promise<void>);
-    /**
-     * Returns true if the action has been disposed.
-     */
-    get disposed(): boolean;
-    /**
-     * Dispose the action. If the action has already been disposed, this is a no-op.
-     */
-    dispose(): Promise<void>;
-    /**
-     * Support for the internal Disposable API
-     */
-    [Symbol.asyncDispose](): Promise<void>;
 }
 
 /**
@@ -495,4 +425,71 @@ declare function isSystemDisposable(value: any): value is Disposable;
  */
 declare function isSystemAsyncDisposable(value: any): value is AsyncDisposable;
 
-export { AbortDisposable, AsyncDisposableAction, type AsyncDisposableAware, type AsyncDisposableAwareCompat, type AsyncDisposableCompat, type AsyncDisposeFunc, BoolDisposable, BoolDisposable as BooleanDisposable, DisposableStore as CompositeDisposable, Disposable$1 as Disposable, DisposableAction, type DisposableAware, type DisposableAwareCompat, type DisposableCompat, DisposableContainer, type DisposableLike, DisposableStore, type DisposeFunc, type IAsyncDisposable, type IDisposable, type IDisposablesContainer, ObjectDisposedException, SafeActionDisposable, SafeAsyncActionDisposable, DisposableContainer as SerialDisposable, createDisposable, createDisposableCompat, disposableFromEvent, disposableFromEventOnce, disposeAll, disposeAllSafe, disposeAllUnsafe, emptyDisposable, isAsyncDisposableCompat, isDisposable, isDisposableCompat, isDisposableLike, isSystemAsyncDisposable, isSystemDisposable, on, once, safeDisposableExceptionHandlerManager, toDisposable, toDisposableCompat };
+type ExceptionHandler = (error: any) => void;
+/**
+ * Exception handler manager
+ */
+declare class ExceptionHandlerManager {
+    /**
+     * Create a new ExceptionHandlerManager with the default handler
+     * @param defaultHandler the default handler. If not provided, the default handler will be a no-op
+     */
+    constructor(defaultHandler?: ExceptionHandler | null);
+    /**
+     * Get the handler for the manager
+     */
+    get handler(): ExceptionHandler;
+    /**
+     * Set the handler for the manager
+     */
+    set handler(value: ExceptionHandler | undefined | null);
+    /**
+     * Reset the handler to the default handler
+     */
+    reset(): void;
+    /**
+     * Handle an exception
+     * @param error the exception to handle
+     */
+    handle(error: any): void;
+    /**
+     * Handle an exception safely
+     * @param error the exception to handle
+     */
+    handleSafe(error: Error): void;
+}
+
+declare const safeDisposableExceptionHandlerManager: ExceptionHandlerManager;
+/**
+ * Represents a safe action that can be disposed. The action is invoked when the action is disposed.
+ */
+declare class SafeActionDisposable extends Disposiq implements DisposableAwareCompat {
+    constructor(action: () => void);
+    /**
+     * Returns true if the action has been disposed.
+     */
+    get disposed(): boolean;
+    /**
+     * Dispose the action. If the action has already been disposed, this is a no-op.
+     */
+    dispose(): void;
+}
+/**
+ * Represents a safe async action that can be disposed. The action is invoked when the action is disposed.
+ */
+declare class SafeAsyncActionDisposable extends AsyncDisposiq implements AsyncDisposableAwareCompat {
+    constructor(action: () => Promise<void>);
+    /**
+     * Returns true if the action has been disposed.
+     */
+    get disposed(): boolean;
+    /**
+     * Dispose the action. If the action has already been disposed, this is a no-op.
+     */
+    dispose(): Promise<void>;
+}
+
+declare function using<T extends IDisposable, R>(resource: T, action: (resource: T) => R): R;
+declare function using<T extends IDisposable | IAsyncDisposable, R>(resource: T, action: (resource: T) => Promise<R>): Promise<R>;
+
+export { AbortDisposable, AsyncDisposableAction, type AsyncDisposableAware, type AsyncDisposableAwareCompat, type AsyncDisposableCompat, type AsyncDisposeFunc, AsyncDisposiq, Disposiq as BaseDisposable, BoolDisposable, BoolDisposable as BooleanDisposable, DisposableStore as CompositeDisposable, Disposable$1 as Disposable, DisposableAction, type DisposableAware, type DisposableAwareCompat, type DisposableCompat, DisposableContainer, type DisposableLike, DisposableStore, type DisposeFunc, Disposiq, type IAsyncDisposable, type IDisposable, type IDisposablesContainer, ObjectDisposedException, SafeActionDisposable, SafeAsyncActionDisposable, DisposableContainer as SerialDisposable, createDisposable, createDisposableCompat, disposableFromEvent, disposableFromEventOnce, disposeAll, disposeAllSafe, disposeAllUnsafe, emptyDisposable, isAsyncDisposableCompat, isDisposable, isDisposableCompat, isDisposableLike, isSystemAsyncDisposable, isSystemDisposable, on, once, safeDisposableExceptionHandlerManager, toDisposable, toDisposableCompat, using };

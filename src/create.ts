@@ -2,6 +2,7 @@ import {DisposableCompat, DisposableLike, IDisposable} from "./declarations";
 import {emptyDisposable} from "./empty";
 import {AsyncDisposableAction, DisposableAction} from "./action";
 import {AbortDisposable} from "./abort";
+import {Disposiq} from "./disposiq";
 
 /**
  * Create a disposable from a disposable like object. The object can be a function, an object with a dispose method,
@@ -20,32 +21,30 @@ export function createDisposable(disposableLike: DisposableLike | Disposable | A
   if (typeof disposableLike === 'function') {
     return new DisposableAction(disposableLike)
   }
-  if (typeof disposableLike === 'object') {
-    if ("dispose" in disposableLike) {
-      return disposableLike
-    }
-    if (Symbol.dispose in disposableLike) {
-      return new DisposableAction(() => {
-        const dispose = disposableLike[Symbol.dispose]
-        dispose()
-      })
-    }
-    if (Symbol.asyncDispose in disposableLike) {
-      return new AsyncDisposableAction(async () => {
-        const dispose = disposableLike[Symbol.asyncDispose]
-        await dispose()
-      })
-    }
-    if ("unref" in disposableLike) {
-      // @ts-ignore
-      return new DisposableAction(() => disposableLike.unref())
-    }
-    if (disposableLike instanceof AbortController) {
-      // @ts-ignore
-      return new AbortDisposable(disposableLike)
-    }
+  if (typeof disposableLike !== 'object') {
+    return emptyDisposable
   }
-  // console.warn("Invalid disposable", disposableLike)
+  if ("dispose" in disposableLike) {
+    return disposableLike
+  }
+  if (Symbol.dispose in disposableLike) {
+    return new DisposableAction(() => {
+      disposableLike[Symbol.dispose]()
+    })
+  }
+  if (Symbol.asyncDispose in disposableLike) {
+    return new AsyncDisposableAction(async () => {
+      await disposableLike[Symbol.asyncDispose]()
+    })
+  }
+  if ("unref" in disposableLike) {
+    // @ts-ignore
+    return new DisposableAction(() => disposableLike.unref())
+  }
+  if (disposableLike instanceof AbortController) {
+    // @ts-ignore
+    return new AbortDisposable(disposableLike)
+  }
   return emptyDisposable
 }
 
@@ -67,32 +66,87 @@ export function createDisposableCompat(disposableLike: DisposableLike | Disposab
   if (typeof disposableLike === 'function') {
     return new DisposableAction(disposableLike)
   }
-  if (typeof disposableLike === 'object') {
-    const hasDispose = "dispose" in disposableLike
-    const hasSymbolDispose = Symbol.dispose in disposableLike
-    if (hasDispose && hasSymbolDispose) {
-      return disposableLike as DisposableCompat
-    }
-    if (hasDispose) {
-      return new DisposableAction(() => disposableLike.dispose())
-    }
-    if (hasSymbolDispose) {
-      return new DisposableAction(() => disposableLike[Symbol.dispose]())
-    }
-    if (Symbol.asyncDispose in disposableLike) {
-      return new DisposableAction(async () => {
-        disposableLike[Symbol.asyncDispose]()
-      })
-    }
-    if ("unref" in disposableLike) {
-      // @ts-ignore
-      return new DisposableAction(() => disposableLike.unref())
-    }
-    if (disposableLike instanceof AbortController) {
-      // @ts-ignore
-      return new AbortDisposable(disposableLike)
+  if (typeof disposableLike !== 'object') {
+    return emptyDisposable
+  }
+  const hasDispose = "dispose" in disposableLike
+  const hasSymbolDispose = Symbol.dispose in disposableLike
+  if (hasDispose && hasSymbolDispose) {
+    return disposableLike as DisposableCompat
+  }
+  if (hasDispose) {
+    return new DisposableAction(() => disposableLike.dispose())
+  }
+  if (hasSymbolDispose) {
+    return new DisposableAction(() => disposableLike[Symbol.dispose]())
+  }
+  if (Symbol.asyncDispose in disposableLike) {
+    return new DisposableAction(async () => {
+      disposableLike[Symbol.asyncDispose]()
+    })
+  }
+  if ("unref" in disposableLike) {
+    // @ts-ignore
+    return new DisposableAction(() => disposableLike.unref())
+  }
+  if (disposableLike instanceof AbortController) {
+    // @ts-ignore
+    return new AbortDisposable(disposableLike)
+  }
+  return emptyDisposable
+}
+
+/**
+ * Create a Disposiq-inherited object from a disposable like object. The object can be a function, an object with a
+ * dispose method, an AbortController, or an object with an internal Symbol.dispose/Symbol.asyncDispose method. This
+ * function is used to create a Disposiq instance that is compatible with all extensions of Disposiq
+ * @param disposableLike a disposable like object
+ * @returns a Disposiq object. If the input is already a Disposiq object, it will be returned as is.
+ */
+export function createDisposiq(disposableLike: DisposableLike | Disposable | AsyncDisposable | AbortController): Disposiq {
+  if (!disposableLike) {
+    return emptyDisposable
+  }
+  if (disposableLike instanceof Disposiq) {
+    return disposableLike
+  }
+  if (typeof disposableLike === 'function') {
+    return new DisposableAction(disposableLike)
+  }
+  if (typeof disposableLike !== 'object') {
+    return emptyDisposable
+  }
+  const hasDispose = "dispose" in disposableLike && typeof disposableLike.dispose === "function"
+  const hasSymbolDispose = Symbol.dispose in disposableLike
+  if (hasDispose && hasSymbolDispose) {
+    return new class extends Disposiq {
+      dispose() {
+        disposableLike.dispose()
+      }
+
+      override [Symbol.dispose](): void {
+        (disposableLike[Symbol.dispose] as () => void)()
+      }
     }
   }
-  // console.warn("Invalid disposable", disposableLike)
+  if (hasDispose) {
+    return new DisposableAction(() => disposableLike.dispose())
+  }
+  if (hasSymbolDispose) {
+    return new DisposableAction(() => disposableLike[Symbol.dispose]())
+  }
+  if (Symbol.asyncDispose in disposableLike) {
+    return new AsyncDisposableAction(async () => {
+      await disposableLike[Symbol.asyncDispose]()
+    })
+  }
+  if ("unref" in disposableLike) {
+    // @ts-ignore
+    return new DisposableAction(() => disposableLike.unref())
+  }
+  if (disposableLike instanceof AbortController) {
+    // @ts-ignore
+    return new AbortDisposable(disposableLike)
+  }
   return emptyDisposable
 }

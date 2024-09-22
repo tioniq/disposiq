@@ -21,6 +21,10 @@ export class ObjectPool<T> {
     return this._scrap.toArray()
   }
 
+  get full(): boolean {
+    return this._scrap.length === this._size
+  }
+
   public lift(): T | null {
     return this._scrap.length > 0 ? this._scrap.dequeue() : null
   }

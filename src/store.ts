@@ -1,13 +1,14 @@
 import {DisposableAwareCompat, DisposableLike, IDisposable, IDisposablesContainer} from "./declarations";
 import {DisposableAction} from "./action";
 import {disposeAll, disposeAllUnsafe} from "./dispose-batch";
+import {Disposiq} from "./disposiq";
 
 /**
  * DisposableStore is a container for disposables. It will dispose all added disposables when it is disposed.
  * The store has a disposeCurrent method that will dispose all disposables in the store without disposing the store itself.
  * The store can continue to be used after this method is ¬called.
  */
-export class DisposableStore implements IDisposablesContainer, DisposableAwareCompat {
+export class DisposableStore extends Disposiq implements IDisposablesContainer, DisposableAwareCompat {
   /**
    * @internal
    */
@@ -19,6 +20,7 @@ export class DisposableStore implements IDisposablesContainer, DisposableAwareCo
   private _disposed: boolean = false
 
   constructor() {
+    super()
     this._disposables = new Array<IDisposable>()
   }
 
@@ -174,12 +176,5 @@ export class DisposableStore implements IDisposablesContainer, DisposableAwareCo
    */
   disposeCurrent(): void {
     disposeAll(this._disposables)
-  }
-
-  /**
-   * Support for the internal Disposable API
-   */
-  [Symbol.dispose](): void {
-    this.dispose()
   }
 }

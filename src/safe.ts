@@ -1,13 +1,14 @@
 import {AsyncDisposableAwareCompat, DisposableAwareCompat} from "./declarations";
 import {ExceptionHandlerManager} from "./utils/exception-handler-manager";
 import {noop, noopAsync} from "./utils/noop";
+import {AsyncDisposiq, Disposiq} from "./disposiq";
 
 export const safeDisposableExceptionHandlerManager = new ExceptionHandlerManager()
 
 /**
  * Represents a safe action that can be disposed. The action is invoked when the action is disposed.
  */
-export class SafeActionDisposable implements DisposableAwareCompat {
+export class SafeActionDisposable extends Disposiq implements DisposableAwareCompat {
   /**
    * @internal
    */
@@ -19,6 +20,7 @@ export class SafeActionDisposable implements DisposableAwareCompat {
   private _disposed = false
 
   constructor(action: () => void) {
+    super()
     this._action = typeof action === "function" ? action : noop
   }
 
@@ -40,22 +42,15 @@ export class SafeActionDisposable implements DisposableAwareCompat {
     try {
       this._action()
     } catch (e) {
-      safeDisposableExceptionHandlerManager.handleAny(e)
+      safeDisposableExceptionHandlerManager.handle(e)
     }
-  }
-
-  /**
-   * Support for the internal Disposable API
-   */
-  [Symbol.dispose](): void {
-    this.dispose();
   }
 }
 
 /**
  * Represents a safe async action that can be disposed. The action is invoked when the action is disposed.
  */
-export class SafeAsyncActionDisposable implements AsyncDisposableAwareCompat {
+export class SafeAsyncActionDisposable extends AsyncDisposiq implements AsyncDisposableAwareCompat {
   /**
    * @internal
    */
@@ -67,6 +62,7 @@ export class SafeAsyncActionDisposable implements AsyncDisposableAwareCompat {
   private _disposed = false
 
   constructor(action: () => Promise<void>) {
+    super()
     this._action = typeof action === "function" ? action : noopAsync
   }
 
@@ -88,14 +84,7 @@ export class SafeAsyncActionDisposable implements AsyncDisposableAwareCompat {
     try {
       await this._action()
     } catch (e) {
-      safeDisposableExceptionHandlerManager.handleAny(e)
+      safeDisposableExceptionHandlerManager.handle(e)
     }
-  }
-
-  /**
-   * Support for the internal Disposable API
-   */
-  [Symbol.asyncDispose](): Promise<void> {
-    return this.dispose()
   }
 }

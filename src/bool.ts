@@ -1,15 +1,17 @@
 import {DisposableAwareCompat} from "./declarations";
+import {Disposiq} from "./disposiq";
 
 /**
  * Class of a disposable that can be checked for disposal status.
  */
-export class BoolDisposable implements DisposableAwareCompat {
+export class BoolDisposable extends Disposiq implements DisposableAwareCompat {
   /**
    * @internal
    */
   private _disposed: boolean = false
 
   constructor(disposed: boolean = false) {
+    super()
     this._disposed = disposed
   }
 
@@ -25,12 +27,5 @@ export class BoolDisposable implements DisposableAwareCompat {
    */
   dispose() {
     this._disposed = true
-  }
-
-  /**
-   * Support for the internal Disposable API
-   */
-  [Symbol.dispose]() {
-    this.dispose()
   }
 }
