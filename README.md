@@ -4,6 +4,7 @@
 ![npm version](https://img.shields.io/npm/v/@tioniq/disposiq)
 [![npm bundle size](https://img.shields.io/bundlephobia/minzip/@tioniq/disposiq)](https://bundlephobia.com/package/@tioniq/disposiq)
 ![license](https://img.shields.io/npm/l/@tioniq/disposiq)
+![tree-shakeable](https://badgen.net/bundlephobia/tree-shaking/@tioniq/disposiq)
 
 **Disposiq** is a utility collection
 of [Disposable (or Dispose) pattern](https://en.wikipedia.org/wiki/Dispose_pattern).
