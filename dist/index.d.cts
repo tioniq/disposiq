@@ -349,12 +349,14 @@ declare function createDisposable(disposableLike: DisposableLike | Disposable | 
  * If the input is invalid, an empty disposable object will be returned.
  */
 declare function createDisposableCompat(disposableLike: DisposableLike | Disposable | AsyncDisposable | AbortController): DisposableCompat;
-
-declare const disposeAllSafe: typeof disposeAll;
-declare const on: typeof disposableFromEvent;
-declare const once: typeof disposableFromEventOnce;
-declare const toDisposable: typeof createDisposable;
-declare const toDisposableCompat: typeof createDisposableCompat;
+/**
+ * Create a Disposiq-inherited object from a disposable like object. The object can be a function, an object with a
+ * dispose method, an AbortController, or an object with an internal Symbol.dispose/Symbol.asyncDispose method. This
+ * function is used to create a Disposiq instance that is compatible with all extensions of Disposiq
+ * @param disposableLike a disposable like object
+ * @returns a Disposiq object. If the input is already a Disposiq object, it will be returned as is.
+ */
+declare function createDisposiq(disposableLike: DisposableLike | Disposable | AsyncDisposable | AbortController): Disposiq;
 
 /**
  * Disposable is a base class for disposables. It will dispose all added disposables when it is disposed.
@@ -492,4 +494,4 @@ declare class SafeAsyncActionDisposable extends AsyncDisposiq implements AsyncDi
 declare function using<T extends IDisposable, R>(resource: T, action: (resource: T) => R): R;
 declare function using<T extends IDisposable | IAsyncDisposable, R>(resource: T, action: (resource: T) => Promise<R>): Promise<R>;
 
-export { AbortDisposable, AsyncDisposableAction, type AsyncDisposableAware, type AsyncDisposableAwareCompat, type AsyncDisposableCompat, type AsyncDisposeFunc, AsyncDisposiq, Disposiq as BaseDisposable, BoolDisposable, BoolDisposable as BooleanDisposable, DisposableStore as CompositeDisposable, Disposable$1 as Disposable, DisposableAction, type DisposableAware, type DisposableAwareCompat, type DisposableCompat, DisposableContainer, type DisposableLike, DisposableStore, type DisposeFunc, Disposiq, type IAsyncDisposable, type IDisposable, type IDisposablesContainer, ObjectDisposedException, SafeActionDisposable, SafeAsyncActionDisposable, DisposableContainer as SerialDisposable, createDisposable, createDisposableCompat, disposableFromEvent, disposableFromEventOnce, disposeAll, disposeAllSafe, disposeAllUnsafe, emptyDisposable, isAsyncDisposableCompat, isDisposable, isDisposableCompat, isDisposableLike, isSystemAsyncDisposable, isSystemDisposable, on, once, safeDisposableExceptionHandlerManager, toDisposable, toDisposableCompat, using };
+export { AbortDisposable, AsyncDisposableAction, type AsyncDisposableAware, type AsyncDisposableAwareCompat, type AsyncDisposableCompat, type AsyncDisposeFunc, AsyncDisposiq, AsyncDisposiq as BaseAsyncDisposable, Disposiq as BaseDisposable, BoolDisposable, BoolDisposable as BooleanDisposable, DisposableStore as CompositeDisposable, Disposable$1 as Disposable, DisposableAction, type DisposableAware, type DisposableAwareCompat, type DisposableCompat, DisposableContainer, type DisposableLike, DisposableStore, type DisposeFunc, Disposiq, type IAsyncDisposable, type IDisposable, type IDisposablesContainer, ObjectDisposedException, SafeActionDisposable, SafeAsyncActionDisposable, DisposableContainer as SerialDisposable, createDisposable, createDisposableCompat, createDisposiq, disposableFromEvent, disposableFromEventOnce, disposeAll, disposeAll as disposeAllSafe, disposeAllUnsafe, emptyDisposable, isAsyncDisposableCompat, isDisposable, isDisposableCompat, isDisposableLike, isSystemAsyncDisposable, isSystemDisposable, disposableFromEvent as on, disposableFromEventOnce as once, safeDisposableExceptionHandlerManager, createDisposable as toDisposable, createDisposableCompat as toDisposableCompat, createDisposiq as toDisposiq, using };

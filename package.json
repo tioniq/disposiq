@@ -1,6 +1,6 @@
 {
   "name": "@tioniq/disposiq",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Disposiq is a utility collection of Disposable (aka Dispose) pattern",
   "private": false,
   "author": {
@@ -53,7 +53,6 @@
     "test:badges": "coverage-badges",
     "build:watch": "tsup --watch",
     "run:example": "npx tsx ./example/index.ts",
-    "//run:example": "node --no-warnings=ExperimentalWarning --loader ts-node/esm ./example/index.ts",
     "prepublishOnly": "npm run build && npm run test:coverage && npm run test:badges",
     "run:publish": "npm publish --access public"
   },
