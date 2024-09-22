@@ -146,11 +146,37 @@ You can find a simple example [here](https://github.com/tioniq/disposiq/blob/mai
 Also, check out another project built with Disposiq: [Eventiq](https://www.npmjs.com/package/@tioniq/eventiq).
 It's an implementation of the Observer pattern using Disposiq. It's an interesting project worth exploring!
 
+## Extensions
+
+The library is flexible and can be extended to custom functionality. All classes in the library extend the `Disposiq`
+class, so you can add custom methods to the class.
+</br>
+For example, you can add a custom method to the `Disposiq` class:
+
+```typescript
+import {Disposiq, DisposableAction, IDisposable} from '@tioniq/disposiq'
+
+declare module '@tioniq/disposiq' {
+  interface Disposiq {
+    togetherWith(other: IDisposable): Disposiq
+  }
+}
+
+Disposiq.prototype.togetherWith = function (this: Disposiq, other: IDisposable): Disposiq {
+  return new DisposableAction(() => {
+    this.dispose()
+    other.dispose()
+  })
+}
+```
+
 ## Inspiration
 
 This library is inspired by the
 
 - [Dispose pattern](https://en.wikipedia.org/wiki/Dispose_pattern) and its principles
+- The usage of disposables in [Monaco Editor](https://github.com/microsoft/monaco-editor) and
+  [VSCode](https://github.com/microsoft/vscode)
 - The usage of disposables
   in [RxJava](https://github.com/ReactiveX/RxJava/blob/3.x/src/main/java/io/reactivex/rxjava3/disposables/Disposable.java)
   and [ReactiveX](https://github.com/dotnet/reactive/blob/840fa395d4a6e36ba4727d7943ea4773897affce/Rx.NET/Source/src/System.Reactive/Disposables/Disposable.cs)
@@ -179,17 +205,19 @@ This library is inspired by the
 
 ### Classes
 
-| Class                       | Short Description                                                         | Aliases               |
-|-----------------------------|---------------------------------------------------------------------------|-----------------------|
-| `DisposableAction`          | A container for a function to be called on dispose                        | -                     |
-| `AsyncDisposableAction`     | A container for an asynchronous function to be called on dispose          | -                     |
-| `DisposableStore`           | A container for disposables                                               | `CompositeDisposable` |
-| `DisposableContainer`       | A container for a disposable object                                       | `SerialDisposable`    |
-| `BoolDisposable`            | A object that aware of its disposed state                                 | `BooleanDisposable`   |
-| `SafeActionDisposable`      | A container for a function that is safely called on dispose               | -                     |
-| `SafeAsyncActionDisposable` | A container for an asynchronous function that is safely called on dispose | -                     |
-| `AbortDisposable`           | A wrapper for AbortController to make it disposable                       | -                     |
-| `ObjectDisposedException`   | An exception thrown when an object is already disposed                    | -                     |
+| Class                       | Short Description                                                         | Aliases                 |
+|-----------------------------|---------------------------------------------------------------------------|-------------------------|
+| `Disposiq`                  | Base class for all library disposables                                    | - `BaseDisposable`      |
+| `AsyncDisposiq`             | Base class for all library asynchronous disposables                       | - `BaseAsyncDisposable` |
+| `DisposableAction`          | A container for a function to be called on dispose                        | -                       |
+| `AsyncDisposableAction`     | A container for an asynchronous function to be called on dispose          | -                       |
+| `DisposableStore`           | A container for disposables                                               | `CompositeDisposable`   |
+| `DisposableContainer`       | A container for a disposable object                                       | `SerialDisposable`      |
+| `BoolDisposable`            | A object that aware of its disposed state                                 | `BooleanDisposable`     |
+| `SafeActionDisposable`      | A container for a function that is safely called on dispose               | -                       |
+| `SafeAsyncActionDisposable` | A container for an asynchronous function that is safely called on dispose | -                       |
+| `AbortDisposable`           | A wrapper for AbortController to make it disposable                       | -                       |
+| `ObjectDisposedException`   | An exception thrown when an object is already disposed                    | -                       |
 
 ### Functions
 
