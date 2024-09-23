@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.8] - 2024-09-23
+
+### Added
+
+- New methods `throwIfDisposed` to `Disposable` and `DisposableStore` classes
+- New static function `from` to `DisposableStore` class
+
 ## [1.0.7] - 2024-09-22
 
 ### Added

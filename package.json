@@ -1,6 +1,6 @@
 {
   "name": "@tioniq/disposiq",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Disposiq is a utility collection of Disposable (aka Dispose) pattern",
   "private": false,
   "author": {
@@ -44,7 +44,12 @@
     "resource",
     "disposables",
     "cleanup-resources",
-    "disposal"
+    "disposal",
+    "gc",
+    "garbage-collection",
+    "garbage",
+    "explicit resource management",
+    "erm"
   ],
   "scripts": {
     "build": "tsup",

@@ -169,7 +169,7 @@ declare class AsyncDisposableAction extends AsyncDisposiq implements AsyncDispos
 /**
  * DisposableStore is a container for disposables. It will dispose all added disposables when it is disposed.
  * The store has a disposeCurrent method that will dispose all disposables in the store without disposing the store itself.
- * The store can continue to be used after this method is ¬called.
+ * The store can continue to be used after this method is called.
  */
 declare class DisposableStore extends Disposiq implements IDisposablesContainer, DisposableAwareCompat {
     constructor();
@@ -222,6 +222,11 @@ declare class DisposableStore extends Disposiq implements IDisposablesContainer,
      */
     addInterval(interval: ReturnType<typeof setInterval> | number): void;
     /**
+     * Throw an exception if the object has been disposed.
+     * @param message the message to include in the exception
+     */
+    throwIfDisposed(message?: string): void;
+    /**
      * Dispose the store. If the store has already been disposed, this is a no-op.
      * If the store has not been disposed, all disposables added to the store will be disposed.
      */
@@ -233,6 +238,19 @@ declare class DisposableStore extends Disposiq implements IDisposablesContainer,
      * this method will safely add the disposable to the store without disposing it immediately.
      */
     disposeCurrent(): void;
+    /**
+     * Create a disposable store from an array of values. The values are mapped to disposables using the provided
+     * mapper function.
+     * @param values an array of values
+     * @param mapper a function that maps a value to a disposable
+     */
+    static from<T>(values: T[], mapper: (value: T) => DisposableLike): DisposableStore;
+    /**
+     * Create a disposable store from an array of disposables.
+     * @param disposables an array of disposables
+     * @returns a disposable store containing the disposables
+     */
+    static from(disposables: DisposableLike[]): DisposableStore;
 }
 
 /**
@@ -373,6 +391,12 @@ declare abstract class Disposable$1 extends Disposiq implements DisposableCompat
      * @returns the disposable object
      */
     protected register<T extends IDisposable>(t: T): T;
+    /**
+     * Throw an exception if the object has been disposed.
+     * @param message the message to include in the exception
+     * @protected inherited classes can use this method to throw an exception if the object has been disposed
+     */
+    protected throwIfDisposed(message?: string): void;
     /**
      * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
      * @param disposable a disposable to add
