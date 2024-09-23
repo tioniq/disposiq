@@ -48,6 +48,15 @@ describe("disposable", () => {
     expect(action1).toHaveBeenCalledTimes(1)
     expect(action2).toHaveBeenCalledTimes(1)
   })
+  it('should throw if disposed', () => {
+    const disposable = new Subscription()
+
+    expect(() => disposable.throwIfDisposed()).not.toThrow()
+
+    disposable.dispose()
+
+    expect(() => disposable.throwIfDisposed("test")).toThrow("test")
+  })
 })
 
 class Subscription extends Disposable {
@@ -61,5 +70,9 @@ class Subscription extends Disposable {
 
   override register<T extends IDisposable>(t: T): T {
     return super.register(t);
+  }
+
+  override throwIfDisposed(message?: string): void {
+    super.throwIfDisposed(message);
   }
 }

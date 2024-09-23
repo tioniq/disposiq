@@ -30,6 +30,15 @@ export abstract class Disposable extends Disposiq implements DisposableCompat {
   }
 
   /**
+   * Throw an exception if the object has been disposed.
+   * @param message the message to include in the exception
+   * @protected inherited classes can use this method to throw an exception if the object has been disposed
+   */
+  protected throwIfDisposed(message?: string): void {
+    this._store.throwIfDisposed(message)
+  }
+
+  /**
    * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
    * @param disposable a disposable to add
    */

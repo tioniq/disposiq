@@ -184,4 +184,49 @@ describe("store", () => {
     }
     expect(func).toHaveBeenCalledTimes(1)
   })
+  it('should create a store from an array', () => {
+    const disposable1 = {dispose: jest.fn()}
+    const disposable2 = {dispose: jest.fn()}
+    const disposables = [disposable1, disposable2]
+    const disposable = DisposableStore.from(disposables)
+    expect(disposable1.dispose).not.toHaveBeenCalled()
+    expect(disposable2.dispose).not.toHaveBeenCalled()
+    disposable.dispose()
+    expect(disposable1.dispose).toHaveBeenCalled()
+    expect(disposable2.dispose).toHaveBeenCalled()
+  })
+  it('should create a store from an array with null', () => {
+    const disposable1 = {dispose: jest.fn()}
+    const disposables = [disposable1, null as any]
+    const disposable = DisposableStore.from(disposables)
+    expect(disposable1.dispose).not.toHaveBeenCalled()
+    disposable.dispose()
+    expect(disposable1.dispose).toHaveBeenCalled()
+  })
+  it('should map and create a store from an array', () => {
+    const obj1 = {
+      title: "Test1",
+      subscriptions: new DisposableStore()
+    }
+    const obj2 = {
+      title: "Test2",
+      subscriptions: new DisposableStore()
+    }
+    const objects = [obj1, obj2]
+    const disposable = DisposableStore.from(objects, o => o.subscriptions)
+    expect(obj1.subscriptions.disposed).toBe(false)
+    expect(obj2.subscriptions.disposed).toBe(false)
+    disposable.dispose()
+    expect(obj1.subscriptions.disposed).toBe(true)
+    expect(obj1.subscriptions.disposed).toBe(true)
+  })
+  it('should throw if disposed', () => {
+    const disposable = new DisposableStore()
+
+    expect(() => disposable.throwIfDisposed()).not.toThrow()
+
+    disposable.dispose()
+
+    expect(() => disposable.throwIfDisposed("test")).toThrow("test")
+  })
 })
