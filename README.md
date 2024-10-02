@@ -7,7 +7,7 @@
 ![tree-shakeable](https://badgen.net/bundlephobia/tree-shaking/@tioniq/disposiq)
 
 **Disposiq** is a utility collection
-of [Disposable (or Dispose) pattern](https://en.wikipedia.org/wiki/Dispose_pattern).
+of [Dispose pattern](https://en.wikipedia.org/wiki/Dispose_pattern).
 
 > This library is compatible with
 > upcoming [Explicit Resource Management API](https://github.com/tc39/proposal-explicit-resource-management)
@@ -17,7 +17,7 @@ of [Disposable (or Dispose) pattern](https://en.wikipedia.org/wiki/Dispose_patte
 Are **you lazy** about cleaning up resources? Does **your code look messy**, and do you want to make it cleaner and
 easier to read?
 Are you **tired of writing the same code** for cleaning up resources over and over again? Have you **wanted to use the
-Disposable pattern** in your project, but you don't know how to start? Then this library is for you!
+Dispose pattern** in your project, but you don't know how to start? Then this library is for you!
 
 ## Stop talking, show me the code!
 
