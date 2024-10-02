@@ -18,7 +18,7 @@ export class BoolDisposable extends Disposiq implements DisposableAwareCompat {
   /**
    * Returns true if the disposable is disposed
    */
-  get disposed() {
+  get disposed(): boolean {
     return this._disposed
   }
 

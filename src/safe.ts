@@ -3,7 +3,7 @@ import {ExceptionHandlerManager} from "./utils/exception-handler-manager";
 import {noop, noopAsync} from "./utils/noop";
 import {AsyncDisposiq, Disposiq} from "./disposiq";
 
-export const safeDisposableExceptionHandlerManager = new ExceptionHandlerManager()
+export const safeDisposableExceptionHandlerManager: ExceptionHandlerManager = new ExceptionHandlerManager()
 
 /**
  * Represents a safe action that can be disposed. The action is invoked when the action is disposed.
