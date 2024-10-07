@@ -65,9 +65,6 @@ var AbortDisposable = class extends Disposiq {
   get signal() {
     return this._controller.signal;
   }
-  /**
-   * Abort the signal
-   */
   dispose() {
     this._controller.abort();
   }
@@ -120,12 +117,6 @@ var AsyncDisposableAction = class extends AsyncDisposiq {
   get disposed() {
     return this._disposed;
   }
-  /**
-   * Dispose the action. If the action has already been disposed, this is a
-   * no-op.
-   * If the action has not been disposed, the action is invoked and the action
-   * is marked as disposed.
-   */
   dispose() {
     return __async(this, null, function* () {
       if (this._disposed) {
@@ -417,10 +408,6 @@ var DisposableStore = class _DisposableStore extends Disposiq {
       throw new ObjectDisposedException(message);
     }
   }
-  /**
-   * Dispose the store. If the store has already been disposed, this is a no-op.
-   * If the store has not been disposed, all disposables added to the store will be disposed.
-   */
   dispose() {
     if (this._disposed) {
       return;
@@ -507,9 +494,6 @@ var DisposableContainer = class extends Disposiq {
       disposable.dispose();
     }
   }
-  /**
-   * Dispose the disposable object. All next set or replace calls will dispose the new disposable object
-   */
   dispose() {
     if (this._disposed) {
       return;
@@ -539,9 +523,6 @@ var BoolDisposable = class extends Disposiq {
   get disposed() {
     return this._disposed;
   }
-  /**
-   * Dispose the object
-   */
   dispose() {
     this._disposed = true;
   }
@@ -687,6 +668,97 @@ function createDisposiq(disposableLike) {
   return emptyDisposable;
 }
 
+// src/map-store.ts
+var DisposableMapStore = class extends Disposiq {
+  constructor() {
+    super(...arguments);
+    /**
+     * @internal
+     */
+    this._map = /* @__PURE__ */ new Map();
+    /**
+     * @internal
+     */
+    this._disposed = false;
+  }
+  /**
+   * Get the disposed state of the store
+   */
+  get disposed() {
+    return this._disposed;
+  }
+  /**
+   * Set a disposable value for the key. If the store contains a value for the key, the previous value will be disposed.
+   * If the store is disposed, the value will be disposed immediately
+   * @param key the key
+   * @param value the disposable value
+   */
+  set(key, value) {
+    const disposable = createDisposable(value);
+    if (this._disposed) {
+      disposable.dispose();
+      return;
+    }
+    const prev = this._map.get(key);
+    this._map.set(key, disposable);
+    prev == null ? void 0 : prev.dispose();
+  }
+  /**
+   * Get the disposable value for the key
+   * @param key the key
+   * @returns the disposable value or undefined if the key is not found
+   */
+  get(key) {
+    if (this._disposed) {
+      return;
+    }
+    return this._map.get(key);
+  }
+  /**
+   * Delete the disposable value for the key
+   * @param key the key
+   * @returns true if the key was found and the value was deleted, false otherwise
+   */
+  delete(key) {
+    if (this._disposed) {
+      return false;
+    }
+    const disposable = this._map.get(key);
+    if (!disposable) {
+      return false;
+    }
+    this._map.delete(key);
+    disposable.dispose();
+    return true;
+  }
+  /**
+   * Remove the disposable value for the key and return it. The disposable value will not be disposed
+   * @param key the key
+   * @returns the disposable value or undefined if the key is not found
+   */
+  extract(key) {
+    if (this._disposed) {
+      return;
+    }
+    const disposable = this._map.get(key);
+    if (!disposable) {
+      return;
+    }
+    this._map.delete(key);
+    return disposable;
+  }
+  dispose() {
+    if (this._disposed) {
+      return;
+    }
+    this._disposed = true;
+    for (const value of this._map.values()) {
+      value.dispose();
+    }
+    this._map.clear();
+  }
+};
+
 // src/disposable.ts
 var Disposable = class extends Disposiq {
   constructor() {
@@ -734,10 +806,6 @@ var Disposable = class extends Disposiq {
   addDisposables(...disposables) {
     this._store.addAll(disposables);
   }
-  /**
-   * Dispose the object. If the object has already been disposed, this is a no-op.
-   * If the object has not been disposed, all disposables added to the object will be disposed.
-   */
   dispose() {
     this._store.dispose();
   }
@@ -831,9 +899,6 @@ var SafeActionDisposable = class extends Disposiq {
   get disposed() {
     return this._disposed;
   }
-  /**
-   * Dispose the action. If the action has already been disposed, this is a no-op.
-   */
   dispose() {
     if (this._disposed) {
       return;
@@ -915,6 +980,8 @@ export {
   Disposable,
   DisposableAction,
   DisposableContainer,
+  DisposableMapStore as DisposableDictionary,
+  DisposableMapStore,
   DisposableStore,
   Disposiq,
   ObjectDisposedException,

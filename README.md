@@ -213,6 +213,7 @@ This library is inspired by the
 | `DisposableAction`          | A container for a function to be called on dispose                        | -                       |
 | `AsyncDisposableAction`     | A container for an asynchronous function to be called on dispose          | -                       |
 | `DisposableStore`           | A container for disposables                                               | `CompositeDisposable`   |
+| `DisposableMapStore`        | A container for disposables stored by a key                               | `DisposableDictionary`  |
 | `DisposableContainer`       | A container for a disposable object                                       | `SerialDisposable`      |
 | `BoolDisposable`            | A object that aware of its disposed state                                 | `BooleanDisposable`     |
 | `SafeActionDisposable`      | A container for a function that is safely called on dispose               | -                       |

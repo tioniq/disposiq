@@ -86,6 +86,9 @@ declare abstract class AsyncDisposiq extends Disposiq {
  * Disposiq is a base class for disposables. The only reason is to have ability to extend it with additional functionality.
  */
 declare abstract class Disposiq implements DisposableCompat {
+    /**
+     * Dispose the object. If the object has already been disposed, this should be a no-op
+     */
     abstract dispose(): void;
     /**
      * Support for the internal Disposable API
@@ -109,9 +112,6 @@ declare class AbortDisposable extends Disposiq implements DisposableAwareCompat 
      * Returns the signal of the AbortController
      */
     get signal(): AbortSignal;
-    /**
-     * Abort the signal
-     */
     dispose(): void;
 }
 
@@ -157,12 +157,6 @@ declare class AsyncDisposableAction extends AsyncDisposiq implements AsyncDispos
      * Returns true if the action has been disposed.
      */
     get disposed(): boolean;
-    /**
-     * Dispose the action. If the action has already been disposed, this is a
-     * no-op.
-     * If the action has not been disposed, the action is invoked and the action
-     * is marked as disposed.
-     */
     dispose(): Promise<void>;
 }
 
@@ -226,10 +220,6 @@ declare class DisposableStore extends Disposiq implements IDisposablesContainer,
      * @param message the message to include in the exception
      */
     throwIfDisposed(message?: string): void;
-    /**
-     * Dispose the store. If the store has already been disposed, this is a no-op.
-     * If the store has not been disposed, all disposables added to the store will be disposed.
-     */
     dispose(): void;
     /**
      * Dispose all disposables in the store. The store does not become disposed. The disposables are removed from the
@@ -286,9 +276,6 @@ declare class DisposableContainer extends Disposiq implements DisposableAwareCom
      * Dispose only the current disposable object without affecting the container's state.
      */
     disposeCurrent(): void;
-    /**
-     * Dispose the disposable object. All next set or replace calls will dispose the new disposable object
-     */
     dispose(): void;
 }
 
@@ -301,9 +288,6 @@ declare class BoolDisposable extends Disposiq implements DisposableAwareCompat {
      * Returns true if the disposable is disposed
      */
     get disposed(): boolean;
-    /**
-     * Dispose the object
-     */
     dispose(): void;
 }
 
@@ -377,6 +361,42 @@ declare function createDisposableCompat(disposableLike: DisposableLike | Disposa
 declare function createDisposiq(disposableLike: DisposableLike | Disposable | AsyncDisposable | AbortController): Disposiq;
 
 /**
+ * A key-value store that stores disposable values. When the store is disposed, all the values will be disposed as well
+ */
+declare class DisposableMapStore<K> extends Disposiq implements DisposableAware {
+    /**
+     * Get the disposed state of the store
+     */
+    get disposed(): boolean;
+    /**
+     * Set a disposable value for the key. If the store contains a value for the key, the previous value will be disposed.
+     * If the store is disposed, the value will be disposed immediately
+     * @param key the key
+     * @param value the disposable value
+     */
+    set(key: K, value: DisposableLike): void;
+    /**
+     * Get the disposable value for the key
+     * @param key the key
+     * @returns the disposable value or undefined if the key is not found
+     */
+    get(key: K): IDisposable | undefined;
+    /**
+     * Delete the disposable value for the key
+     * @param key the key
+     * @returns true if the key was found and the value was deleted, false otherwise
+     */
+    delete(key: K): boolean;
+    /**
+     * Remove the disposable value for the key and return it. The disposable value will not be disposed
+     * @param key the key
+     * @returns the disposable value or undefined if the key is not found
+     */
+    extract(key: K): IDisposable | undefined;
+    dispose(): void;
+}
+
+/**
  * Disposable is a base class for disposables. It will dispose all added disposables when it is disposed.
  */
 declare abstract class Disposable$1 extends Disposiq implements DisposableCompat {
@@ -407,10 +427,6 @@ declare abstract class Disposable$1 extends Disposiq implements DisposableCompat
      * @param disposables disposables to add
      */
     addDisposables(...disposables: DisposableLike[]): void;
-    /**
-     * Dispose the object. If the object has already been disposed, this is a no-op.
-     * If the object has not been disposed, all disposables added to the object will be disposed.
-     */
     dispose(): void;
 }
 
@@ -495,9 +511,6 @@ declare class SafeActionDisposable extends Disposiq implements DisposableAwareCo
      * Returns true if the action has been disposed.
      */
     get disposed(): boolean;
-    /**
-     * Dispose the action. If the action has already been disposed, this is a no-op.
-     */
     dispose(): void;
 }
 /**
@@ -518,4 +531,4 @@ declare class SafeAsyncActionDisposable extends AsyncDisposiq implements AsyncDi
 declare function using<T extends IDisposable, R>(resource: T, action: (resource: T) => R): R;
 declare function using<T extends IDisposable | IAsyncDisposable, R>(resource: T, action: (resource: T) => Promise<R>): Promise<R>;
 
-export { AbortDisposable, AsyncDisposableAction, type AsyncDisposableAware, type AsyncDisposableAwareCompat, type AsyncDisposableCompat, type AsyncDisposeFunc, AsyncDisposiq, AsyncDisposiq as BaseAsyncDisposable, Disposiq as BaseDisposable, BoolDisposable, BoolDisposable as BooleanDisposable, DisposableStore as CompositeDisposable, Disposable$1 as Disposable, DisposableAction, type DisposableAware, type DisposableAwareCompat, type DisposableCompat, DisposableContainer, type DisposableLike, DisposableStore, type DisposeFunc, Disposiq, type IAsyncDisposable, type IDisposable, type IDisposablesContainer, ObjectDisposedException, SafeActionDisposable, SafeAsyncActionDisposable, DisposableContainer as SerialDisposable, createDisposable, createDisposableCompat, createDisposiq, disposableFromEvent, disposableFromEventOnce, disposeAll, disposeAll as disposeAllSafe, disposeAllUnsafe, emptyDisposable, isAsyncDisposableCompat, isDisposable, isDisposableCompat, isDisposableLike, isSystemAsyncDisposable, isSystemDisposable, disposableFromEvent as on, disposableFromEventOnce as once, safeDisposableExceptionHandlerManager, createDisposable as toDisposable, createDisposableCompat as toDisposableCompat, createDisposiq as toDisposiq, using };
+export { AbortDisposable, AsyncDisposableAction, type AsyncDisposableAware, type AsyncDisposableAwareCompat, type AsyncDisposableCompat, type AsyncDisposeFunc, AsyncDisposiq, AsyncDisposiq as BaseAsyncDisposable, Disposiq as BaseDisposable, BoolDisposable, BoolDisposable as BooleanDisposable, DisposableStore as CompositeDisposable, Disposable$1 as Disposable, DisposableAction, type DisposableAware, type DisposableAwareCompat, type DisposableCompat, DisposableContainer, DisposableMapStore as DisposableDictionary, type DisposableLike, DisposableMapStore, DisposableStore, type DisposeFunc, Disposiq, type IAsyncDisposable, type IDisposable, type IDisposablesContainer, ObjectDisposedException, SafeActionDisposable, SafeAsyncActionDisposable, DisposableContainer as SerialDisposable, createDisposable, createDisposableCompat, createDisposiq, disposableFromEvent, disposableFromEventOnce, disposeAll, disposeAll as disposeAllSafe, disposeAllUnsafe, emptyDisposable, isAsyncDisposableCompat, isDisposable, isDisposableCompat, isDisposableLike, isSystemAsyncDisposable, isSystemDisposable, disposableFromEvent as on, disposableFromEventOnce as once, safeDisposableExceptionHandlerManager, createDisposable as toDisposable, createDisposableCompat as toDisposableCompat, createDisposiq as toDisposiq, using };
