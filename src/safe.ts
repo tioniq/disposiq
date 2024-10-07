@@ -31,9 +31,6 @@ export class SafeActionDisposable extends Disposiq implements DisposableAwareCom
     return this._disposed
   }
 
-  /**
-   * Dispose the action. If the action has already been disposed, this is a no-op.
-   */
   dispose() {
     if (this._disposed) {
       return

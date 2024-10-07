@@ -29,9 +29,6 @@ export class AbortDisposable extends Disposiq implements DisposableAwareCompat {
     return this._controller.signal
   }
 
-  /**
-   * Abort the signal
-   */
   dispose(): void {
     this._controller.abort()
   }

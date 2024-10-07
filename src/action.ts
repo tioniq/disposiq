@@ -80,12 +80,6 @@ export class AsyncDisposableAction extends AsyncDisposiq implements AsyncDisposa
     return this._disposed
   }
 
-  /**
-   * Dispose the action. If the action has already been disposed, this is a
-   * no-op.
-   * If the action has not been disposed, the action is invoked and the action
-   * is marked as disposed.
-   */
   async dispose(): Promise<void> {
     if (this._disposed) {
       return

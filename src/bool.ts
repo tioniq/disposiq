@@ -22,9 +22,6 @@ export class BoolDisposable extends Disposiq implements DisposableAwareCompat {
     return this._disposed
   }
 
-  /**
-   * Dispose the object
-   */
   dispose() {
     this._disposed = true
   }

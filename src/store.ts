@@ -167,10 +167,6 @@ export class DisposableStore extends Disposiq implements IDisposablesContainer, 
     }
   }
 
-  /**
-   * Dispose the store. If the store has already been disposed, this is a no-op.
-   * If the store has not been disposed, all disposables added to the store will be disposed.
-   */
   dispose(): void {
     if (this._disposed) {
       return

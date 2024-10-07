@@ -79,9 +79,6 @@ export class DisposableContainer extends Disposiq implements DisposableAwareComp
     }
   }
 
-  /**
-   * Dispose the disposable object. All next set or replace calls will dispose the new disposable object
-   */
   dispose(): void {
     if (this._disposed) {
       return

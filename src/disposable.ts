@@ -54,10 +54,6 @@ export abstract class Disposable extends Disposiq implements DisposableCompat {
     this._store.addAll(disposables)
   }
 
-  /**
-   * Dispose the object. If the object has already been disposed, this is a no-op.
-   * If the object has not been disposed, all disposables added to the object will be disposed.
-   */
   dispose(): void {
     this._store.dispose()
   }
