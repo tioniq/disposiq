@@ -42,11 +42,13 @@ var src_exports = {};
 __export(src_exports, {
   AbortDisposable: () => AbortDisposable,
   AsyncDisposableAction: () => AsyncDisposableAction,
+  AsyncDisposableStore: () => AsyncDisposableStore,
   AsyncDisposiq: () => AsyncDisposiq,
   BaseAsyncDisposable: () => AsyncDisposiq,
   BaseDisposable: () => Disposiq,
   BoolDisposable: () => BoolDisposable,
   BooleanDisposable: () => BoolDisposable,
+  CompositeAsyncDisposable: () => AsyncDisposableStore,
   CompositeDisposable: () => DisposableStore,
   Disposable: () => Disposable,
   DisposableAction: () => DisposableAction,
@@ -65,8 +67,12 @@ __export(src_exports, {
   disposableFromEvent: () => disposableFromEvent,
   disposableFromEventOnce: () => disposableFromEventOnce,
   disposeAll: () => disposeAll,
+  disposeAllAsync: () => disposeAllAsync,
   disposeAllSafe: () => disposeAll,
+  disposeAllSafely: () => disposeAllSafely,
+  disposeAllSafelyAsync: () => disposeAllSafelyAsync,
   disposeAllUnsafe: () => disposeAllUnsafe,
+  disposeAllUnsafeAsync: () => disposeAllUnsafeAsync,
   emptyDisposable: () => emptyDisposable,
   isAsyncDisposableCompat: () => isAsyncDisposableCompat,
   isDisposable: () => isDisposable,
@@ -74,6 +80,10 @@ __export(src_exports, {
   isDisposableLike: () => isDisposableLike,
   isSystemAsyncDisposable: () => isSystemAsyncDisposable,
   isSystemDisposable: () => isSystemDisposable,
+  justDispose: () => justDispose,
+  justDisposeAll: () => justDisposeAll,
+  justDisposeAllAsync: () => justDisposeAllAsync,
+  justDisposeAsync: () => justDisposeAsync,
   on: () => disposableFromEvent,
   once: () => disposableFromEventOnce,
   safeDisposableExceptionHandlerManager: () => safeDisposableExceptionHandlerManager,
@@ -193,6 +203,13 @@ var AsyncDisposableAction = class extends AsyncDisposiq {
   }
 };
 
+// src/exception.ts
+var ObjectDisposedException = class extends Error {
+  constructor(message) {
+    super(message || "Object disposed");
+  }
+};
+
 // src/utils/queue.ts
 var Node = class {
   constructor(value) {
@@ -299,6 +316,57 @@ var ObjectPool = class {
 
 // src/dispose-batch.ts
 var pool = new ObjectPool(10);
+var asyncPool = new ObjectPool(10);
+function justDispose(disposable) {
+  if (!disposable) {
+    return;
+  }
+  if (typeof disposable === "function") {
+    disposable();
+  } else {
+    disposable.dispose();
+  }
+}
+function justDisposeAsync(disposable) {
+  return __async(this, null, function* () {
+    if (!disposable) {
+      return;
+    }
+    if (typeof disposable === "function") {
+      yield disposable();
+    } else {
+      yield disposable.dispose();
+    }
+  });
+}
+function justDisposeAll(disposables) {
+  for (let i = 0; i < disposables.length; ++i) {
+    const disposable = disposables[i];
+    if (!disposable) {
+      continue;
+    }
+    if (typeof disposable === "function") {
+      disposable();
+    } else {
+      disposable.dispose();
+    }
+  }
+}
+function justDisposeAllAsync(disposables) {
+  return __async(this, null, function* () {
+    for (let i = 0; i < disposables.length; ++i) {
+      const disposable = disposables[i];
+      if (!disposable) {
+        continue;
+      }
+      if (typeof disposable === "function") {
+        yield disposable();
+      } else {
+        yield disposable.dispose();
+      }
+    }
+  });
+}
 function disposeAll(disposables) {
   let size = disposables.length;
   if (size === 0) {
@@ -316,22 +384,64 @@ function disposeAll(disposables) {
     holder[i] = disposables[i];
   }
   disposables.length = 0;
-  for (let i = 0; i < size; ++i) {
-    const disposable = holder[i];
-    if (!disposable) {
-      continue;
+  try {
+    for (let i = 0; i < size; ++i) {
+      const disposable = holder[i];
+      if (!disposable) {
+        continue;
+      }
+      if (typeof disposable === "function") {
+        disposable();
+      } else {
+        disposable.dispose();
+      }
     }
-    if (typeof disposable === "function") {
-      disposable();
+  } finally {
+    holder.fill(void 0, 0, size);
+    if (pool.full) {
+      pool.size *= 2;
+    }
+    pool.throw(holder);
+  }
+}
+function disposeAllAsync(disposables) {
+  return __async(this, null, function* () {
+    let size = disposables.length;
+    if (size === 0) {
+      return;
+    }
+    let holder = asyncPool.lift();
+    if (holder === null) {
+      holder = new Array(size);
     } else {
-      disposable.dispose();
+      if (holder.length < size) {
+        holder.length = size;
+      }
     }
-  }
-  holder.fill(void 0, 0, size);
-  if (pool.full) {
-    pool.size *= 2;
-  }
-  pool.throw(holder);
+    for (let i = 0; i < size; i++) {
+      holder[i] = disposables[i];
+    }
+    disposables.length = 0;
+    try {
+      for (let i = 0; i < size; ++i) {
+        const disposable = holder[i];
+        if (!disposable) {
+          continue;
+        }
+        if (typeof disposable === "function") {
+          yield disposable();
+        } else {
+          yield disposable.dispose();
+        }
+      }
+    } finally {
+      holder.fill(void 0, 0, size);
+      if (asyncPool.full) {
+        asyncPool.size *= 2;
+      }
+      asyncPool.throw(holder);
+    }
+  });
 }
 function disposeAllUnsafe(disposables) {
   for (let i = 0; i < disposables.length; ++i) {
@@ -347,13 +457,66 @@ function disposeAllUnsafe(disposables) {
   }
   disposables.length = 0;
 }
-
-// src/exception.ts
-var ObjectDisposedException = class extends Error {
-  constructor(message) {
-    super(message || "Object disposed");
+function disposeAllUnsafeAsync(disposables) {
+  return __async(this, null, function* () {
+    for (let i = 0; i < disposables.length; ++i) {
+      const disposable = disposables[i];
+      if (!disposable) {
+        continue;
+      }
+      if (typeof disposable === "function") {
+        yield disposable();
+      } else {
+        yield disposable.dispose();
+      }
+    }
+    disposables.length = 0;
+  });
+}
+function disposeAllSafely(disposables, onErrorCallback) {
+  if (disposables.length === 0) {
+    return;
   }
-};
+  for (let i = 0; i < disposables.length; ++i) {
+    const disposable = disposables[i];
+    if (!disposable) {
+      continue;
+    }
+    try {
+      if (typeof disposable === "function") {
+        disposable();
+      } else {
+        disposable.dispose();
+      }
+    } catch (e) {
+      onErrorCallback == null ? void 0 : onErrorCallback(e);
+    }
+  }
+  disposables.length = 0;
+}
+function disposeAllSafelyAsync(disposables, onErrorCallback) {
+  return __async(this, null, function* () {
+    if (disposables.length === 0) {
+      return;
+    }
+    for (let i = 0; i < disposables.length; ++i) {
+      const disposable = disposables[i];
+      if (!disposable) {
+        continue;
+      }
+      try {
+        if (typeof disposable === "function") {
+          yield disposable();
+        } else {
+          yield disposable.dispose();
+        }
+      } catch (e) {
+        onErrorCallback == null ? void 0 : onErrorCallback(e);
+      }
+    }
+    disposables.length = 0;
+  });
+}
 
 // src/store.ts
 var DisposableStore = class _DisposableStore extends Disposiq {
@@ -376,27 +539,15 @@ var DisposableStore = class _DisposableStore extends Disposiq {
    * @param disposables disposables to add
    */
   add(...disposables) {
-    this.addAll(disposables);
-  }
-  /**
-   * Adds disposables to the container. If the container has already been disposed, the disposables will be disposed.
-   * @param disposables Disposables to add.
-   */
-  addAll(disposables) {
     if (!disposables || disposables.length === 0) {
       return;
     }
+    const first = disposables[0];
+    if (Array.isArray(first)) {
+      disposables = first;
+    }
     if (this._disposed) {
-      for (const disposable of disposables) {
-        if (!disposable) {
-          continue;
-        }
-        if (typeof disposable === "function") {
-          disposable();
-        } else {
-          disposable.dispose();
-        }
-      }
+      justDisposeAll(disposables);
       return;
     }
     for (let i = 0; i < disposables.length; i++) {
@@ -404,7 +555,27 @@ var DisposableStore = class _DisposableStore extends Disposiq {
       if (!disposable) {
         continue;
       }
-      this._disposables.push(typeof disposable === "function" ? new DisposableAction(disposable) : disposable);
+      this._disposables.push(disposable);
+    }
+  }
+  /**
+   * Add multiple disposables to the store. If the store has already been disposed, the disposables will be disposed.
+   * @param disposables an array of disposables to add
+   */
+  addAll(disposables) {
+    if (!disposables || disposables.length === 0) {
+      return;
+    }
+    if (this._disposed) {
+      justDisposeAll(disposables);
+      return;
+    }
+    for (let i = 0; i < disposables.length; i++) {
+      const disposable = disposables[i];
+      if (!disposable) {
+        continue;
+      }
+      this._disposables.push(disposable);
     }
   }
   /**
@@ -417,24 +588,20 @@ var DisposableStore = class _DisposableStore extends Disposiq {
       return;
     }
     if (this._disposed) {
-      if (typeof disposable === "function") {
-        disposable();
-      } else {
-        disposable.dispose();
-      }
+      justDispose(disposable);
       return;
-    }
-    if (typeof disposable === "function") {
-      disposable = new DisposableAction(disposable);
     }
     this._disposables.push(disposable);
   }
   /**
-   * Remove a disposable from the store. If the disposable is found and removed, it will be disposed.
+   * Remove a disposable from the store. If the disposable is found and removed, it will NOT be disposed
    * @param disposable a disposable to remove
    * @returns true if the disposable was found and removed
    */
   remove(disposable) {
+    if (!disposable || this._disposed) {
+      return false;
+    }
     const index = this._disposables.indexOf(disposable);
     if (index === -1) {
       return false;
@@ -448,10 +615,10 @@ var DisposableStore = class _DisposableStore extends Disposiq {
   addTimeout(callbackOrTimeout, timeout) {
     if (typeof callbackOrTimeout === "function") {
       const handle = setTimeout(callbackOrTimeout, timeout);
-      this.add(() => clearTimeout(handle));
+      this.addOne(() => clearTimeout(handle));
       return;
     }
-    this.add(() => clearTimeout(callbackOrTimeout));
+    this.addOne(() => clearTimeout(callbackOrTimeout));
   }
   /**
    * @internal
@@ -459,10 +626,10 @@ var DisposableStore = class _DisposableStore extends Disposiq {
   addInterval(callbackOrInterval, interval) {
     if (typeof callbackOrInterval === "function") {
       const handle = setInterval(callbackOrInterval, interval);
-      this.add(() => clearInterval(handle));
+      this.addOne(() => clearInterval(handle));
       return;
     }
-    this.add(() => clearInterval(callbackOrInterval));
+    this.addOne(() => clearInterval(callbackOrInterval));
   }
   /**
    * Throw an exception if the object has been disposed.
@@ -473,13 +640,6 @@ var DisposableStore = class _DisposableStore extends Disposiq {
       throw new ObjectDisposedException(message);
     }
   }
-  dispose() {
-    if (this._disposed) {
-      return;
-    }
-    this._disposed = true;
-    disposeAllUnsafe(this._disposables);
-  }
   /**
    * Dispose all disposables in the store. The store does not become disposed. The disposables are removed from the
    * store. The store can continue to be used after this method is called. This method is useful when the store is
@@ -487,7 +647,28 @@ var DisposableStore = class _DisposableStore extends Disposiq {
    * this method will safely add the disposable to the store without disposing it immediately.
    */
   disposeCurrent() {
+    if (this._disposed) {
+      return;
+    }
     disposeAll(this._disposables);
+  }
+  /**
+   * Dispose the store and all disposables safely. If an error occurs during disposal, the error is caught and
+   * passed to the onErrorCallback.
+   */
+  disposeSafely(onErrorCallback) {
+    if (this._disposed) {
+      return;
+    }
+    this._disposed = true;
+    disposeAllSafely(this._disposables, onErrorCallback);
+  }
+  dispose() {
+    if (this._disposed) {
+      return;
+    }
+    this._disposed = true;
+    disposeAllUnsafe(this._disposables);
   }
   static from(disposables, mapper) {
     if (typeof mapper === "function") {
@@ -824,6 +1005,141 @@ var DisposableMapStore = class extends Disposiq {
   }
 };
 
+// src/store-async.ts
+var AsyncDisposableStore = class _AsyncDisposableStore extends AsyncDisposiq {
+  constructor() {
+    super(...arguments);
+    /**
+     * @internal
+     */
+    this._disposables = [];
+    /**
+     * @internal
+     */
+    this._disposed = false;
+  }
+  /**
+   * Returns true if the object has been disposed.
+   */
+  get disposed() {
+    return this._disposed;
+  }
+  /**
+   * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
+   * @param disposables disposables to add
+   * @returns void if the container has not been disposed, otherwise a promise that resolves when all disposables have been disposed
+   */
+  add(...disposables) {
+    if (!disposables || disposables.length === 0) {
+      return;
+    }
+    const first = disposables[0];
+    if (Array.isArray(first)) {
+      disposables = first;
+    }
+    if (this._disposed) {
+      return justDisposeAllAsync(disposables);
+    }
+    for (let i = 0; i < disposables.length; i++) {
+      const disposable = disposables[i];
+      if (!disposable) {
+        continue;
+      }
+      this._disposables.push(disposable);
+    }
+  }
+  addAll(disposables) {
+    if (!disposables || disposables.length === 0) {
+      return;
+    }
+    if (this._disposed) {
+      return justDisposeAllAsync(disposables);
+    }
+    for (let i = 0; i < disposables.length; i++) {
+      const disposable = disposables[i];
+      if (!disposable) {
+        continue;
+      }
+      this._disposables.push(disposable);
+    }
+  }
+  /**
+   * Add a disposable to the store. If the store has already been disposed, the disposable will be disposed.
+   * @param disposable a disposable to add
+   * @returns void if the container has not been disposed, otherwise a promise that resolves when the disposable has been disposed
+   */
+  addOne(disposable) {
+    if (!disposable) {
+      return;
+    }
+    if (this._disposed) {
+      return justDisposeAsync(disposable);
+    }
+    this._disposables.push(disposable);
+  }
+  /**
+   * Remove a disposable from the store. If the disposable is found and removed, it will NOT be disposed
+   * @param disposable the disposable to remove
+   * @returns true if the disposable was removed, false otherwise
+   */
+  remove(disposable) {
+    if (!disposable || this._disposed) {
+      return false;
+    }
+    const index = this._disposables.indexOf(disposable);
+    if (index === -1) {
+      return false;
+    }
+    this._disposables.splice(index, 1);
+    return true;
+  }
+  /**
+   * Throw an exception if the object has been disposed.
+   * @param message the message to include in the exception
+   */
+  throwIfDisposed(message) {
+    if (this._disposed) {
+      throw new ObjectDisposedException(message);
+    }
+  }
+  /**
+   * Dispose all disposables in the store. The store does not become disposed.
+   */
+  disposeCurrent() {
+    if (this._disposed) {
+      return Promise.resolve();
+    }
+    return disposeAllAsync(this._disposables);
+  }
+  /**
+   * Dispose all disposables in the store safely. The store becomes disposed.
+   * @param onErrorCallback an optional callback that is invoked if an error occurs during disposal
+   */
+  disposeSafely(onErrorCallback) {
+    if (this._disposed) {
+      return;
+    }
+    return disposeAllSafelyAsync(this._disposables, onErrorCallback);
+  }
+  dispose() {
+    if (this._disposed) {
+      return Promise.resolve();
+    }
+    this._disposed = true;
+    return disposeAllUnsafeAsync(this._disposables);
+  }
+  static from(disposables, mapper) {
+    if (typeof mapper === "function") {
+      const store2 = new _AsyncDisposableStore();
+      store2.add(disposables.map(mapper));
+      return store2;
+    }
+    const store = new _AsyncDisposableStore();
+    store.addAll(disposables);
+    return store;
+  }
+};
+
 // src/disposable.ts
 var Disposable = class extends Disposiq {
   constructor() {
@@ -1037,11 +1353,13 @@ function runDispose(disposable, action) {
 0 && (module.exports = {
   AbortDisposable,
   AsyncDisposableAction,
+  AsyncDisposableStore,
   AsyncDisposiq,
   BaseAsyncDisposable,
   BaseDisposable,
   BoolDisposable,
   BooleanDisposable,
+  CompositeAsyncDisposable,
   CompositeDisposable,
   Disposable,
   DisposableAction,
@@ -1060,8 +1378,12 @@ function runDispose(disposable, action) {
   disposableFromEvent,
   disposableFromEventOnce,
   disposeAll,
+  disposeAllAsync,
   disposeAllSafe,
+  disposeAllSafely,
+  disposeAllSafelyAsync,
   disposeAllUnsafe,
+  disposeAllUnsafeAsync,
   emptyDisposable,
   isAsyncDisposableCompat,
   isDisposable,
@@ -1069,6 +1391,10 @@ function runDispose(disposable, action) {
   isDisposableLike,
   isSystemAsyncDisposable,
   isSystemDisposable,
+  justDispose,
+  justDisposeAll,
+  justDisposeAllAsync,
+  justDisposeAsync,
   on,
   once,
   safeDisposableExceptionHandlerManager,
