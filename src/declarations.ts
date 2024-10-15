@@ -18,6 +18,8 @@ export type DisposableLike = IDisposable | DisposeFunc
 
 export type AsyncDisposeFunc = () => Promise<void>
 
+export type AsyncDisposableLike = IAsyncDisposable | AsyncDisposeFunc
+
 /**
  * A container interface for disposables collection. Implementation is {@link DisposableStore}.
  */
@@ -37,19 +39,36 @@ export interface IDisposablesContainer extends DisposableAware {
    * Adds disposables to the container.
    * @param disposables Disposables to add.
    */
+  add(disposables: DisposableLike[]): void;
+
+  /**
+   * Adds disposables to the container.
+   * @param disposables Disposables to add.
+   */
   addAll(disposables: DisposableLike[]): void;
+
+  /**
+   * Adds a disposable to the container
+   * @param disposable Disposable to add
+   */
+  addOne(disposable: DisposableLike): void
 
   /**
    * Removes a disposable from the container.
    * @param disposable Disposable to remove.
    * @returns `true` if the disposable was removed, `false` otherwise.
    */
-  remove(disposable: IDisposable): boolean
+  remove(disposable: DisposableLike): boolean
 
   /**
    * Disposes all disposables in the container. The container becomes disposed.
    */
   disposeCurrent(): void
+
+  /**
+   * Disposes all disposables in the container safely. The container becomes disposed.
+   */
+  disposeSafely(onErrorCallback?: (e: any) => void): void
 }
 
 /**

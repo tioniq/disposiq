@@ -1,5 +1,13 @@
-import {disposeAll, disposeAllUnsafe} from "../src";
-import {DisposableLike, IDisposable} from "../src";
+import {
+  AsyncDisposableLike,
+  disposeAll,
+  disposeAllAsync, disposeAllSafely, disposeAllSafelyAsync,
+  disposeAllUnsafe,
+  disposeAllUnsafeAsync,
+  justDispose,
+  justDisposeAsync
+} from "../src";
+import { DisposableLike, IDisposable } from "../src";
 
 describe('dispose-all-unsafe', () => {
   it("should dispose all disposables", () => {
@@ -152,6 +160,109 @@ describe('dispose-all-safe', () => {
     }
 
     disposeAll(disposablesOfDisposables2[0])
+
+    expect(disposableFunc2).toHaveBeenCalledTimes(iCount2 * 19 + 1 + Math.floor((iCount2 * (iCount2 - 1) / 2)))
+  })
+})
+
+describe('dispose-other', () => {
+  it('should not fail when just dispose null', () => {
+    justDispose(null as any)
+  })
+
+  it('should not fail when just dispose async', async () => {
+    await justDisposeAsync(async () => {
+      return new Promise<void>(resolve => setTimeout(resolve, 100))
+    })
+  })
+
+  it('should not fail when just dispose async null', async () => {
+    await justDisposeAsync(null as any)
+  })
+
+  it('should not fail disposeAllAsync when disposables is empty', async () => {
+    await disposeAllAsync([] as any)
+  })
+
+  it('should not fail disposeAllUnsafeAsync when disposables contains null', async () => {
+    await disposeAllUnsafeAsync([null] as any)
+  })
+
+  it('should not fail disposeAllSafely when disposables contains null', () => {
+    disposeAllSafely([null] as any)
+  })
+
+  it('should not fail disposeAllSafely when disposables is empty', () => {
+    disposeAllSafely([] as any)
+  })
+
+  it('should disposeAllSafely dispose function', () => {
+    const func = jest.fn()
+    disposeAllSafely([func])
+    expect(func).toHaveBeenCalled()
+  })
+
+  it('should not fail disposeAllSafelyAsync when disposables contains null', async () => {
+    await disposeAllSafelyAsync([null] as any)
+  })
+
+  it('should not fail disposeAllSafelyAsync when disposables is empty', async () => {
+    await disposeAllSafelyAsync([] as any)
+  })
+
+  it('should disposeAllSafelyAsync dispose function', async () => {
+    const func = jest.fn()
+    await disposeAllSafelyAsync([func])
+    expect(func).toHaveBeenCalled()
+  })
+
+  it('should not fail disposeAllAsync when disposables contains null', async () => {
+    await disposeAllAsync([null] as any)
+  })
+
+  it('should handle many async dispose at the same time', async () => {
+    const disposablesOfDisposables: (DisposableLike | AsyncDisposableLike)[][] = []
+    const disposableFunc = jest.fn()
+    const iCount = 100
+    for (let i = 0; i < iCount; i++) {
+      const disposables: (DisposableLike | AsyncDisposableLike)[] = []
+      disposablesOfDisposables.push(disposables)
+      for (let j = 0; j < 10 + i; j++) {
+        const index = i
+        if (j == 0 && index != iCount - 1) {
+          disposables.push(() => {
+            return disposeAllAsync(disposablesOfDisposables[index + 1])
+          })
+        } else {
+          disposables.push(disposableFunc)
+        }
+      }
+    }
+
+    await disposeAllAsync(disposablesOfDisposables[0])
+
+    expect(disposableFunc).toHaveBeenCalledTimes(iCount * 9 + 1 + Math.floor((iCount * (iCount - 1) / 2)))
+
+    // Check if disposeAll is reusable
+    const disposablesOfDisposables2: (DisposableLike | AsyncDisposableLike)[][] = []
+    const disposableFunc2 = jest.fn()
+    const iCount2 = 200
+    for (let i = 0; i < iCount2; i++) {
+      const disposables: (DisposableLike | AsyncDisposableLike)[] = []
+      disposablesOfDisposables2.push(disposables)
+      for (let j = 0; j < 20 + i; j++) {
+        const index = i
+        if (j == 0 && index != iCount2 - 1) {
+          disposables.push(() => {
+            return disposeAllAsync(disposablesOfDisposables2[index + 1])
+          })
+        } else {
+          disposables.push(disposableFunc2)
+        }
+      }
+    }
+
+    await disposeAllAsync(disposablesOfDisposables2[0])
 
     expect(disposableFunc2).toHaveBeenCalledTimes(iCount2 * 19 + 1 + Math.floor((iCount2 * (iCount2 - 1) / 2)))
   })

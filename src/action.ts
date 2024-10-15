@@ -3,8 +3,8 @@ import {
   DisposableAwareCompat,
   DisposeFunc
 } from "./declarations";
-import {noop, noopAsync} from "./utils/noop";
-import {AsyncDisposiq, Disposiq} from "./disposiq";
+import { noop, noopAsync } from "./utils/noop";
+import { AsyncDisposiq, Disposiq } from "./disposiq";
 
 /**
  * Represents an action that can be disposed. The action is invoked when the action is disposed.
@@ -65,10 +65,10 @@ export class DisposableAction extends Disposiq implements DisposableAwareCompat 
  * await action.dispose() // no-op
  */
 export class AsyncDisposableAction extends AsyncDisposiq implements AsyncDisposableAwareCompat {
-  private readonly _action: () => Promise<void>
+  private readonly _action: () => Promise<void> | void
   private _disposed = false
 
-  constructor(action: () => Promise<void>) {
+  constructor(action: () => Promise<void> | void) {
     super()
     this._action = typeof action === "function" ? action : noopAsync
   }

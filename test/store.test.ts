@@ -1,4 +1,4 @@
-import {DisposableStore, IDisposable} from "../src";
+import { DisposableStore, IDisposable } from "../src";
 
 describe("store", () => {
   beforeEach(() => {
@@ -26,6 +26,17 @@ describe("store", () => {
     expect(disposable2.dispose).toHaveBeenCalled()
     disposable.add(disposable3)
     expect(disposable3.dispose).toHaveBeenCalled()
+  })
+  it('should add array of disposables', () => {
+    const disposable = new DisposableStore()
+    const disposable1 = {dispose: jest.fn()}
+    const disposable2 = {dispose: jest.fn()}
+    disposable.add([disposable1, disposable2])
+    expect(disposable1.dispose).not.toHaveBeenCalled()
+    expect(disposable2.dispose).not.toHaveBeenCalled()
+    disposable.dispose()
+    expect(disposable1.dispose).toHaveBeenCalled()
+    expect(disposable2.dispose).toHaveBeenCalled()
   })
   it("does not fail on null", () => {
     const disposable = new DisposableStore()
@@ -71,6 +82,11 @@ describe("store", () => {
     expect(disposable.remove(disposable2)).toBe(false)
     disposable.dispose()
     expect(disposable1.dispose).toHaveBeenCalled()
+  })
+  it('should not fail when removing null', () => {
+    const disposable = new DisposableStore()
+    disposable.remove(null as any)
+    disposable.dispose()
   })
   it("should not dispose twice", () => {
     const disposable = new DisposableStore()
@@ -119,6 +135,14 @@ describe("store", () => {
     expect(disposable2.dispose).not.toHaveBeenCalled()
     disposable.dispose()
     expect(disposable2.dispose).toHaveBeenCalled()
+  })
+  it('should not fail when disposing current on disposed store', () => {
+    const disposable = new DisposableStore()
+    const disposable1 = {dispose: jest.fn()}
+    disposable.add(disposable1)
+    disposable.dispose()
+    disposable.disposeCurrent()
+    expect(disposable1.dispose).toHaveBeenCalledTimes(1)
   })
   it("should add an timeout", () => {
     const disposable = new DisposableStore()
@@ -228,5 +252,33 @@ describe("store", () => {
     disposable.dispose()
 
     expect(() => disposable.throwIfDisposed("test")).toThrow("test")
+  })
+  it('should dispose arguments when disposed on addAll', () => {
+    const disposable = new DisposableStore()
+    const disposable1 = {dispose: jest.fn()}
+    const disposable2 = {dispose: jest.fn()}
+    disposable.dispose()
+    disposable.addAll([disposable1, disposable2])
+    expect(disposable1.dispose).toHaveBeenCalled()
+    expect(disposable2.dispose).toHaveBeenCalled()
+  })
+  it('should dispose safely', () => {
+    const disposable = new DisposableStore()
+    const disposable1 = {dispose: jest.fn()}
+    const disposable2 = {
+      dispose: () => {
+        throw new Error("Test")
+      }
+    }
+    disposable.add(disposable1, disposable2)
+    const errorCallback = jest.fn()
+    disposable.disposeSafely(errorCallback)
+    expect(disposable1.dispose).toHaveBeenCalled()
+    expect(errorCallback).toHaveBeenCalled()
+  })
+  it('should not fail disposeSafely on disposed store', () => {
+    const disposable = new DisposableStore()
+    disposable.dispose()
+    disposable.disposeSafely()
   })
 })

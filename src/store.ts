@@ -1,8 +1,8 @@
-import {DisposableAwareCompat, DisposableLike, IDisposable, IDisposablesContainer} from "./declarations";
-import {DisposableAction} from "./action";
-import {disposeAll, disposeAllUnsafe} from "./dispose-batch";
-import {Disposiq} from "./disposiq";
-import {ObjectDisposedException} from "./exception";
+import { DisposableAwareCompat, DisposableLike, IDisposablesContainer } from "./declarations";
+import { Disposiq } from "./disposiq";
+import { ObjectDisposedException } from "./exception";
+import { disposeAllSafely, disposeAllUnsafe, justDispose, justDisposeAll } from "./dispose-batch";
+import { disposeAllSafe } from "./aliases";
 
 /**
  * DisposableStore is a container for disposables. It will dispose all added disposables when it is disposed.
@@ -13,7 +13,7 @@ export class DisposableStore extends Disposiq implements IDisposablesContainer, 
   /**
    * @internal
    */
-  private readonly _disposables: IDisposable[]
+  private readonly _disposables: DisposableLike[]
 
   /**
    * @internal
@@ -22,7 +22,7 @@ export class DisposableStore extends Disposiq implements IDisposablesContainer, 
 
   constructor() {
     super()
-    this._disposables = new Array<IDisposable>()
+    this._disposables = new Array<DisposableLike>()
   }
 
   /**
@@ -32,33 +32,24 @@ export class DisposableStore extends Disposiq implements IDisposablesContainer, 
     return this._disposed
   }
 
+  add(...disposables: DisposableLike[]): void
+
+  add(disposables: DisposableLike[]): void
+
   /**
    * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
    * @param disposables disposables to add
    */
-  add(...disposables: DisposableLike[]): void {
-    this.addAll(disposables)
-  }
-
-  /**
-   * Adds disposables to the container. If the container has already been disposed, the disposables will be disposed.
-   * @param disposables Disposables to add.
-   */
-  addAll(disposables: DisposableLike[]): void {
+  add(...disposables: (DisposableLike | DisposableLike[])[]): void {
     if (!disposables || disposables.length === 0) {
       return
     }
+    const first = disposables[0]
+    if (Array.isArray(first)) {
+      disposables = first as DisposableLike[]
+    }
     if (this._disposed) {
-      for (const disposable of disposables) {
-        if (!disposable) {
-          continue
-        }
-        if (typeof disposable === "function") {
-          disposable()
-        } else {
-          disposable.dispose()
-        }
-      }
+      justDisposeAll(disposables as DisposableLike[])
       return
     }
     for (let i = 0; i < disposables.length; i++) {
@@ -66,7 +57,28 @@ export class DisposableStore extends Disposiq implements IDisposablesContainer, 
       if (!disposable) {
         continue
       }
-      this._disposables.push(typeof disposable === "function" ? new DisposableAction(disposable) : disposable)
+      this._disposables.push(disposable as DisposableLike)
+    }
+  }
+
+  /**
+   * Add multiple disposables to the store. If the store has already been disposed, the disposables will be disposed.
+   * @param disposables an array of disposables to add
+   */
+  addAll(disposables: DisposableLike[]): void {
+    if (!disposables || disposables.length === 0) {
+      return
+    }
+    if (this._disposed) {
+      justDisposeAll(disposables)
+      return
+    }
+    for (let i = 0; i < disposables.length; i++) {
+      const disposable = disposables[i]
+      if (!disposable) {
+        continue
+      }
+      this._disposables.push(disposable)
     }
   }
 
@@ -80,25 +92,21 @@ export class DisposableStore extends Disposiq implements IDisposablesContainer, 
       return
     }
     if (this._disposed) {
-      if (typeof disposable === "function") {
-        disposable()
-      } else {
-        disposable.dispose()
-      }
+      justDispose(disposable)
       return
-    }
-    if (typeof disposable === "function") {
-      disposable = new DisposableAction(disposable)
     }
     this._disposables.push(disposable)
   }
 
   /**
-   * Remove a disposable from the store. If the disposable is found and removed, it will be disposed.
+   * Remove a disposable from the store. If the disposable is found and removed, it will NOT be disposed
    * @param disposable a disposable to remove
    * @returns true if the disposable was found and removed
    */
-  remove(disposable: IDisposable): boolean {
+  remove(disposable: DisposableLike): boolean {
+    if (!disposable || this._disposed) {
+      return false
+    }
     const index = this._disposables.indexOf(disposable)
     if (index === -1) {
       return false
@@ -126,10 +134,10 @@ export class DisposableStore extends Disposiq implements IDisposablesContainer, 
   addTimeout(callbackOrTimeout: (() => void) | ReturnType<typeof setTimeout> | number, timeout?: number | undefined): void {
     if (typeof callbackOrTimeout === "function") {
       const handle = setTimeout(callbackOrTimeout, timeout)
-      this.add(() => clearTimeout(handle))
+      this.addOne(() => clearTimeout(handle))
       return
     }
-    this.add(() => clearTimeout(callbackOrTimeout))
+    this.addOne(() => clearTimeout(callbackOrTimeout))
   }
 
   /**
@@ -151,10 +159,10 @@ export class DisposableStore extends Disposiq implements IDisposablesContainer, 
   addInterval(callbackOrInterval: (() => void) | ReturnType<typeof setInterval> | number, interval?: number | undefined): void {
     if (typeof callbackOrInterval === "function") {
       const handle = setInterval(callbackOrInterval, interval)
-      this.add(() => clearInterval(handle))
+      this.addOne(() => clearInterval(handle))
       return
     }
-    this.add(() => clearInterval(callbackOrInterval))
+    this.addOne(() => clearInterval(callbackOrInterval))
   }
 
   /**
@@ -167,14 +175,6 @@ export class DisposableStore extends Disposiq implements IDisposablesContainer, 
     }
   }
 
-  dispose(): void {
-    if (this._disposed) {
-      return
-    }
-    this._disposed = true
-    disposeAllUnsafe(this._disposables)
-  }
-
   /**
    * Dispose all disposables in the store. The store does not become disposed. The disposables are removed from the
    * store. The store can continue to be used after this method is called. This method is useful when the store is
@@ -182,7 +182,30 @@ export class DisposableStore extends Disposiq implements IDisposablesContainer, 
    * this method will safely add the disposable to the store without disposing it immediately.
    */
   disposeCurrent(): void {
-    disposeAll(this._disposables)
+    if (this._disposed) {
+      return
+    }
+    disposeAllSafe(this._disposables)
+  }
+
+  /**
+   * Dispose the store and all disposables safely. If an error occurs during disposal, the error is caught and
+   * passed to the onErrorCallback.
+   */
+  disposeSafely(onErrorCallback?: (e: any) => void): void {
+    if (this._disposed) {
+      return
+    }
+    this._disposed = true
+    disposeAllSafely(this._disposables, onErrorCallback)
+  }
+
+  dispose(): void {
+    if (this._disposed) {
+      return
+    }
+    this._disposed = true
+    disposeAllUnsafe(this._disposables)
   }
 
   /**
