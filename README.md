@@ -32,7 +32,7 @@ npm install @tioniq/disposiq
 ### Function as a disposable
 
 ```typescript
-import {DisposableAction} from '@tioniq/disposiq'
+import { DisposableAction } from '@tioniq/disposiq'
 
 // The action will be executed only once when the disposable is disposed
 const disposable = new DisposableAction(() => {
@@ -45,7 +45,7 @@ disposable.dispose() // No output
 ### Store-based disposable
 
 ```typescript
-import {DisposableStore, DisposableAction} from '@tioniq/disposiq'
+import { DisposableStore, DisposableAction } from '@tioniq/disposiq'
 
 const store = new DisposableStore()
 const disposable1 = new DisposableAction(() => {
@@ -70,7 +70,7 @@ store.add(disposable3) // Output: Resource cleaned up 3
 ### Store-based disposable to dispose temporary resources
 
 ```typescript
-import {DisposableStore, DisposableAction} from '@tioniq/disposiq'
+import { DisposableStore, DisposableAction } from '@tioniq/disposiq'
 
 const store = new DisposableStore()
 const disposable1 = new DisposableAction(() => {
@@ -98,7 +98,7 @@ store.dispose() // Output: Resource cleaned up 3
 ### [Explicit Resource Management API](https://github.com/tc39/proposal-explicit-resource-management) support (aka 'using' keyword)
 
 ```typescript
-import {DisposableStore, DisposableAction} from '@tioniq/disposiq'
+import { DisposableStore, DisposableAction } from '@tioniq/disposiq'
 
 // When using the new 'using' keyword, the disposable will be disposed of automatically when it goes out of scope
 {
@@ -122,7 +122,7 @@ import {DisposableStore, DisposableAction} from '@tioniq/disposiq'
 There is a way to achieve the same result without use of the 'using' keyword. You can use the 'using' function instead.
 
 ```typescript
-import {Disposable, using} from '@tioniq/disposiq'
+import { Disposable, using } from '@tioniq/disposiq'
 
 using(new Client(), async (client) => {
   await client.makeRequest() // Output: Request made
@@ -155,7 +155,7 @@ class, so you can add custom methods to the class.
 For example, you can add a custom method to the `Disposiq` class:
 
 ```typescript
-import {Disposiq, DisposableAction, IDisposable} from '@tioniq/disposiq'
+import { Disposiq, DisposableAction, IDisposable } from '@tioniq/disposiq'
 
 declare module '@tioniq/disposiq' {
   interface Disposiq {
@@ -189,54 +189,57 @@ This library is inspired by the
 
 ### Interfaces & Types
 
-| Interface                    | Short Description                                              |
-|------------------------------|----------------------------------------------------------------|
-| `IDisposable`                | Base interface for disposables                                 |
-| `IAsyncDisposable`           | Base interface for asynchronous disposables                    |
-| `DisposeFunc`                | A function with no parameters                                  |
-| `DisposableLike`             | A function or disposable object                                |
-| `AsyncDisposeFunc`           | An asynchronous function with no parameters                    |
-| `IDisposablesContainer`      | A container for a collection of disposables                    |
-| `DisposableAware`            | Represents a disposable that is aware of its state             |
-| `DisposableCompat`           | Represents a disposable compatible with the 'using' keyword    |
-| `DisposableAwareCompat`      | Combines `DisposableAware` and `DisposableCompat`              |
-| `AsyncDisposableAware`       | An asynchronous disposable that is aware of its state          |
-| `AsyncDisposableCompat`      | An asynchronous disposable compatible with the 'using' keyword |
-| `AsyncDisposableAwareCompat` | Combines `AsyncDisposableAware` and `AsyncDisposableCompat`    |
+| Interface                    | Short Description                                                 |
+|------------------------------|-------------------------------------------------------------------|
+| `IDisposable`                | Base interface for disposables                                    |
+| `IAsyncDisposable`           | Base interface for asynchronous disposables                       |
+| `DisposeFunc`                | A function with no parameters                                     |
+| `DisposableLike`             | A function or disposable object                                   |
+| `AsyncDisposableLike`        | A function that returns a `Promise` or an async disposable object |
+| `AsyncDisposeFunc`           | An asynchronous function with no parameters                       |
+| `IDisposablesContainer`      | A container for a collection of disposables                       |
+| `DisposableAware`            | Represents a disposable that is aware of its state                |
+| `DisposableCompat`           | Represents a disposable compatible with the 'using' keyword       |
+| `DisposableAwareCompat`      | Combines `DisposableAware` and `DisposableCompat`                 |
+| `AsyncDisposableAware`       | An asynchronous disposable that is aware of its state             |
+| `AsyncDisposableCompat`      | An asynchronous disposable compatible with the 'using' keyword    |
+| `AsyncDisposableAwareCompat` | Combines `AsyncDisposableAware` and `AsyncDisposableCompat`       |
 
 ### Classes
 
-| Class                       | Short Description                                                         | Aliases                 |
-|-----------------------------|---------------------------------------------------------------------------|-------------------------|
-| `Disposiq`                  | Base class for all library disposables                                    | - `BaseDisposable`      |
-| `AsyncDisposiq`             | Base class for all library asynchronous disposables                       | - `BaseAsyncDisposable` |
-| `DisposableAction`          | A container for a function to be called on dispose                        | -                       |
-| `AsyncDisposableAction`     | A container for an asynchronous function to be called on dispose          | -                       |
-| `DisposableStore`           | A container for disposables                                               | `CompositeDisposable`   |
-| `DisposableMapStore`        | A container for disposables stored by a key                               | `DisposableDictionary`  |
-| `DisposableContainer`       | A container for a disposable object                                       | `SerialDisposable`      |
-| `BoolDisposable`            | A object that aware of its disposed state                                 | `BooleanDisposable`     |
-| `SafeActionDisposable`      | A container for a function that is safely called on dispose               | -                       |
-| `SafeAsyncActionDisposable` | A container for an asynchronous function that is safely called on dispose | -                       |
-| `AbortDisposable`           | A wrapper for AbortController to make it disposable                       | -                       |
-| `ObjectDisposedException`   | An exception thrown when an object is already disposed                    | -                       |
+| Class                       | Short Description                                                         | Aliases                    |
+|-----------------------------|---------------------------------------------------------------------------|----------------------------|
+| `Disposiq`                  | Base class for all library disposables                                    | - `BaseDisposable`         |
+| `AsyncDisposiq`             | Base class for all library asynchronous disposables                       | - `BaseAsyncDisposable`    |
+| `DisposableAction`          | A container for a function to be called on dispose                        | -                          |
+| `AsyncDisposableAction`     | A container for an asynchronous function to be called on dispose          | -                          |
+| `DisposableStore`           | A container for disposables                                               | `CompositeDisposable`      |
+| `AsyncDisposableStore`      | A container for async disposables                                         | `CompositeAsyncDisposable` |
+| `DisposableMapStore`        | A container for disposables stored by a key                               | `DisposableDictionary`     |
+| `DisposableContainer`       | A container for a disposable object                                       | `SerialDisposable`         |
+| `BoolDisposable`            | A object that aware of its disposed state                                 | `BooleanDisposable`        |
+| `SafeActionDisposable`      | A container for a function that is safely called on dispose               | -                          |
+| `SafeAsyncActionDisposable` | A container for an asynchronous function that is safely called on dispose | -                          |
+| `AbortDisposable`           | A wrapper for AbortController to make it disposable                       | -                          |
+| `ObjectDisposedException`   | An exception thrown when an object is already disposed                    | -                          |
 
 ### Functions
 
-| Class                     | Short Description                                                                                    | Aliases            |
-|---------------------------|------------------------------------------------------------------------------------------------------|--------------------|
-| `disposeAll`              | Dispose of all disposables in the array safely, allowing array modification during disposal          | disposeAllSafe     |
-| `disposeAllUnsafe`        | Dispose of all disposables in the array unsafely, array modification during disposal is dangerous    | -                  |
-| `createDisposable`        | Create a disposable object from a given parameter                                                    | toDisposable       |
-| `createDisposableCompat`  | Create a disposable object from a given parameter compatible with the 'using' keyword                | toDisposableCompat |
-| `disposableFromEvent`     | Create a disposable object from an event listener                                                    | on                 |
-| `disposableFromEventOnce` | Create a disposable object from an event listener that disposes after the first call                 | once               |
-| `isDisposable`            | Check if the object is a disposable object                                                           | -                  |
-| `isDisposableLike`        | Check if the object is a disposable-like                                                             | -                  |
-| `isDisposableCompat`      | Check if the object is a disposable object that is compatible with the 'using' keyword               | -                  |
-| `isAsyncDisposableCompat` | Check if the object is an asynchronous disposable object that is compatible with the 'using' keyword | -                  |
-| `isSystemDisposable`      | Check if the object is compatible with the system 'using' keyword                                    | -                  |
-| `isSystemAsyncDisposable` | Check if the object is compatible with the system 'await using' keyword                              | -                  |
+| Class                     | Short Description                                                                                                    | Aliases            |
+|---------------------------|----------------------------------------------------------------------------------------------------------------------|--------------------|
+| `disposeAll`              | Dispose of all disposables in the array safely, allowing array modification during disposal                          | disposeAllSafe     |
+| `disposeAllUnsafe`        | Dispose of all disposables in the array unsafely, array modification during disposal is dangerous                    | -                  |
+| `disposeAllSafely`        | Dispose of all disposables in the array safely, with error callback, array modification during disposal is dangerous | -                  |
+| `createDisposable`        | Create a disposable object from a given parameter                                                                    | toDisposable       |
+| `createDisposableCompat`  | Create a disposable object from a given parameter compatible with the 'using' keyword                                | toDisposableCompat |
+| `disposableFromEvent`     | Create a disposable object from an event listener                                                                    | on                 |
+| `disposableFromEventOnce` | Create a disposable object from an event listener that disposes after the first call                                 | once               |
+| `isDisposable`            | Check if the object is a disposable object                                                                           | -                  |
+| `isDisposableLike`        | Check if the object is a disposable-like                                                                             | -                  |
+| `isDisposableCompat`      | Check if the object is a disposable object that is compatible with the 'using' keyword                               | -                  |
+| `isAsyncDisposableCompat` | Check if the object is an asynchronous disposable object that is compatible with the 'using' keyword                 | -                  |
+| `isSystemDisposable`      | Check if the object is compatible with the system 'using' keyword                                                    | -                  |
+| `isSystemAsyncDisposable` | Check if the object is compatible with the system 'await using' keyword                                              | -                  |
 
 For more information, please check the [type definitions](https://github.com/tioniq/disposiq/blob/main/dist/index.d.ts)
 file.

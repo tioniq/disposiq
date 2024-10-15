@@ -6,11 +6,13 @@ import {disposableFromEvent, disposableFromEventOnce} from "./event";
 import {createDisposable, createDisposableCompat, createDisposiq} from "./create";
 import {AsyncDisposiq, Disposiq} from "./disposiq";
 import {DisposableMapStore} from "./map-store";
+import { AsyncDisposableStore } from "./store-async";
 
 export {
   BoolDisposable as BooleanDisposable,
   DisposableContainer as SerialDisposable,
   DisposableStore as CompositeDisposable,
+  AsyncDisposableStore as CompositeAsyncDisposable,
   Disposiq as BaseDisposable,
   AsyncDisposiq as BaseAsyncDisposable,
   DisposableMapStore as DisposableDictionary,
