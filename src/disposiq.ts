@@ -1,4 +1,4 @@
-import {DisposableCompat, IDisposablesContainer} from "./declarations";
+import { DisposableCompat, IDisposablesContainer } from "./declarations";
 
 /**
  * Disposiq is a base class for disposables. The only reason is to have ability to extend it with additional functionality.
@@ -30,4 +30,6 @@ export abstract class AsyncDisposiq extends Disposiq {
 
 export interface Disposiq {
   disposeWith(container: IDisposablesContainer): void;
+
+  toFunction(): () => void;
 }
