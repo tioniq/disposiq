@@ -112,6 +112,7 @@ declare abstract class Disposiq implements DisposableCompat {
 }
 interface Disposiq {
     disposeWith(container: IDisposablesContainer): void;
+    toFunction(): () => void;
 }
 
 /**

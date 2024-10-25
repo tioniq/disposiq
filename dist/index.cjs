@@ -1196,6 +1196,9 @@ var Disposable = class extends Disposiq {
 Disposiq.prototype.disposeWith = function(container) {
   return container.add(this);
 };
+Disposiq.prototype.toFunction = function() {
+  return () => this.dispose();
+};
 
 // src/is.ts
 function isDisposable(value) {
