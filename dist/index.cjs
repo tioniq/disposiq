@@ -61,6 +61,7 @@ __export(src_exports, {
   SafeActionDisposable: () => SafeActionDisposable,
   SafeAsyncActionDisposable: () => SafeAsyncActionDisposable,
   SerialDisposable: () => DisposableContainer,
+  addEventListener: () => addEventListener,
   createDisposable: () => createDisposable,
   createDisposableCompat: () => createDisposableCompat,
   createDisposiq: () => createDisposiq,
@@ -1192,6 +1193,12 @@ var Disposable = class extends Disposiq {
   }
 };
 
+// src/dom.ts
+function addEventListener(target, type, listener, options) {
+  target.addEventListener(type, listener, options);
+  return new DisposableAction(() => target.removeEventListener(type, listener, options));
+}
+
 // src/extensions.ts
 Disposiq.prototype.disposeWith = function(container) {
   return container.add(this);
@@ -1375,6 +1382,7 @@ function runDispose(disposable, action) {
   SafeActionDisposable,
   SafeAsyncActionDisposable,
   SerialDisposable,
+  addEventListener,
   createDisposable,
   createDisposableCompat,
   createDisposiq,

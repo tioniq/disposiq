@@ -1,4 +1,4 @@
-import { addEventListener } from "../src/dom";
+import { addEventListener } from "../src";
 
 describe('EventTarget', () => {
   it('addEventListener', () => {

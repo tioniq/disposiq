@@ -1117,6 +1117,12 @@ var Disposable = class extends Disposiq {
   }
 };
 
+// src/dom.ts
+function addEventListener(target, type, listener, options) {
+  target.addEventListener(type, listener, options);
+  return new DisposableAction(() => target.removeEventListener(type, listener, options));
+}
+
 // src/extensions.ts
 Disposiq.prototype.disposeWith = function(container) {
   return container.add(this);
@@ -1299,6 +1305,7 @@ export {
   SafeActionDisposable,
   SafeAsyncActionDisposable,
   DisposableContainer as SerialDisposable,
+  addEventListener,
   createDisposable,
   createDisposableCompat,
   createDisposiq,
