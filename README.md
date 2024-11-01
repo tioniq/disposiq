@@ -240,6 +240,7 @@ This library is inspired by the
 | `isAsyncDisposableCompat` | Check if the object is an asynchronous disposable object that is compatible with the 'using' keyword                 | -                  |
 | `isSystemDisposable`      | Check if the object is compatible with the system 'using' keyword                                                    | -                  |
 | `isSystemAsyncDisposable` | Check if the object is compatible with the system 'await using' keyword                                              | -                  |
+| `addEventListener`        | Add an event listener to the target object and return a disposable object. Useful for DOM events                     | -                  |
 
 For more information, please check the [type definitions](https://github.com/tioniq/disposiq/blob/main/dist/index.d.ts)
 file.
