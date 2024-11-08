@@ -30,3 +30,29 @@ describe('toFunction extension', () => {
     expect(disposable.disposed).toBe(true)
   })
 })
+
+describe('disposeIn extension', () => {
+  beforeAll(() => {
+    jest.useFakeTimers({
+      advanceTimers: true
+    })
+  })
+
+  afterAll(() => {
+    jest.useRealTimers()
+  })
+
+
+  it('should dispose the store after a delay', async () => {
+    const action = jest.fn()
+    const disposable = new DisposableAction(action)
+    const delay = 100
+    disposable.disposeIn(delay)
+
+    expect(disposable.disposed).toBe(false)
+
+    await new Promise(resolve => setTimeout(resolve, delay))
+
+    expect(disposable.disposed).toBe(true)
+  })
+})

@@ -4,6 +4,11 @@ export function using<T extends IDisposable, R>(resource: T, action: (resource: 
 
 export function using<T extends IDisposable | IAsyncDisposable, R>(resource: T, action: (resource: T) => Promise<R>): Promise<R>
 
+/**
+ * Executes an action with a disposable resource and disposes the resource when the action is done.
+ * @param resource the disposable resource
+ * @param action the action to execute
+ */
 export function using<T extends IDisposable | IAsyncDisposable, R>(resource: T, action: (resource: T) => R | Promise<R>): R | Promise<R> {
   let result: R | Promise<R>
   try {
