@@ -111,7 +111,19 @@ declare abstract class Disposiq implements DisposableCompat {
     [Symbol.dispose](): void;
 }
 interface Disposiq {
+    /**
+     * Dispose the object when the container is disposed.
+     * @param container a container to add the disposable to
+     */
     disposeWith(container: IDisposablesContainer): void;
+    /**
+     * Dispose the object after a specified time.
+     * @param ms time in milliseconds
+     */
+    disposeIn(ms: number): void;
+    /**
+     * Convert the object to a function that disposes the object.
+     */
     toFunction(): () => void;
 }
 

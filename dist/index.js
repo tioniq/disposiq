@@ -1130,6 +1130,10 @@ Disposiq.prototype.disposeWith = function(container) {
 Disposiq.prototype.toFunction = function() {
   return () => this.dispose();
 };
+var g = typeof global !== "undefined" ? global : typeof window !== "undefined" ? window : typeof self !== "undefined" ? self : void 0;
+Disposiq.prototype.disposeIn = function(ms) {
+  g.setTimeout(() => this.dispose(), ms);
+};
 
 // src/is.ts
 function isDisposable(value) {
