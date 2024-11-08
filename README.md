@@ -2,6 +2,7 @@
 
 ![Coverage](./coverage/badges.svg)
 ![npm version](https://img.shields.io/npm/v/@tioniq/disposiq)
+[![JSR](https://jsr.io/badges/@tioniq/disposiq)](https://jsr.io/@tioniq/disposiq)
 [![npm bundle size](https://img.shields.io/bundlephobia/minzip/@tioniq/disposiq)](https://bundlephobia.com/package/@tioniq/disposiq)
 ![license](https://img.shields.io/npm/l/@tioniq/disposiq)
 ![tree-shakeable](https://badgen.net/bundlephobia/tree-shaking/@tioniq/disposiq)
