@@ -1,4 +1,4 @@
-import {Queue} from "./queue"
+import { Queue } from "./queue"
 
 export class ObjectPool<T> {
   private readonly _scrap: Queue<T>

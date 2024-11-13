@@ -22,6 +22,7 @@ export class Queue<T> {
   enqueue(value: T) {
     const node = new Node(value)
     if (this.head) {
+      // biome-ignore lint/style/noNonNullAssertion: _tail is always set when _head is set
       this.tail!.next = node
       this.tail = node
     } else {

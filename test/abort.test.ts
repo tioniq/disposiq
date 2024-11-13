@@ -1,4 +1,4 @@
-import {AbortDisposable} from "../src";
+import { AbortDisposable } from "../src"
 
 describe("abort", () => {
   it("should be aborted", () => {

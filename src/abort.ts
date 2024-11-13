@@ -1,5 +1,5 @@
-import {DisposableAwareCompat} from "./declarations";
-import {Disposiq} from "./disposiq";
+import type { DisposableAwareCompat } from "./declarations"
+import { Disposiq } from "./disposiq"
 
 /**
  * Disposable container for AbortController. It will abort the signal when it is disposed.

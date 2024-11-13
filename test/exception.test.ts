@@ -1,4 +1,9 @@
-import {Disposable, DisposableAction, IDisposable, ObjectDisposedException} from "../src";
+import {
+  Disposable,
+  DisposableAction,
+  type IDisposable,
+  ObjectDisposedException,
+} from "../src"
 
 describe("exception", () => {
   it("should rethrow error", () => {
@@ -13,11 +18,12 @@ describe("exception", () => {
 })
 
 class Subscription extends Disposable {
+  // biome-ignore lint/complexity/noUselessConstructor: the constructor is necessary
   constructor() {
-    super();
+    super()
   }
 
   override register<T extends IDisposable>(t: T): T {
-    return super.register(t);
+    return super.register(t)
   }
 }

@@ -1,4 +1,4 @@
-import {Disposable, DisposableAction, IDisposable} from "../src";
+import { Disposable, DisposableAction, type IDisposable } from "../src"
 
 describe("disposable", () => {
   it("Disposable abstract class should register disposable", () => {
@@ -22,7 +22,7 @@ describe("disposable", () => {
     }
     expect(subscription.disposed).toBe(true)
   })
-  it('should add disposable', () => {
+  it("should add disposable", () => {
     const subscription = new Subscription()
     const action = jest.fn()
     const disposableAction = new DisposableAction(action)
@@ -33,7 +33,7 @@ describe("disposable", () => {
     expect(subscription.disposed).toBe(true)
     expect(action).toHaveBeenCalledTimes(1)
   })
-  it('should add disposables', () => {
+  it("should add disposables", () => {
     const subscription = new Subscription()
     const action1 = jest.fn()
     const disposableAction1 = new DisposableAction(action1)
@@ -48,7 +48,7 @@ describe("disposable", () => {
     expect(action1).toHaveBeenCalledTimes(1)
     expect(action2).toHaveBeenCalledTimes(1)
   })
-  it('should throw if disposed', () => {
+  it("should throw if disposed", () => {
     const disposable = new Subscription()
 
     expect(() => disposable.throwIfDisposed()).not.toThrow()
@@ -60,19 +60,20 @@ describe("disposable", () => {
 })
 
 class Subscription extends Disposable {
+  // biome-ignore lint/complexity/noUselessConstructor: the constructor is necessary
   constructor() {
-    super();
+    super()
   }
 
   override get disposed(): boolean {
-    return super.disposed;
+    return super.disposed
   }
 
   override register<T extends IDisposable>(t: T): T {
-    return super.register(t);
+    return super.register(t)
   }
 
   override throwIfDisposed(message?: string): void {
-    super.throwIfDisposed(message);
+    super.throwIfDisposed(message)
   }
 }

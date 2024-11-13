@@ -1,4 +1,4 @@
-import {BoolDisposable} from "../src";
+import { BoolDisposable } from "../src"
 
 describe("bool", () => {
   it("should be disposed", () => {

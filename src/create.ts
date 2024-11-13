@@ -1,8 +1,12 @@
-import {DisposableCompat, DisposableLike, IDisposable} from "./declarations";
-import {emptyDisposable} from "./empty";
-import {AsyncDisposableAction, DisposableAction} from "./action";
-import {AbortDisposable} from "./abort";
-import {Disposiq} from "./disposiq";
+import type {
+  DisposableCompat,
+  DisposableLike,
+  IDisposable,
+} from "./declarations"
+import { emptyDisposable } from "./empty"
+import { AsyncDisposableAction, DisposableAction } from "./action"
+import { AbortDisposable } from "./abort"
+import { Disposiq } from "./disposiq"
 
 /**
  * Create a disposable from a disposable like object. The object can be a function, an object with a dispose method,
@@ -14,14 +18,20 @@ import {Disposiq} from "./disposiq";
  * If the input is an AbortController, it will be wrapped in an AbortDisposable object.
  * If the input is invalid, an empty disposable object will be returned.
  */
-export function createDisposable(disposableLike: DisposableLike | Disposable | AsyncDisposable | AbortController): IDisposable {
+export function createDisposable(
+  disposableLike:
+    | DisposableLike
+    | Disposable
+    | AsyncDisposable
+    | AbortController,
+): IDisposable {
   if (!disposableLike) {
     return emptyDisposable
   }
-  if (typeof disposableLike === 'function') {
+  if (typeof disposableLike === "function") {
     return new DisposableAction(disposableLike)
   }
-  if (typeof disposableLike !== 'object') {
+  if (typeof disposableLike !== "object") {
     return emptyDisposable
   }
   if ("dispose" in disposableLike) {
@@ -59,14 +69,20 @@ export function createDisposable(disposableLike: DisposableLike | Disposable | A
  * If the input is an AbortController, it will be wrapped in an AbortDisposable object.
  * If the input is invalid, an empty disposable object will be returned.
  */
-export function createDisposableCompat(disposableLike: DisposableLike | Disposable | AsyncDisposable | AbortController): DisposableCompat {
+export function createDisposableCompat(
+  disposableLike:
+    | DisposableLike
+    | Disposable
+    | AsyncDisposable
+    | AbortController,
+): DisposableCompat {
   if (!disposableLike) {
     return emptyDisposable
   }
-  if (typeof disposableLike === 'function') {
+  if (typeof disposableLike === "function") {
     return new DisposableAction(disposableLike)
   }
-  if (typeof disposableLike !== 'object') {
+  if (typeof disposableLike !== "object") {
     return emptyDisposable
   }
   const hasDispose = "dispose" in disposableLike
@@ -103,20 +119,27 @@ export function createDisposableCompat(disposableLike: DisposableLike | Disposab
  * @param disposableLike a disposable like object
  * @returns a Disposiq object. If the input is already a Disposiq object, it will be returned as is.
  */
-export function createDisposiq(disposableLike: DisposableLike | Disposable | AsyncDisposable | AbortController): Disposiq {
+export function createDisposiq(
+  disposableLike:
+    | DisposableLike
+    | Disposable
+    | AsyncDisposable
+    | AbortController,
+): Disposiq {
   if (!disposableLike) {
     return emptyDisposable
   }
   if (disposableLike instanceof Disposiq) {
     return disposableLike
   }
-  if (typeof disposableLike === 'function') {
+  if (typeof disposableLike === "function") {
     return new DisposableAction(disposableLike)
   }
-  if (typeof disposableLike !== 'object') {
+  if (typeof disposableLike !== "object") {
     return emptyDisposable
   }
-  const hasDispose = "dispose" in disposableLike && typeof disposableLike.dispose === "function"
+  const hasDispose =
+    "dispose" in disposableLike && typeof disposableLike.dispose === "function"
   const hasSymbolDispose = Symbol.dispose in disposableLike
   if (hasDispose && hasSymbolDispose) {
     return new class extends Disposiq {

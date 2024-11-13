@@ -1,24 +1,26 @@
 import {
-  AsyncDisposableLike,
+  type AsyncDisposableLike,
   disposeAll,
-  disposeAllAsync, disposeAllSafely, disposeAllSafelyAsync,
+  disposeAllAsync,
+  disposeAllSafely,
+  disposeAllSafelyAsync,
   disposeAllUnsafe,
   disposeAllUnsafeAsync,
   justDispose,
-  justDisposeAsync
-} from "../src";
-import { DisposableLike, IDisposable } from "../src";
+  justDisposeAsync,
+} from "../src"
+import type { DisposableLike, IDisposable } from "../src"
 
-describe('dispose-all-unsafe', () => {
+describe("dispose-all-unsafe", () => {
   it("should dispose all disposables", () => {
-    const disposable1 = {dispose: jest.fn()}
-    const disposable2 = {dispose: jest.fn()}
+    const disposable1 = { dispose: jest.fn() }
+    const disposable2 = { dispose: jest.fn() }
     const disposables = [disposable1, disposable2]
     disposeAllUnsafe(disposables)
     expect(disposable1.dispose).toHaveBeenCalled()
     expect(disposable2.dispose).toHaveBeenCalled()
     expect(disposables.length).toBe(0)
-    const disposable3 = {dispose: jest.fn()}
+    const disposable3 = { dispose: jest.fn() }
     disposables.push(disposable3)
     expect(disposables.length).toBe(1)
     disposeAllUnsafe(disposables)
@@ -26,7 +28,7 @@ describe('dispose-all-unsafe', () => {
     expect(disposables.length).toBe(0)
   })
   it("should not fail on null", () => {
-    const disposable1 = {dispose: jest.fn()}
+    const disposable1 = { dispose: jest.fn() }
     const disposable2: IDisposable | null = null
     const disposables: IDisposable[] = [disposable1, disposable2]
     disposeAllUnsafe(disposables)
@@ -52,11 +54,11 @@ describe('dispose-all-unsafe', () => {
   })
   it("unsafe push", () => {
     const disposables: DisposableLike[] = []
-    const disposable2 = {dispose: jest.fn()}
+    const disposable2 = { dispose: jest.fn() }
     const disposable1 = {
       dispose: () => {
         disposables.push(disposable2)
-      }
+      },
     }
     disposables.push(disposable1)
     disposeAllUnsafe(disposables)
@@ -64,16 +66,16 @@ describe('dispose-all-unsafe', () => {
   })
 })
 
-describe('dispose-all-safe', () => {
+describe("dispose-all-safe", () => {
   it("should dispose all disposables", () => {
-    const disposable1 = {dispose: jest.fn()}
-    const disposable2 = {dispose: jest.fn()}
+    const disposable1 = { dispose: jest.fn() }
+    const disposable2 = { dispose: jest.fn() }
     const disposables = [disposable1, disposable2]
     disposeAll(disposables)
     expect(disposable1.dispose).toHaveBeenCalled()
     expect(disposable2.dispose).toHaveBeenCalled()
     expect(disposables.length).toBe(0)
-    const disposable3 = {dispose: jest.fn()}
+    const disposable3 = { dispose: jest.fn() }
     disposables.push(disposable3)
     expect(disposables.length).toBe(1)
     disposeAll(disposables)
@@ -81,7 +83,7 @@ describe('dispose-all-safe', () => {
     expect(disposables.length).toBe(0)
   })
   it("should not failed on null", () => {
-    const disposable1 = {dispose: jest.fn()}
+    const disposable1 = { dispose: jest.fn() }
     const disposable2: IDisposable = null
     const disposables = [disposable1, disposable2]
     disposeAll(disposables as unknown as IDisposable[])
@@ -107,17 +109,17 @@ describe('dispose-all-safe', () => {
   })
   it("safe push", () => {
     const disposables: DisposableLike[] = []
-    const disposable2 = {dispose: jest.fn()}
+    const disposable2 = { dispose: jest.fn() }
     const disposable1 = {
       dispose: () => {
         disposables.push(disposable2)
-      }
+      },
     }
     disposables.push(disposable1)
     disposeAll(disposables)
     expect(disposable2.dispose).not.toHaveBeenCalled()
   })
-  it('should handle many dispose at the same time', () => {
+  it("should handle many dispose at the same time", () => {
     const disposablesOfDisposables: DisposableLike[][] = []
     const disposableFunc = jest.fn()
     const iCount = 100
@@ -138,7 +140,9 @@ describe('dispose-all-safe', () => {
 
     disposeAll(disposablesOfDisposables[0])
 
-    expect(disposableFunc).toHaveBeenCalledTimes(iCount * 9 + 1 + Math.floor((iCount * (iCount - 1) / 2)))
+    expect(disposableFunc).toHaveBeenCalledTimes(
+      iCount * 9 + 1 + Math.floor((iCount * (iCount - 1)) / 2),
+    )
 
     // Check if disposeAll is reusable
     const disposablesOfDisposables2: DisposableLike[][] = []
@@ -161,67 +165,70 @@ describe('dispose-all-safe', () => {
 
     disposeAll(disposablesOfDisposables2[0])
 
-    expect(disposableFunc2).toHaveBeenCalledTimes(iCount2 * 19 + 1 + Math.floor((iCount2 * (iCount2 - 1) / 2)))
+    expect(disposableFunc2).toHaveBeenCalledTimes(
+      iCount2 * 19 + 1 + Math.floor((iCount2 * (iCount2 - 1)) / 2),
+    )
   })
 })
 
-describe('dispose-other', () => {
-  it('should not fail when just dispose null', () => {
-    justDispose(null as any)
+describe("dispose-other", () => {
+  it("should not fail when just dispose null", () => {
+    justDispose(null as IDisposable)
   })
 
-  it('should not fail when just dispose async', async () => {
+  it("should not fail when just dispose async", async () => {
     await justDisposeAsync(async () => {
-      return new Promise<void>(resolve => setTimeout(resolve, 100))
+      return new Promise<void>((resolve) => setTimeout(resolve, 100))
     })
   })
 
-  it('should not fail when just dispose async null', async () => {
-    await justDisposeAsync(null as any)
+  it("should not fail when just dispose async null", async () => {
+    await justDisposeAsync(null as IDisposable)
   })
 
-  it('should not fail disposeAllAsync when disposables is empty', async () => {
-    await disposeAllAsync([] as any)
+  it("should not fail disposeAllAsync when disposables is empty", async () => {
+    await disposeAllAsync([] as IDisposable[])
   })
 
-  it('should not fail disposeAllUnsafeAsync when disposables contains null', async () => {
-    await disposeAllUnsafeAsync([null] as any)
+  it("should not fail disposeAllUnsafeAsync when disposables contains null", async () => {
+    await disposeAllUnsafeAsync([null] as IDisposable[])
   })
 
-  it('should not fail disposeAllSafely when disposables contains null', () => {
-    disposeAllSafely([null] as any)
+  it("should not fail disposeAllSafely when disposables contains null", () => {
+    disposeAllSafely([null] as IDisposable[])
   })
 
-  it('should not fail disposeAllSafely when disposables is empty', () => {
-    disposeAllSafely([] as any)
+  it("should not fail disposeAllSafely when disposables is empty", () => {
+    disposeAllSafely([] as IDisposable[])
   })
 
-  it('should disposeAllSafely dispose function', () => {
+  it("should disposeAllSafely dispose function", () => {
     const func = jest.fn()
     disposeAllSafely([func])
     expect(func).toHaveBeenCalled()
   })
 
-  it('should not fail disposeAllSafelyAsync when disposables contains null', async () => {
-    await disposeAllSafelyAsync([null] as any)
+  it("should not fail disposeAllSafelyAsync when disposables contains null", async () => {
+    await disposeAllSafelyAsync([null] as IDisposable[])
   })
 
-  it('should not fail disposeAllSafelyAsync when disposables is empty', async () => {
-    await disposeAllSafelyAsync([] as any)
+  it("should not fail disposeAllSafelyAsync when disposables is empty", async () => {
+    await disposeAllSafelyAsync([] as IDisposable[])
   })
 
-  it('should disposeAllSafelyAsync dispose function', async () => {
+  it("should disposeAllSafelyAsync dispose function", async () => {
     const func = jest.fn()
     await disposeAllSafelyAsync([func])
     expect(func).toHaveBeenCalled()
   })
 
-  it('should not fail disposeAllAsync when disposables contains null', async () => {
-    await disposeAllAsync([null] as any)
+  it("should not fail disposeAllAsync when disposables contains null", async () => {
+    await disposeAllAsync([null] as IDisposable[])
   })
 
-  it('should handle many async dispose at the same time', async () => {
-    const disposablesOfDisposables: (DisposableLike | AsyncDisposableLike)[][] = []
+  it("should handle many async dispose at the same time", async () => {
+    const disposablesOfDisposables: (DisposableLike | AsyncDisposableLike)[][] =
+      []
     const disposableFunc = jest.fn()
     const iCount = 100
     for (let i = 0; i < iCount; i++) {
@@ -241,10 +248,15 @@ describe('dispose-other', () => {
 
     await disposeAllAsync(disposablesOfDisposables[0])
 
-    expect(disposableFunc).toHaveBeenCalledTimes(iCount * 9 + 1 + Math.floor((iCount * (iCount - 1) / 2)))
+    expect(disposableFunc).toHaveBeenCalledTimes(
+      iCount * 9 + 1 + Math.floor((iCount * (iCount - 1)) / 2),
+    )
 
     // Check if disposeAll is reusable
-    const disposablesOfDisposables2: (DisposableLike | AsyncDisposableLike)[][] = []
+    const disposablesOfDisposables2: (
+      | DisposableLike
+      | AsyncDisposableLike
+    )[][] = []
     const disposableFunc2 = jest.fn()
     const iCount2 = 200
     for (let i = 0; i < iCount2; i++) {
@@ -264,6 +276,8 @@ describe('dispose-other', () => {
 
     await disposeAllAsync(disposablesOfDisposables2[0])
 
-    expect(disposableFunc2).toHaveBeenCalledTimes(iCount2 * 19 + 1 + Math.floor((iCount2 * (iCount2 - 1) / 2)))
+    expect(disposableFunc2).toHaveBeenCalledTimes(
+      iCount2 * 19 + 1 + Math.floor((iCount2 * (iCount2 - 1)) / 2),
+    )
   })
 })

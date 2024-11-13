@@ -541,7 +541,7 @@ declare abstract class Disposable$1 extends Disposiq implements DisposableCompat
     dispose(): void;
 }
 
-type EventListener = ((this: EventTarget, ev: Event) => any) | {
+type EventListener<T extends Event = Event> = ((this: EventTarget, ev: T) => any) | {
     handleEvent(evt: Event): void;
 };
 interface EventListenerOptions {
@@ -553,10 +553,10 @@ interface AddEventListenerOptions extends EventListenerOptions {
     signal?: AbortSignal;
 }
 interface EventTarget {
-    addEventListener(type: string, listener: EventListener, options?: boolean | AddEventListenerOptions): void;
-    removeEventListener(type: string, listener: EventListener, options?: boolean | EventListenerOptions): void;
+    addEventListener<E extends Event>(type: string, listener: EventListener<E>, options?: boolean | AddEventListenerOptions): void;
+    removeEventListener<E extends Event>(type: string, listener: EventListener<E>, options?: boolean | EventListenerOptions): void;
 }
-declare function addEventListener(target: EventTarget, type: string, listener: EventListener, options?: boolean | AddEventListenerOptions): Disposiq;
+declare function addEventListener<E extends Event>(target: EventTarget, type: string, listener: EventListener<E>, options?: boolean | AddEventListenerOptions): Disposiq;
 
 /**
  * An empty disposable that does nothing when disposed.

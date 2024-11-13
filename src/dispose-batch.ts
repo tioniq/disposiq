@@ -1,4 +1,4 @@
-import { AsyncDisposableLike, DisposableLike } from "./declarations"
+import type { AsyncDisposableLike, DisposableLike } from "./declarations"
 import { ObjectPool } from "./utils/object-pool"
 
 const pool = new ObjectPool<DisposableLike[]>(10)
@@ -15,7 +15,9 @@ export function justDispose(disposable: DisposableLike) {
   }
 }
 
-export async function justDisposeAsync(disposable: DisposableLike | AsyncDisposableLike): Promise<void> {
+export async function justDisposeAsync(
+  disposable: DisposableLike | AsyncDisposableLike,
+): Promise<void> {
   if (!disposable) {
     return
   }
@@ -40,7 +42,9 @@ export function justDisposeAll(disposables: DisposableLike[]) {
   }
 }
 
-export async function justDisposeAllAsync(disposables: (AsyncDisposableLike | DisposableLike)[]): Promise<void> {
+export async function justDisposeAllAsync(
+  disposables: (AsyncDisposableLike | DisposableLike)[],
+): Promise<void> {
   for (let i = 0; i < disposables.length; ++i) {
     const disposable = disposables[i]
     if (!disposable) {
@@ -59,7 +63,7 @@ export async function justDisposeAllAsync(disposables: (AsyncDisposableLike | Di
  * @param disposables an array of disposables
  */
 export function disposeAll(disposables: DisposableLike[]) {
-  let size = disposables.length
+  const size = disposables.length
   if (size === 0) {
     return
   }
@@ -88,6 +92,7 @@ export function disposeAll(disposables: DisposableLike[]) {
       }
     }
   } finally {
+    // biome-ignore lint/style/noNonNullAssertion: need to fill the array with undefined
     holder.fill(undefined!, 0, size)
     if (pool.full) {
       pool.size *= 2
@@ -100,8 +105,10 @@ export function disposeAll(disposables: DisposableLike[]) {
  * Dispose all async disposables in the array safely. During the disposal process, the array is safe to modify
  * @param disposables an array of disposables
  */
-export async function disposeAllAsync(disposables: (DisposableLike | AsyncDisposableLike)[]): Promise<void> {
-  let size = disposables.length
+export async function disposeAllAsync(
+  disposables: (DisposableLike | AsyncDisposableLike)[],
+): Promise<void> {
+  const size = disposables.length
   if (size === 0) {
     return
   }
@@ -130,6 +137,7 @@ export async function disposeAllAsync(disposables: (DisposableLike | AsyncDispos
       }
     }
   } finally {
+    // biome-ignore lint/style/noNonNullAssertion: need to fill the array with undefined
     holder.fill(undefined!, 0, size)
     if (asyncPool.full) {
       asyncPool.size *= 2
@@ -161,7 +169,9 @@ export function disposeAllUnsafe(disposables: DisposableLike[]) {
  * Dispose all async disposables in the array unsafely. During the disposal process, the array is not safe to modify
  * @param disposables an array of disposables
  */
-export async function disposeAllUnsafeAsync(disposables: (AsyncDisposableLike | DisposableLike)[]) {
+export async function disposeAllUnsafeAsync(
+  disposables: (AsyncDisposableLike | DisposableLike)[],
+) {
   for (let i = 0; i < disposables.length; ++i) {
     const disposable = disposables[i]
     if (!disposable) {
@@ -181,7 +191,10 @@ export async function disposeAllUnsafeAsync(disposables: (AsyncDisposableLike | 
  * @param disposables an array of disposables
  * @param onErrorCallback a callback to handle errors
  */
-export function disposeAllSafely(disposables: DisposableLike[], onErrorCallback?: (error: any) => void) {
+export function disposeAllSafely(
+  disposables: DisposableLike[],
+  onErrorCallback?: (error: unknown) => void,
+) {
   if (disposables.length === 0) {
     return
   }
@@ -203,13 +216,15 @@ export function disposeAllSafely(disposables: DisposableLike[], onErrorCallback?
   disposables.length = 0
 }
 
-
 /**
  * Dispose all disposables in the array unsafely. During the disposal process, the array is not safe to modify
  * @param disposables an array of disposables
  * @param onErrorCallback a callback to handle errors
  */
-export async function disposeAllSafelyAsync(disposables: (AsyncDisposableLike | DisposableLike)[], onErrorCallback?: (error: any) => void) {
+export async function disposeAllSafelyAsync(
+  disposables: (AsyncDisposableLike | DisposableLike)[],
+  onErrorCallback?: (error: unknown) => void,
+) {
   if (disposables.length === 0) {
     return
   }

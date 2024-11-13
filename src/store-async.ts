@@ -1,24 +1,27 @@
-import { AsyncDisposiq } from "./disposiq";
-import {
+import { AsyncDisposiq } from "./disposiq"
+import type {
   AsyncDisposableAwareCompat,
   AsyncDisposableLike,
-  DisposableLike
-} from "./declarations";
-import { ObjectDisposedException } from "./exception";
+  DisposableLike,
+} from "./declarations"
+import { ObjectDisposedException } from "./exception"
 import {
   disposeAllAsync,
   disposeAllSafelyAsync,
   disposeAllUnsafeAsync,
   justDisposeAllAsync,
-  justDisposeAsync
-} from "./dispose-batch";
+  justDisposeAsync,
+} from "./dispose-batch"
 
 /**
  * AsyncDisposableStore is a container for async disposables. It will dispose all added disposables when it is disposed.
  * The store has a disposeCurrent method that will dispose all disposables in the store without disposing the store itself.
  * The store can continue to be used after this method is called.
  */
-export class AsyncDisposableStore extends AsyncDisposiq implements AsyncDisposableAwareCompat {
+export class AsyncDisposableStore
+  extends AsyncDisposiq
+  implements AsyncDisposableAwareCompat
+{
   /**
    * @internal
    */
@@ -27,7 +30,7 @@ export class AsyncDisposableStore extends AsyncDisposiq implements AsyncDisposab
   /**
    * @internal
    */
-  private _disposed: boolean = false
+  private _disposed = false
 
   /**
    * Returns true if the object has been disposed.
@@ -45,19 +48,25 @@ export class AsyncDisposableStore extends AsyncDisposiq implements AsyncDisposab
    * @param disposables disposables to add
    * @returns void if the container has not been disposed, otherwise a promise that resolves when all disposables have been disposed
    */
-  add(...disposables: (AsyncDisposableLike | DisposableLike | (AsyncDisposableLike | DisposableLike)[])[]): void | Promise<void> {
+  add(
+    ...disposables: (
+      | AsyncDisposableLike
+      | DisposableLike
+      | (AsyncDisposableLike | DisposableLike)[]
+    )[]
+  ): void | Promise<void> {
     if (!disposables || disposables.length === 0) {
       return
     }
     const first = disposables[0]
-    if (Array.isArray(first)) {
-      disposables = first as (AsyncDisposableLike | DisposableLike)[]
-    }
+    const value = Array.isArray(first)
+      ? (first as (AsyncDisposableLike | DisposableLike)[])
+      : (disposables as (AsyncDisposableLike | DisposableLike)[])
     if (this._disposed) {
-      return justDisposeAllAsync(disposables as (AsyncDisposableLike | DisposableLike)[])
+      return justDisposeAllAsync(value)
     }
-    for (let i = 0; i < disposables.length; i++) {
-      const disposable = disposables[i]
+    for (let i = 0; i < value.length; i++) {
+      const disposable = value[i]
       if (!disposable) {
         continue
       }
@@ -65,7 +74,9 @@ export class AsyncDisposableStore extends AsyncDisposiq implements AsyncDisposab
     }
   }
 
-  addAll(disposables: (AsyncDisposableLike | DisposableLike)[]): void | Promise<void> {
+  addAll(
+    disposables: (AsyncDisposableLike | DisposableLike)[],
+  ): void | Promise<void> {
     if (!disposables || disposables.length === 0) {
       return
     }
@@ -86,7 +97,9 @@ export class AsyncDisposableStore extends AsyncDisposiq implements AsyncDisposab
    * @param disposable a disposable to add
    * @returns void if the container has not been disposed, otherwise a promise that resolves when the disposable has been disposed
    */
-  addOne(disposable: AsyncDisposableLike | DisposableLike): void | Promise<void> {
+  addOne(
+    disposable: AsyncDisposableLike | DisposableLike,
+  ): void | Promise<void> {
     if (!disposable) {
       return
     }
@@ -137,7 +150,7 @@ export class AsyncDisposableStore extends AsyncDisposiq implements AsyncDisposab
    * Dispose all disposables in the store safely. The store becomes disposed.
    * @param onErrorCallback an optional callback that is invoked if an error occurs during disposal
    */
-  disposeSafely(onErrorCallback?: (e: any) => void): Promise<void> {
+  disposeSafely(onErrorCallback?: (e: unknown) => void): Promise<void> {
     if (this._disposed) {
       return
     }
@@ -158,16 +171,24 @@ export class AsyncDisposableStore extends AsyncDisposiq implements AsyncDisposab
    * @param values an array of values
    * @param mapper a function that maps a value to a disposable
    */
-  static from<T>(values: T[], mapper: (value: T) => AsyncDisposableLike | DisposableLike): AsyncDisposableStore
+  static from<T>(
+    values: T[],
+    mapper: (value: T) => AsyncDisposableLike | DisposableLike,
+  ): AsyncDisposableStore
 
   /**
    * Create an async disposable store from an array of disposables.
    * @param disposables an array of disposables
    * @returns a disposable store containing the disposables
    */
-  static from(disposables: (AsyncDisposableLike | DisposableLike)[]): AsyncDisposableStore
+  static from(
+    disposables: (AsyncDisposableLike | DisposableLike)[],
+  ): AsyncDisposableStore
 
-  static from<T>(disposables: (AsyncDisposableLike | DisposableLike)[] | T[], mapper?: (value: T) => AsyncDisposableLike | DisposableLike): AsyncDisposableStore {
+  static from<T>(
+    disposables: (AsyncDisposableLike | DisposableLike)[] | T[],
+    mapper?: (value: T) => AsyncDisposableLike | DisposableLike,
+  ): AsyncDisposableStore {
     if (typeof mapper === "function") {
       const store = new AsyncDisposableStore()
       store.add((disposables as T[]).map(mapper))

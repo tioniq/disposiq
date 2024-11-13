@@ -1,5 +1,5 @@
-import {EventEmitter} from "node:events";
-import {disposableFromEvent, disposableFromEventOnce} from "../src";
+import { EventEmitter } from "node:events"
+import { disposableFromEvent, disposableFromEventOnce } from "../src"
 
 describe("event", () => {
   it("should create disposable from event", () => {

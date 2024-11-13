@@ -1,15 +1,27 @@
-import { DisposableAwareCompat, DisposableLike, IDisposablesContainer } from "./declarations";
-import { Disposiq } from "./disposiq";
-import { ObjectDisposedException } from "./exception";
-import { disposeAllSafely, disposeAllUnsafe, justDispose, justDisposeAll } from "./dispose-batch";
-import { disposeAllSafe } from "./aliases";
+import type {
+  DisposableAwareCompat,
+  DisposableLike,
+  IDisposablesContainer,
+} from "./declarations"
+import { Disposiq } from "./disposiq"
+import { ObjectDisposedException } from "./exception"
+import {
+  disposeAllSafely,
+  disposeAllUnsafe,
+  justDispose,
+  justDisposeAll,
+} from "./dispose-batch"
+import { disposeAllSafe } from "./aliases"
 
 /**
  * DisposableStore is a container for disposables. It will dispose all added disposables when it is disposed.
  * The store has a disposeCurrent method that will dispose all disposables in the store without disposing the store itself.
  * The store can continue to be used after this method is called.
  */
-export class DisposableStore extends Disposiq implements IDisposablesContainer, DisposableAwareCompat {
+export class DisposableStore
+  extends Disposiq
+  implements IDisposablesContainer, DisposableAwareCompat
+{
   /**
    * @internal
    */
@@ -18,7 +30,7 @@ export class DisposableStore extends Disposiq implements IDisposablesContainer, 
   /**
    * @internal
    */
-  private _disposed: boolean = false
+  private _disposed = false
 
   constructor() {
     super()
@@ -45,15 +57,15 @@ export class DisposableStore extends Disposiq implements IDisposablesContainer, 
       return
     }
     const first = disposables[0]
-    if (Array.isArray(first)) {
-      disposables = first as DisposableLike[]
-    }
+    const value = Array.isArray(first)
+      ? (first as DisposableLike[])
+      : (disposables as DisposableLike[])
     if (this._disposed) {
-      justDisposeAll(disposables as DisposableLike[])
+      justDisposeAll(value)
       return
     }
-    for (let i = 0; i < disposables.length; i++) {
-      const disposable = disposables[i]
+    for (let i = 0; i < value.length; i++) {
+      const disposable = value[i]
       if (!disposable) {
         continue
       }
@@ -120,18 +132,21 @@ export class DisposableStore extends Disposiq implements IDisposablesContainer, 
    * @param callback a callback to call when the timeout expires
    * @param timeout the number of milliseconds to wait before calling the callback
    */
-  addTimeout(callback: () => void, timeout: number): void;
+  addTimeout(callback: () => void, timeout: number): void
 
   /**
    * Add a timeout to the store. If the store has already been disposed, the timeout will be cleared.
    * @param timeout a timeout handle
    */
-  addTimeout(timeout: ReturnType<typeof setTimeout> | number): void;
+  addTimeout(timeout: ReturnType<typeof setTimeout> | number): void
 
   /**
    * @internal
    */
-  addTimeout(callbackOrTimeout: (() => void) | ReturnType<typeof setTimeout> | number, timeout?: number | undefined): void {
+  addTimeout(
+    callbackOrTimeout: (() => void) | ReturnType<typeof setTimeout> | number,
+    timeout?: number | undefined,
+  ): void {
     if (typeof callbackOrTimeout === "function") {
       const handle = setTimeout(callbackOrTimeout, timeout)
       this.addOne(() => clearTimeout(handle))
@@ -145,18 +160,21 @@ export class DisposableStore extends Disposiq implements IDisposablesContainer, 
    * @param callback a callback to call when the interval expires
    * @param interval the number of milliseconds to wait between calls to the callback
    */
-  addInterval(callback: () => void, interval: number): void;
+  addInterval(callback: () => void, interval: number): void
 
   /**
    * Add an interval to the store. If the store has already been disposed, the interval will be cleared.
    * @param interval an interval handle
    */
-  addInterval(interval: ReturnType<typeof setInterval> | number): void;
+  addInterval(interval: ReturnType<typeof setInterval> | number): void
 
   /**
    * @internal
    */
-  addInterval(callbackOrInterval: (() => void) | ReturnType<typeof setInterval> | number, interval?: number | undefined): void {
+  addInterval(
+    callbackOrInterval: (() => void) | ReturnType<typeof setInterval> | number,
+    interval?: number | undefined,
+  ): void {
     if (typeof callbackOrInterval === "function") {
       const handle = setInterval(callbackOrInterval, interval)
       this.addOne(() => clearInterval(handle))
@@ -192,7 +210,7 @@ export class DisposableStore extends Disposiq implements IDisposablesContainer, 
    * Dispose the store and all disposables safely. If an error occurs during disposal, the error is caught and
    * passed to the onErrorCallback.
    */
-  disposeSafely(onErrorCallback?: (e: any) => void): void {
+  disposeSafely(onErrorCallback?: (e: unknown) => void): void {
     if (this._disposed) {
       return
     }
@@ -214,7 +232,10 @@ export class DisposableStore extends Disposiq implements IDisposablesContainer, 
    * @param values an array of values
    * @param mapper a function that maps a value to a disposable
    */
-  static from<T>(values: T[], mapper: (value: T) => DisposableLike): DisposableStore
+  static from<T>(
+    values: T[],
+    mapper: (value: T) => DisposableLike,
+  ): DisposableStore
 
   /**
    * Create a disposable store from an array of disposables.
@@ -223,7 +244,10 @@ export class DisposableStore extends Disposiq implements IDisposablesContainer, 
    */
   static from(disposables: DisposableLike[]): DisposableStore
 
-  static from<T>(disposables: DisposableLike[] | T[], mapper?: (value: T) => DisposableLike): DisposableStore {
+  static from<T>(
+    disposables: DisposableLike[] | T[],
+    mapper?: (value: T) => DisposableLike,
+  ): DisposableStore {
     if (typeof mapper === "function") {
       const store = new DisposableStore()
       store.addAll((disposables as T[]).map(mapper))

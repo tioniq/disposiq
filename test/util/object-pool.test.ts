@@ -1,7 +1,7 @@
-import {ObjectPool} from "../../src/utils/object-pool"
+import { ObjectPool } from "../../src/utils/object-pool"
 
-describe('object pool', () => {
-  it('should throw and lift object', () => {
+describe("object pool", () => {
+  it("should throw and lift object", () => {
     const pool = new ObjectPool<number>(2)
     expect(pool.size).toBe(2)
     expect(pool.all).toEqual([])
@@ -40,7 +40,7 @@ describe('object pool', () => {
     expect(pool.all).toEqual([2, 3])
   })
 
-  it('should clear object pool', () => {
+  it("should clear object pool", () => {
     const pool = new ObjectPool<number>(2)
     pool.throw(1)
     pool.throw(2)
@@ -48,7 +48,7 @@ describe('object pool', () => {
     expect(pool.all).toEqual([])
   })
 
-  it('should set object pool size', () => {
+  it("should set object pool size", () => {
     const pool = new ObjectPool<number>(2)
     pool.size = 3
     expect(pool.size).toBe(3)
@@ -64,7 +64,7 @@ describe('object pool', () => {
     expect(pool.all).toEqual([2, 3, 4])
   })
 
-  it('should not throw an exception when pool size is zero', () => {
+  it("should not throw an exception when pool size is zero", () => {
     const pool = new ObjectPool<number>(0)
     pool.throw(1)
     pool.throw(2)

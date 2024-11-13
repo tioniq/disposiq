@@ -1,7 +1,7 @@
-import {Queue} from "../../src/utils/queue";
+import { Queue } from "../../src/utils/queue"
 
-describe('queue', () => {
-  it('should enqueue and dequeue', () => {
+describe("queue", () => {
+  it("should enqueue and dequeue", () => {
     const queue = new Queue<number>()
     queue.enqueue(1)
     queue.enqueue(2)
@@ -25,14 +25,14 @@ describe('queue', () => {
     expect(head).toBe(null)
   })
 
-  it('should return null when queue is empty', () => {
+  it("should return null when queue is empty", () => {
     const queue = new Queue<number>()
     const head = queue.dequeue()
 
     expect(head).toBe(null)
   })
 
-  it('should return empty when queue is empty', () => {
+  it("should return empty when queue is empty", () => {
     const queue = new Queue<number>()
 
     expect(queue.isEmpty()).toBe(true)
@@ -46,13 +46,14 @@ describe('queue', () => {
     expect(queue.isEmpty()).toBe(true)
   })
 
-  it('should iterate over queue', () => {
+  it("should iterate over queue", () => {
     const queue = new Queue<number>()
     queue.enqueue(1)
     queue.enqueue(2)
 
     const values: number[] = []
-    queue.forEach(value => values.push(value))
+    // biome-ignore lint/complexity/noForEach: forEach is a method of Queue
+    queue.forEach((value) => values.push(value))
 
     expect(values).toEqual([1, 2])
   })

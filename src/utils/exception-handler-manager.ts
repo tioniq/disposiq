@@ -1,6 +1,6 @@
-import {noop} from "./noop";
+import { noop } from "./noop"
 
-export type ExceptionHandler = (error: any) => void
+export type ExceptionHandler = (error: unknown) => void
 
 /**
  * Exception handler manager
@@ -21,7 +21,8 @@ export class ExceptionHandlerManager {
    * @param defaultHandler the default handler. If not provided, the default handler will be a no-op
    */
   constructor(defaultHandler?: ExceptionHandler | null) {
-    this._handler = this._defaultHandler = typeof defaultHandler === "function" ? defaultHandler : noop
+    this._handler = this._defaultHandler =
+      typeof defaultHandler === "function" ? defaultHandler : noop
   }
 
   /**
@@ -49,7 +50,7 @@ export class ExceptionHandlerManager {
    * Handle an exception
    * @param error the exception to handle
    */
-  handle(error: any): void {
+  handle(error: unknown): void {
     this._handler(error)
   }
 
@@ -60,7 +61,6 @@ export class ExceptionHandlerManager {
   handleSafe(error: Error): void {
     try {
       this.handle(error)
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 }

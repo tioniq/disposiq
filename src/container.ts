@@ -1,5 +1,5 @@
-import {DisposableAwareCompat, IDisposable} from "./declarations";
-import {Disposiq} from "./disposiq";
+import type { DisposableAwareCompat, IDisposable } from "./declarations"
+import { Disposiq } from "./disposiq"
 
 /**
  * A container for a disposable object. It can be replaced with another disposable object.
@@ -10,7 +10,10 @@ import {Disposiq} from "./disposiq";
  * container.dispose() // disposed
  * container.set(createDisposable(() => console.log("disposed again"))) // disposed again
  */
-export class DisposableContainer extends Disposiq implements DisposableAwareCompat {
+export class DisposableContainer
+  extends Disposiq
+  implements DisposableAwareCompat
+{
   /**
    * @internal
    */
@@ -19,7 +22,7 @@ export class DisposableContainer extends Disposiq implements DisposableAwareComp
   /**
    * @internal
    */
-  private _disposed: boolean = false
+  private _disposed = false
 
   constructor(disposable: IDisposable | undefined = undefined) {
     super()
@@ -45,13 +48,16 @@ export class DisposableContainer extends Disposiq implements DisposableAwareComp
    * @param disposable a new disposable to set
    */
   set(disposable: IDisposable): void {
+    if (disposable === null) {
+      return
+    }
     if (this._disposed) {
       disposable.dispose()
       return
     }
     const oldDisposable = this._disposable
     this._disposable = disposable
-    if (oldDisposable != undefined) {
+    if (oldDisposable !== undefined) {
       oldDisposable.dispose()
     }
   }
@@ -61,6 +67,9 @@ export class DisposableContainer extends Disposiq implements DisposableAwareComp
    * @param disposable a new disposable to replace the old one
    */
   replace(disposable: IDisposable): void {
+    if (disposable === null) {
+      return
+    }
     if (this._disposed) {
       disposable.dispose()
       return
@@ -73,9 +82,9 @@ export class DisposableContainer extends Disposiq implements DisposableAwareComp
    */
   disposeCurrent(): void {
     const disposable = this._disposable
-    if (disposable != undefined) {
-      this._disposable = undefined;
-      disposable.dispose();
+    if (disposable !== undefined) {
+      this._disposable = undefined
+      disposable.dispose()
     }
   }
 
@@ -84,8 +93,8 @@ export class DisposableContainer extends Disposiq implements DisposableAwareComp
       return
     }
     this._disposed = true
-    if (this._disposable == undefined) {
-      return;
+    if (this._disposable === undefined) {
+      return
     }
     this._disposable.dispose()
     this._disposable = undefined

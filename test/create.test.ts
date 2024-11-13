@@ -1,20 +1,25 @@
 import {
-  AsyncDisposiq,
+  type AsyncDisposiq,
   createDisposable,
-  createDisposableCompat, createDisposiq,
-  DisposableAction, DisposableLike, Disposiq,
+  createDisposableCompat,
+  createDisposiq,
+  DisposableAction,
+  type DisposableLike,
+  Disposiq,
   emptyDisposable,
-  IAsyncDisposable
-} from "../src";
+  type IAsyncDisposable,
+  type IDisposable,
+} from "../src"
 
-describe('create', () => {
+describe("create", () => {
   it("should return disposable as is", () => {
-    const disposable = new DisposableAction(() => {
-    })
+    const disposable = new DisposableAction(() => {})
     expect(createDisposable(disposable)).toBe(disposable)
   })
   it("should return empty disposable if undefined", () => {
-    expect(createDisposable(undefined as unknown as DisposableLike)).toBe(emptyDisposable)
+    expect(createDisposable(undefined as unknown as DisposableLike)).toBe(
+      emptyDisposable,
+    )
   })
   it("should wrap function to disposable", () => {
     const func = jest.fn()
@@ -36,7 +41,7 @@ describe('create', () => {
     const func = jest.fn()
     const disposable = createDisposable({
       // @ts-ignore
-      unref: func
+      unref: func,
     })
     expect(func).toHaveBeenCalledTimes(0)
     disposable.dispose()
@@ -51,7 +56,7 @@ describe('create', () => {
   it("support global Disposable API", () => {
     const func = jest.fn()
     const disposable = createDisposable({
-      [Symbol.dispose]: func
+      [Symbol.dispose]: func,
     })
     expect(func).toHaveBeenCalledTimes(0)
     disposable.dispose()
@@ -60,25 +65,26 @@ describe('create', () => {
   it("support global AsyncDisposable API", async () => {
     const func = jest.fn()
     const disposable = createDisposable({
-      [Symbol.asyncDispose]: func
+      [Symbol.asyncDispose]: func,
     }) as IAsyncDisposable
     expect(func).toHaveBeenCalledTimes(0)
     await disposable.dispose()
     expect(func).toHaveBeenCalledTimes(1)
   })
   it("should return empty disposable on bad object", () => {
-    const disposable = createDisposable({} as any)
+    const disposable = createDisposable({} as IDisposable)
     disposable.dispose()
   })
-});
-describe('create compat', () => {
+})
+describe("create compat", () => {
   it("should return disposable as is", () => {
-    const disposable = new DisposableAction(() => {
-    })
+    const disposable = new DisposableAction(() => {})
     expect(createDisposableCompat(disposable)).toBe(disposable)
   })
   it("should return empty disposable if undefined", () => {
-    expect(createDisposableCompat(undefined as unknown as DisposableLike)).toBe(emptyDisposable)
+    expect(createDisposableCompat(undefined as unknown as DisposableLike)).toBe(
+      emptyDisposable,
+    )
   })
   it("should wrap function to disposable", () => {
     const func = jest.fn()
@@ -100,7 +106,7 @@ describe('create compat', () => {
     const func = jest.fn()
     const disposable = createDisposableCompat({
       // @ts-ignore
-      unref: func
+      unref: func,
     })
     expect(func).toHaveBeenCalledTimes(0)
     disposable.dispose()
@@ -115,7 +121,7 @@ describe('create compat', () => {
   it("support global Disposable API", () => {
     const func = jest.fn()
     const disposable = createDisposableCompat({
-      [Symbol.dispose]: func
+      [Symbol.dispose]: func,
     })
     expect(func).toHaveBeenCalledTimes(0)
     disposable.dispose()
@@ -124,7 +130,7 @@ describe('create compat', () => {
   it("can handle only dispose", () => {
     const func = jest.fn()
     const disposable = createDisposableCompat({
-      dispose: func
+      dispose: func,
     })
     expect(func).toHaveBeenCalledTimes(0)
     disposable.dispose()
@@ -133,26 +139,27 @@ describe('create compat', () => {
   it("convert async dispose to sync", async () => {
     const func = jest.fn()
     const disposable = createDisposableCompat({
-      [Symbol.asyncDispose]: func
+      [Symbol.asyncDispose]: func,
     })
     expect(func).toHaveBeenCalledTimes(0)
     disposable.dispose()
     expect(func).toHaveBeenCalledTimes(1)
   })
   it("should return empty disposable on bad object", () => {
-    const disposable = createDisposableCompat({} as any)
+    const disposable = createDisposableCompat({} as IDisposable)
     disposable.dispose()
   })
 })
 
-describe('create disposiq', () => {
+describe("create disposiq", () => {
   it("should return disposable as is", () => {
-    const disposable = new DisposableAction(() => {
-    })
+    const disposable = new DisposableAction(() => {})
     expect(createDisposiq(disposable)).toBe(disposable)
   })
   it("should return empty disposable if undefined", () => {
-    expect(createDisposiq(undefined as unknown as DisposableLike)).toBe(emptyDisposable)
+    expect(createDisposiq(undefined as unknown as DisposableLike)).toBe(
+      emptyDisposable,
+    )
   })
   it("should wrap function to disposable", () => {
     const func = jest.fn()
@@ -176,7 +183,7 @@ describe('create disposiq', () => {
     const func = jest.fn()
     const disposable = createDisposiq({
       // @ts-ignore
-      unref: func
+      unref: func,
     })
     expect(disposable).toBeInstanceOf(Disposiq)
     expect(func).toHaveBeenCalledTimes(0)
@@ -193,7 +200,7 @@ describe('create disposiq', () => {
   it("support global Disposable API", () => {
     const func = jest.fn()
     const disposable = createDisposiq({
-      [Symbol.dispose]: func
+      [Symbol.dispose]: func,
     })
     expect(disposable).toBeInstanceOf(Disposiq)
     expect(func).toHaveBeenCalledTimes(0)
@@ -203,7 +210,7 @@ describe('create disposiq', () => {
   it("support global AsyncDisposable API", async () => {
     const func = jest.fn()
     const disposable = createDisposiq({
-      [Symbol.asyncDispose]: func
+      [Symbol.asyncDispose]: func,
     }) as AsyncDisposiq
     expect(disposable).toBeInstanceOf(Disposiq)
     expect(func).toHaveBeenCalledTimes(0)
@@ -215,7 +222,7 @@ describe('create disposiq', () => {
     const symbolFunc = jest.fn()
     const disposable = createDisposiq({
       dispose: func,
-      [Symbol.dispose]: symbolFunc
+      [Symbol.dispose]: symbolFunc,
     })
     expect(disposable).toBeInstanceOf(Disposiq)
     expect(func).toHaveBeenCalledTimes(0)
@@ -225,18 +232,18 @@ describe('create disposiq', () => {
     expect(func).toHaveBeenCalledTimes(1)
     expect(symbolFunc).toHaveBeenCalledTimes(1)
   })
-  it('should wrap dispose function', () => {
+  it("should wrap dispose function", () => {
     const func = jest.fn()
     const disposable = createDisposiq({
-      dispose: func
+      dispose: func,
     })
     expect(disposable).toBeInstanceOf(Disposiq)
     expect(func).toHaveBeenCalledTimes(0)
     disposable.dispose()
     expect(func).toHaveBeenCalledTimes(1)
   })
-  it('should return empty disposable on bad object', () => {
-    const disposable = createDisposiq({} as any)
+  it("should return empty disposable on bad object", () => {
+    const disposable = createDisposiq({} as IDisposable)
     expect(disposable).toBe(emptyDisposable)
   })
 })

@@ -1,4 +1,8 @@
-import {AsyncDisposableAction, DisposableAction, DisposeFunc} from "../src"
+import {
+  AsyncDisposableAction,
+  DisposableAction,
+  type DisposeFunc,
+} from "../src"
 
 describe("action", () => {
   it("should be called only once", () => {
@@ -43,13 +47,15 @@ describe("action", () => {
   it("can use global AsyncDisposable API", async () => {
     const func = jest.fn()
     {
-        await using _ = new AsyncDisposableAction(func)
+      await using _ = new AsyncDisposableAction(func)
       expect(func).toHaveBeenCalledTimes(0)
     }
     expect(func).toHaveBeenCalledTimes(1)
   })
   it("AsyncDisposable should not fail if action is not a function", async () => {
-    const disposable = new AsyncDisposableAction(null as unknown as () => Promise<void>)
+    const disposable = new AsyncDisposableAction(
+      null as unknown as () => Promise<void>,
+    )
     expect(disposable.disposed).toBe(false)
     await disposable.dispose()
     expect(disposable.disposed).toBe(true)

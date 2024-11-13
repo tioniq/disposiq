@@ -1,7 +1,7 @@
-import { DisposableAction, DisposableStore } from "../src";
+import { DisposableAction, DisposableStore } from "../src"
 
-describe('disposeWith extension', () => {
-  it('should disposeWith add a disposable to a store', () => {
+describe("disposeWith extension", () => {
+  it("should disposeWith add a disposable to a store", () => {
     const action = jest.fn()
     const disposable = new DisposableAction(action)
     const store = new DisposableStore()
@@ -16,13 +16,13 @@ describe('disposeWith extension', () => {
   })
 })
 
-describe('toFunction extension', () => {
-  it('should return a function that disposes the store', () => {
+describe("toFunction extension", () => {
+  it("should return a function that disposes the store", () => {
     const action = jest.fn()
     const disposable = new DisposableAction(action)
     const dispose = disposable.toFunction()
 
-    expect(typeof dispose).toBe('function')
+    expect(typeof dispose).toBe("function")
     expect(disposable.disposed).toBe(false)
 
     dispose()
@@ -31,10 +31,10 @@ describe('toFunction extension', () => {
   })
 })
 
-describe('disposeIn extension', () => {
+describe("disposeIn extension", () => {
   beforeAll(() => {
     jest.useFakeTimers({
-      advanceTimers: true
+      advanceTimers: true,
     })
   })
 
@@ -42,8 +42,7 @@ describe('disposeIn extension', () => {
     jest.useRealTimers()
   })
 
-
-  it('should dispose the store after a delay', async () => {
+  it("should dispose the store after a delay", async () => {
     const action = jest.fn()
     const disposable = new DisposableAction(action)
     const delay = 100
@@ -51,7 +50,7 @@ describe('disposeIn extension', () => {
 
     expect(disposable.disposed).toBe(false)
 
-    await new Promise(resolve => setTimeout(resolve, delay))
+    await new Promise((resolve) => setTimeout(resolve, delay))
 
     expect(disposable.disposed).toBe(true)
   })

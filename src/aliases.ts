@@ -1,12 +1,16 @@
-import {DisposableStore} from "./store";
-import {DisposableContainer} from "./container";
-import {BoolDisposable} from "./bool";
-import {disposeAll} from "./dispose-batch";
-import {disposableFromEvent, disposableFromEventOnce} from "./event";
-import {createDisposable, createDisposableCompat, createDisposiq} from "./create";
-import {AsyncDisposiq, Disposiq} from "./disposiq";
-import {DisposableMapStore} from "./map-store";
-import { AsyncDisposableStore } from "./store-async";
+import { DisposableStore } from "./store"
+import { DisposableContainer } from "./container"
+import { BoolDisposable } from "./bool"
+import { disposeAll } from "./dispose-batch"
+import { disposableFromEvent, disposableFromEventOnce } from "./event"
+import {
+  createDisposable,
+  createDisposableCompat,
+  createDisposiq,
+} from "./create"
+import { AsyncDisposiq, Disposiq } from "./disposiq"
+import { DisposableMapStore } from "./map-store"
+import { AsyncDisposableStore } from "./store-async"
 
 export {
   BoolDisposable as BooleanDisposable,

@@ -39,13 +39,13 @@ export interface IDisposablesContainer extends DisposableAware {
    * Adds disposables to the container.
    * @param disposables Disposables to add.
    */
-  add(disposables: DisposableLike[]): void;
+  add(disposables: DisposableLike[]): void
 
   /**
    * Adds disposables to the container.
    * @param disposables Disposables to add.
    */
-  addAll(disposables: DisposableLike[]): void;
+  addAll(disposables: DisposableLike[]): void
 
   /**
    * Adds a disposable to the container
@@ -68,7 +68,7 @@ export interface IDisposablesContainer extends DisposableAware {
   /**
    * Disposes all disposables in the container safely. The container becomes disposed.
    */
-  disposeSafely(onErrorCallback?: (e: any) => void): void
+  disposeSafely(onErrorCallback?: (e: unknown) => void): void
 }
 
 /**
@@ -81,16 +81,14 @@ export interface DisposableAware extends IDisposable {
 /**
  * A compatibility interface for IDisposable interface and global Disposable API
  */
-export interface DisposableCompat extends IDisposable, Disposable {
-
-}
+export interface DisposableCompat extends IDisposable, Disposable {}
 
 /**
  * A compatibility interface for DisposableAware interface and global Disposable API
  */
-export interface DisposableAwareCompat extends DisposableAware, DisposableCompat {
-
-}
+export interface DisposableAwareCompat
+  extends DisposableAware,
+    DisposableCompat {}
 
 /**
  * An interface for an async disposable that can be checked for disposal status.
@@ -102,13 +100,13 @@ export interface AsyncDisposableAware extends IAsyncDisposable {
 /**
  * A compatibility interface for IAsyncDisposable interface and global Disposable API
  */
-export interface AsyncDisposableCompat extends IAsyncDisposable, AsyncDisposable {
-
-}
+export interface AsyncDisposableCompat
+  extends IAsyncDisposable,
+    AsyncDisposable {}
 
 /**
  * A compatibility interface for AsyncDisposableAware interface and global Disposable API
  */
-export interface AsyncDisposableAwareCompat extends AsyncDisposableAware, AsyncDisposableCompat {
-
-}
+export interface AsyncDisposableAwareCompat
+  extends AsyncDisposableAware,
+    AsyncDisposableCompat {}

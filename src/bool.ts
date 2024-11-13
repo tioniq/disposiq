@@ -1,5 +1,5 @@
-import {DisposableAwareCompat} from "./declarations";
-import {Disposiq} from "./disposiq";
+import type { DisposableAwareCompat } from "./declarations"
+import { Disposiq } from "./disposiq"
 
 /**
  * Class of a disposable that can be checked for disposal status.
@@ -8,9 +8,9 @@ export class BoolDisposable extends Disposiq implements DisposableAwareCompat {
   /**
    * @internal
    */
-  private _disposed: boolean = false
+  private _disposed = false
 
-  constructor(disposed: boolean = false) {
+  constructor(disposed = false) {
     super()
     this._disposed = disposed
   }

@@ -1,4 +1,4 @@
-import {DisposableAction, DisposableContainer} from "../src";
+import { DisposableAction, DisposableContainer, type IDisposable } from "../src"
 
 describe("container", () => {
   it("should be disposed", () => {
@@ -34,12 +34,10 @@ describe("container", () => {
   it("should return last disposable", () => {
     const container = new DisposableContainer()
     expect(container.disposable).toBeUndefined()
-    const disposable = new DisposableAction(() => {
-    })
+    const disposable = new DisposableAction(() => {})
     container.set(disposable)
     expect(container.disposable).toBe(disposable)
-    const disposable2 = new DisposableAction(() => {
-    })
+    const disposable2 = new DisposableAction(() => {})
     container.replace(disposable2)
     expect(container.disposable).toBe(disposable2)
     container.replace(disposable)
@@ -79,5 +77,15 @@ describe("container", () => {
     expect(fun).toHaveBeenCalledTimes(1)
     container.dispose()
     expect(fun).toHaveBeenCalledTimes(2)
+  })
+  it("set should not fail on null", () => {
+    const container = new DisposableContainer()
+    container.set(null as IDisposable)
+    container.dispose()
+  })
+  it("replace should not fail on null", () => {
+    const container = new DisposableContainer()
+    container.replace(null as IDisposable)
+    container.dispose()
   })
 })

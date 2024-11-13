@@ -1,6 +1,10 @@
-import {Disposiq} from "./disposiq";
-import {DisposableAware, DisposableLike, IDisposable} from "./declarations";
-import {toDisposable} from "./aliases";
+import { Disposiq } from "./disposiq"
+import type {
+  DisposableAware,
+  DisposableLike,
+  IDisposable,
+} from "./declarations"
+import { toDisposable } from "./aliases"
 
 /**
  * A key-value store that stores disposable values. When the store is disposed, all the values will be disposed as well
