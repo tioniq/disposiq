@@ -10,9 +10,9 @@ export class AbortDisposable extends Disposiq implements DisposableAwareCompat {
    */
   private readonly _controller: AbortController
 
-  constructor(controller: AbortController) {
+  constructor(controller?: AbortController) {
     super()
-    this._controller = controller
+    this._controller = controller ?? new AbortController()
   }
 
   /**

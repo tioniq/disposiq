@@ -28,4 +28,9 @@ describe("abort", () => {
     expect(controller.signal.aborted).toBe(true)
     expect(disposable.disposed).toBe(true)
   })
+  it("should create a new controller if none is provided", () => {
+    const disposable = new AbortDisposable()
+    expect(disposable.signal).toBeDefined()
+    disposable.dispose()
+  })
 })
