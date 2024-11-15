@@ -101,7 +101,9 @@ if (!("dispose" in Symbol)) {
   Symbol.dispose = disposeSymbol;
 }
 if (!("asyncDispose" in Symbol)) {
-  const asyncDisposeSymbol = Symbol("Symbol.asyncDispose");
+  const asyncDisposeSymbol = Symbol(
+    "Symbol.asyncDispose"
+  );
   Symbol.asyncDispose = asyncDisposeSymbol;
 }
 
@@ -127,7 +129,7 @@ var AsyncDisposiq = class extends Disposiq {
 var AbortDisposable = class extends Disposiq {
   constructor(controller) {
     super();
-    this._controller = controller;
+    this._controller = controller != null ? controller : new AbortController();
   }
   /**
    * Returns true if the signal is aborted
@@ -369,7 +371,7 @@ function justDisposeAllAsync(disposables) {
   });
 }
 function disposeAll(disposables) {
-  let size = disposables.length;
+  const size = disposables.length;
   if (size === 0) {
     return;
   }
@@ -407,7 +409,7 @@ function disposeAll(disposables) {
 }
 function disposeAllAsync(disposables) {
   return __async(this, null, function* () {
-    let size = disposables.length;
+    const size = disposables.length;
     if (size === 0) {
       return;
     }
@@ -544,15 +546,13 @@ var DisposableStore = class _DisposableStore extends Disposiq {
       return;
     }
     const first = disposables[0];
-    if (Array.isArray(first)) {
-      disposables = first;
-    }
+    const value = Array.isArray(first) ? first : disposables;
     if (this._disposed) {
-      justDisposeAll(disposables);
+      justDisposeAll(value);
       return;
     }
-    for (let i = 0; i < disposables.length; i++) {
-      const disposable = disposables[i];
+    for (let i = 0; i < value.length; i++) {
+      const disposable = value[i];
       if (!disposable) {
         continue;
       }
@@ -710,13 +710,16 @@ var DisposableContainer = class extends Disposiq {
    * @param disposable a new disposable to set
    */
   set(disposable) {
+    if (disposable === null) {
+      return;
+    }
     if (this._disposed) {
       disposable.dispose();
       return;
     }
     const oldDisposable = this._disposable;
     this._disposable = disposable;
-    if (oldDisposable != void 0) {
+    if (oldDisposable !== void 0) {
       oldDisposable.dispose();
     }
   }
@@ -725,6 +728,9 @@ var DisposableContainer = class extends Disposiq {
    * @param disposable a new disposable to replace the old one
    */
   replace(disposable) {
+    if (disposable === null) {
+      return;
+    }
     if (this._disposed) {
       disposable.dispose();
       return;
@@ -736,7 +742,7 @@ var DisposableContainer = class extends Disposiq {
    */
   disposeCurrent() {
     const disposable = this._disposable;
-    if (disposable != void 0) {
+    if (disposable !== void 0) {
       this._disposable = void 0;
       disposable.dispose();
     }
@@ -746,7 +752,7 @@ var DisposableContainer = class extends Disposiq {
       return;
     }
     this._disposed = true;
-    if (this._disposable == void 0) {
+    if (this._disposable === void 0) {
       return;
     }
     this._disposable.dispose();
@@ -1035,14 +1041,12 @@ var AsyncDisposableStore = class _AsyncDisposableStore extends AsyncDisposiq {
       return;
     }
     const first = disposables[0];
-    if (Array.isArray(first)) {
-      disposables = first;
-    }
+    const value = Array.isArray(first) ? first : disposables;
     if (this._disposed) {
-      return justDisposeAllAsync(disposables);
+      return justDisposeAllAsync(value);
     }
-    for (let i = 0; i < disposables.length; i++) {
-      const disposable = disposables[i];
+    for (let i = 0; i < value.length; i++) {
+      const disposable = value[i];
       if (!disposable) {
         continue;
       }
@@ -1196,39 +1200,53 @@ var Disposable = class extends Disposiq {
 // src/dom.ts
 function addEventListener(target, type, listener, options) {
   target.addEventListener(type, listener, options);
-  return new DisposableAction(() => target.removeEventListener(type, listener, options));
+  return new DisposableAction(
+    () => target.removeEventListener(type, listener, options)
+  );
 }
 
 // src/extensions.ts
 Disposiq.prototype.disposeWith = function(container) {
-  return container.add(this);
+  container.add(this);
 };
 Disposiq.prototype.toFunction = function() {
-  return () => this.dispose();
+  return () => {
+    this.dispose();
+  };
 };
 var g = typeof global !== "undefined" ? global : typeof window !== "undefined" ? window : typeof self !== "undefined" ? self : void 0;
 Disposiq.prototype.disposeIn = function(ms) {
-  g.setTimeout(() => this.dispose(), ms);
+  g.setTimeout(() => {
+    this.dispose();
+  }, ms);
 };
 
 // src/is.ts
 function isDisposable(value) {
-  return typeof value === "object" && value !== null && typeof value.dispose === "function";
+  return typeof value === "object" && value !== null && // @ts-ignore
+  typeof value.dispose === "function";
 }
 function isDisposableLike(value) {
-  return typeof value === "function" || typeof value === "object" && value !== null && typeof value.dispose === "function";
+  return typeof value === "function" || typeof value === "object" && value !== null && // @ts-ignore
+  typeof value.dispose === "function";
 }
 function isDisposableCompat(value) {
-  return typeof value === "object" && value !== null && typeof value.dispose === "function" && typeof value[Symbol.dispose] === "function";
+  return typeof value === "object" && value !== null && // @ts-ignore
+  typeof value.dispose === "function" && // @ts-ignore
+  typeof value[Symbol.dispose] === "function";
 }
 function isAsyncDisposableCompat(value) {
-  return typeof value === "object" && value !== null && typeof value.dispose === "function" && typeof value[Symbol.asyncDispose] === "function";
+  return typeof value === "object" && value !== null && // @ts-ignore
+  typeof value.dispose === "function" && // @ts-ignore
+  typeof value[Symbol.asyncDispose] === "function";
 }
 function isSystemDisposable(value) {
-  return typeof value === "object" && value !== null && typeof value[Symbol.dispose] === "function";
+  return typeof value === "object" && value !== null && // @ts-ignore
+  typeof value[Symbol.dispose] === "function";
 }
 function isSystemAsyncDisposable(value) {
-  return typeof value === "object" && value !== null && typeof value[Symbol.asyncDispose] === "function";
+  return typeof value === "object" && value !== null && // @ts-ignore
+  typeof value[Symbol.asyncDispose] === "function";
 }
 
 // src/utils/exception-handler-manager.ts
@@ -1350,9 +1368,11 @@ function using(resource, action) {
     });
   }
   if (result instanceof Promise) {
-    return result.then((r) => runDispose(resource, () => r)).catch((e) => runDispose(resource, () => {
-      throw e;
-    }));
+    return result.then((r) => runDispose(resource, () => r)).catch(
+      (e) => runDispose(resource, () => {
+        throw e;
+      })
+    );
   }
   return runDispose(resource, () => result);
 }

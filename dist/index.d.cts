@@ -55,7 +55,7 @@ interface IDisposablesContainer extends DisposableAware {
     /**
      * Disposes all disposables in the container safely. The container becomes disposed.
      */
-    disposeSafely(onErrorCallback?: (e: any) => void): void;
+    disposeSafely(onErrorCallback?: (e: unknown) => void): void;
 }
 /**
  * An interface for a disposable that can be checked for disposal status.
@@ -131,7 +131,7 @@ interface Disposiq {
  * Disposable container for AbortController. It will abort the signal when it is disposed.
  */
 declare class AbortDisposable extends Disposiq implements DisposableAwareCompat {
-    constructor(controller: AbortController);
+    constructor(controller?: AbortController);
     /**
      * Returns true if the signal is aborted
      */
@@ -256,7 +256,7 @@ declare class DisposableStore extends Disposiq implements IDisposablesContainer,
      * Dispose the store and all disposables safely. If an error occurs during disposal, the error is caught and
      * passed to the onErrorCallback.
      */
-    disposeSafely(onErrorCallback?: (e: any) => void): void;
+    disposeSafely(onErrorCallback?: (e: unknown) => void): void;
     dispose(): void;
     /**
      * Create a disposable store from an array of values. The values are mapped to disposables using the provided
@@ -350,18 +350,18 @@ declare function disposeAllUnsafeAsync(disposables: (AsyncDisposableLike | Dispo
  * @param disposables an array of disposables
  * @param onErrorCallback a callback to handle errors
  */
-declare function disposeAllSafely(disposables: DisposableLike[], onErrorCallback?: (error: any) => void): void;
+declare function disposeAllSafely(disposables: DisposableLike[], onErrorCallback?: (error: unknown) => void): void;
 /**
  * Dispose all disposables in the array unsafely. During the disposal process, the array is not safe to modify
  * @param disposables an array of disposables
  * @param onErrorCallback a callback to handle errors
  */
-declare function disposeAllSafelyAsync(disposables: (AsyncDisposableLike | DisposableLike)[], onErrorCallback?: (error: any) => void): Promise<void>;
+declare function disposeAllSafelyAsync(disposables: (AsyncDisposableLike | DisposableLike)[], onErrorCallback?: (error: unknown) => void): Promise<void>;
 
 interface EventEmitterLike {
-    on<K extends string | symbol>(event: K, listener: (...args: any[]) => void): any;
-    off<K extends string | symbol>(event: K, listener: (...args: any[]) => void): any;
-    once?<K extends string | symbol>(event: K, listener: (...args: any[]) => void): any;
+    on<K extends string | symbol>(event: K, listener: (...args: unknown[]) => void): unknown;
+    off<K extends string | symbol>(event: K, listener: (...args: unknown[]) => void): unknown;
+    once?<K extends string | symbol>(event: K, listener: (...args: unknown[]) => void): unknown;
 }
 /**
  * Create a disposable from an event emitter. The disposable will remove the listener from the emitter when disposed.
@@ -373,7 +373,7 @@ interface EventEmitterLike {
  * event name and any[] for listener args. I'm not sure if it's possible to infer them for now.
  * If you can do it, please let me know and let's talk about it))
  */
-declare function disposableFromEvent<K extends string | symbol>(emitter: EventEmitterLike, event: K, listener: (...args: any[]) => void): DisposableAwareCompat;
+declare function disposableFromEvent<K extends string | symbol>(emitter: EventEmitterLike, event: K, listener: (...args: unknown[]) => void): DisposableAwareCompat;
 /**
  * Create a disposable from an event emitter. The disposable will remove the listener from the emitter when disposed.
  * The listener will only be called once.
@@ -382,7 +382,7 @@ declare function disposableFromEvent<K extends string | symbol>(emitter: EventEm
  * @param listener the event listener
  * @returns a disposable object
  */
-declare function disposableFromEventOnce<K extends string | symbol>(emitter: EventEmitterLike, event: K, listener: (...args: any[]) => void): DisposableAwareCompat;
+declare function disposableFromEventOnce<K extends string | symbol>(emitter: EventEmitterLike, event: K, listener: (...args: unknown[]) => void): DisposableAwareCompat;
 
 /**
  * Create a disposable from a disposable like object. The object can be a function, an object with a dispose method,
@@ -490,7 +490,7 @@ declare class AsyncDisposableStore extends AsyncDisposiq implements AsyncDisposa
      * Dispose all disposables in the store safely. The store becomes disposed.
      * @param onErrorCallback an optional callback that is invoked if an error occurs during disposal
      */
-    disposeSafely(onErrorCallback?: (e: any) => void): Promise<void>;
+    disposeSafely(onErrorCallback?: (e: unknown) => void): Promise<void>;
     dispose(): Promise<void>;
     /**
      * Create an async disposable store from an array of values. The values are mapped to disposables using the provided
@@ -541,7 +541,7 @@ declare abstract class Disposable$1 extends Disposiq implements DisposableCompat
     dispose(): void;
 }
 
-type EventListener<T extends Event = Event> = ((this: EventTarget, ev: T) => any) | {
+type EventListener<T extends Event = Event> = ((this: EventTarget, ev: T) => unknown) | {
     handleEvent(evt: Event): void;
 };
 interface EventListenerOptions {
@@ -573,29 +573,29 @@ declare class ObjectDisposedException extends Error {
 /**
  * Check if the value is a disposable object. It means it has a `dispose` method.
  */
-declare function isDisposable(value: any): value is IDisposable;
+declare function isDisposable(value: unknown): value is IDisposable;
 /**
  * Check if the value is a disposable object or a function. It means it has a `dispose` method, or it is a function.
  */
-declare function isDisposableLike(value: any): value is DisposableLike;
+declare function isDisposableLike(value: unknown): value is DisposableLike;
 /**
  * Check if the value is a disposable object with a `dispose` method and an internal `Symbol.dispose` method.
  */
-declare function isDisposableCompat(value: any): value is DisposableCompat;
+declare function isDisposableCompat(value: unknown): value is DisposableCompat;
 /**
  * Check if the value is a disposable object with an internal `Symbol.asyncDispose` method.
  */
-declare function isAsyncDisposableCompat(value: any): value is AsyncDisposableCompat;
+declare function isAsyncDisposableCompat(value: unknown): value is AsyncDisposableCompat;
 /**
  * Check if the value is a disposable object with an internal `Symbol.dispose` method.
  */
-declare function isSystemDisposable(value: any): value is Disposable;
+declare function isSystemDisposable(value: unknown): value is Disposable;
 /**
  * Check if the value is a disposable object with an internal `Symbol.asyncDispose` method.
  */
-declare function isSystemAsyncDisposable(value: any): value is AsyncDisposable;
+declare function isSystemAsyncDisposable(value: unknown): value is AsyncDisposable;
 
-type ExceptionHandler = (error: any) => void;
+type ExceptionHandler = (error: unknown) => void;
 /**
  * Exception handler manager
  */
@@ -621,7 +621,7 @@ declare class ExceptionHandlerManager {
      * Handle an exception
      * @param error the exception to handle
      */
-    handle(error: any): void;
+    handle(error: unknown): void;
     /**
      * Handle an exception safely
      * @param error the exception to handle
