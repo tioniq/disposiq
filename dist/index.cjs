@@ -186,6 +186,9 @@ var DisposableAction = class extends Disposiq {
 var AsyncDisposableAction = class extends AsyncDisposiq {
   constructor(action) {
     super();
+    /**
+     * @internal
+     */
     this._disposed = false;
     this._action = typeof action === "function" ? action : noopAsync;
   }
@@ -691,7 +694,7 @@ var DisposableContainer = class extends Disposiq {
      * @internal
      */
     this._disposed = false;
-    this._disposable = disposable;
+    this._disposable = disposable == void 0 ? void 0 : createDisposable(disposable);
   }
   /**
    * Returns true if the container is disposed
@@ -710,15 +713,15 @@ var DisposableContainer = class extends Disposiq {
    * @param disposable a new disposable to set
    */
   set(disposable) {
-    if (disposable === null) {
-      return;
-    }
     if (this._disposed) {
-      disposable.dispose();
+      if (disposable == void 0) {
+        return;
+      }
+      createDisposable(disposable).dispose();
       return;
     }
     const oldDisposable = this._disposable;
-    this._disposable = disposable;
+    this._disposable = disposable == void 0 ? void 0 : createDisposable(disposable);
     if (oldDisposable !== void 0) {
       oldDisposable.dispose();
     }
@@ -728,24 +731,25 @@ var DisposableContainer = class extends Disposiq {
    * @param disposable a new disposable to replace the old one
    */
   replace(disposable) {
-    if (disposable === null) {
-      return;
-    }
     if (this._disposed) {
-      disposable.dispose();
+      if (disposable == void 0) {
+        return;
+      }
+      createDisposable(disposable).dispose();
       return;
     }
-    this._disposable = disposable;
+    this._disposable = disposable == void 0 ? void 0 : createDisposable(disposable);
   }
   /**
    * Dispose only the current disposable object without affecting the container's state.
    */
   disposeCurrent() {
     const disposable = this._disposable;
-    if (disposable !== void 0) {
-      this._disposable = void 0;
-      disposable.dispose();
+    if (disposable === void 0) {
+      return;
     }
+    this._disposable = void 0;
+    disposable.dispose();
   }
   dispose() {
     if (this._disposed) {
@@ -755,8 +759,9 @@ var DisposableContainer = class extends Disposiq {
     if (this._disposable === void 0) {
       return;
     }
-    this._disposable.dispose();
+    const disposable = this._disposable;
     this._disposable = void 0;
+    disposable.dispose();
   }
 };
 
@@ -1050,7 +1055,9 @@ var AsyncDisposableStore = class _AsyncDisposableStore extends AsyncDisposiq {
       if (!disposable) {
         continue;
       }
-      this._disposables.push(disposable);
+      this._disposables.push(
+        disposable
+      );
     }
   }
   addAll(disposables) {

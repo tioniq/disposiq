@@ -178,8 +178,6 @@ declare class DisposableAction extends Disposiq implements DisposableAwareCompat
  * await action.dispose() // no-op
  */
 declare class AsyncDisposableAction extends AsyncDisposiq implements AsyncDisposableAwareCompat {
-    private readonly _action;
-    private _disposed;
     constructor(action: () => Promise<void> | void);
     /**
      * Returns true if the action has been disposed.
@@ -199,25 +197,25 @@ declare class DisposableStore extends Disposiq implements IDisposablesContainer,
      * Returns true if the object has been disposed.
      */
     get disposed(): boolean;
-    add(...disposables: DisposableLike[]): void;
-    add(disposables: DisposableLike[]): void;
+    add(...disposables: (DisposableLike | null | undefined)[]): void;
+    add(disposables: (DisposableLike | null | undefined)[]): void;
     /**
      * Add multiple disposables to the store. If the store has already been disposed, the disposables will be disposed.
      * @param disposables an array of disposables to add
      */
-    addAll(disposables: DisposableLike[]): void;
+    addAll(disposables: (DisposableLike | null | undefined)[]): void;
     /**
      * Add a disposable to the store. If the store has already been disposed, the disposable will be disposed.
      * @param disposable a disposable to add
      * @returns the disposable object
      */
-    addOne(disposable: DisposableLike): void;
+    addOne(disposable: DisposableLike | null | undefined): void;
     /**
      * Remove a disposable from the store. If the disposable is found and removed, it will NOT be disposed
      * @param disposable a disposable to remove
      * @returns true if the disposable was found and removed
      */
-    remove(disposable: DisposableLike): boolean;
+    remove(disposable: DisposableLike | null | undefined): boolean;
     /**
      * Add a timeout to the store. If the store has already been disposed, the timeout will be cleared.
      * @param callback a callback to call when the timeout expires
@@ -270,7 +268,7 @@ declare class DisposableStore extends Disposiq implements IDisposablesContainer,
      * @param disposables an array of disposables
      * @returns a disposable store containing the disposables
      */
-    static from(disposables: DisposableLike[]): DisposableStore;
+    static from(disposables: (DisposableLike | null | undefined)[]): DisposableStore;
 }
 
 /**
@@ -283,7 +281,7 @@ declare class DisposableStore extends Disposiq implements IDisposablesContainer,
  * container.set(createDisposable(() => console.log("disposed again"))) // disposed again
  */
 declare class DisposableContainer extends Disposiq implements DisposableAwareCompat {
-    constructor(disposable?: IDisposable | undefined);
+    constructor(disposable?: DisposableLike | null | undefined);
     /**
      * Returns true if the container is disposed
      */
@@ -296,12 +294,12 @@ declare class DisposableContainer extends Disposiq implements DisposableAwareCom
      * Set the new disposable and dispose the old one
      * @param disposable a new disposable to set
      */
-    set(disposable: IDisposable): void;
+    set(disposable: DisposableLike | null | undefined): void;
     /**
      * Replace the disposable with a new one. Does not dispose the old one
      * @param disposable a new disposable to replace the old one
      */
-    replace(disposable: IDisposable): void;
+    replace(disposable: DisposableLike | null | undefined): void;
     /**
      * Dispose only the current disposable object without affecting the container's state.
      */
@@ -321,42 +319,42 @@ declare class BoolDisposable extends Disposiq implements DisposableAwareCompat {
     dispose(): void;
 }
 
-declare function justDispose(disposable: DisposableLike): void;
-declare function justDisposeAsync(disposable: DisposableLike | AsyncDisposableLike): Promise<void>;
-declare function justDisposeAll(disposables: DisposableLike[]): void;
-declare function justDisposeAllAsync(disposables: (AsyncDisposableLike | DisposableLike)[]): Promise<void>;
+declare function justDispose(disposable: DisposableLike | null | undefined): void;
+declare function justDisposeAsync(disposable: DisposableLike | AsyncDisposableLike | null | undefined): Promise<void>;
+declare function justDisposeAll(disposables: (DisposableLike | null | undefined)[]): void;
+declare function justDisposeAllAsync(disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[]): Promise<void>;
 /**
  * Dispose all disposables in the array safely. During the disposal process, the array is safe to modify
  * @param disposables an array of disposables
  */
-declare function disposeAll(disposables: DisposableLike[]): void;
+declare function disposeAll(disposables: (DisposableLike | null | undefined)[]): void;
 /**
  * Dispose all async disposables in the array safely. During the disposal process, the array is safe to modify
  * @param disposables an array of disposables
  */
-declare function disposeAllAsync(disposables: (DisposableLike | AsyncDisposableLike)[]): Promise<void>;
+declare function disposeAllAsync(disposables: (DisposableLike | AsyncDisposableLike | null | undefined)[]): Promise<void>;
 /**
  * Dispose all disposables in the array unsafely. During the disposal process, the array is not safe to modify
  * @param disposables an array of disposables
  */
-declare function disposeAllUnsafe(disposables: DisposableLike[]): void;
+declare function disposeAllUnsafe(disposables: (DisposableLike | null | undefined)[]): void;
 /**
  * Dispose all async disposables in the array unsafely. During the disposal process, the array is not safe to modify
  * @param disposables an array of disposables
  */
-declare function disposeAllUnsafeAsync(disposables: (AsyncDisposableLike | DisposableLike)[]): Promise<void>;
+declare function disposeAllUnsafeAsync(disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[]): Promise<void>;
 /**
  * Dispose all disposables in the array unsafely. During the disposal process, the array is not safe to modify
  * @param disposables an array of disposables
  * @param onErrorCallback a callback to handle errors
  */
-declare function disposeAllSafely(disposables: DisposableLike[], onErrorCallback?: (error: unknown) => void): void;
+declare function disposeAllSafely(disposables: (DisposableLike | null | undefined)[], onErrorCallback?: (error: unknown) => void): void;
 /**
  * Dispose all disposables in the array unsafely. During the disposal process, the array is not safe to modify
  * @param disposables an array of disposables
  * @param onErrorCallback a callback to handle errors
  */
-declare function disposeAllSafelyAsync(disposables: (AsyncDisposableLike | DisposableLike)[], onErrorCallback?: (error: unknown) => void): Promise<void>;
+declare function disposeAllSafelyAsync(disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[], onErrorCallback?: (error: unknown) => void): Promise<void>;
 
 interface EventEmitterLike {
     on<K extends string | symbol>(event: K, listener: (...args: unknown[]) => void): unknown;
@@ -462,21 +460,21 @@ declare class AsyncDisposableStore extends AsyncDisposiq implements AsyncDisposa
      * Returns true if the object has been disposed.
      */
     get disposed(): boolean;
-    add(...disposables: (AsyncDisposableLike | DisposableLike)[]): void;
-    add(disposables: (AsyncDisposableLike | DisposableLike)[]): void;
-    addAll(disposables: (AsyncDisposableLike | DisposableLike)[]): void | Promise<void>;
+    add(...disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[]): void;
+    add(disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[]): void;
+    addAll(disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[]): void | Promise<void>;
     /**
      * Add a disposable to the store. If the store has already been disposed, the disposable will be disposed.
      * @param disposable a disposable to add
      * @returns void if the container has not been disposed, otherwise a promise that resolves when the disposable has been disposed
      */
-    addOne(disposable: AsyncDisposableLike | DisposableLike): void | Promise<void>;
+    addOne(disposable: AsyncDisposableLike | DisposableLike | null | undefined): void | Promise<void>;
     /**
      * Remove a disposable from the store. If the disposable is found and removed, it will NOT be disposed
      * @param disposable the disposable to remove
      * @returns true if the disposable was removed, false otherwise
      */
-    remove(disposable: AsyncDisposableLike | DisposableLike): boolean;
+    remove(disposable: AsyncDisposableLike | DisposableLike | null | undefined): boolean;
     /**
      * Throw an exception if the object has been disposed.
      * @param message the message to include in the exception
@@ -498,13 +496,13 @@ declare class AsyncDisposableStore extends AsyncDisposiq implements AsyncDisposa
      * @param values an array of values
      * @param mapper a function that maps a value to a disposable
      */
-    static from<T>(values: T[], mapper: (value: T) => AsyncDisposableLike | DisposableLike): AsyncDisposableStore;
+    static from<T>(values: T[], mapper: (value: T) => AsyncDisposableLike | DisposableLike | null | undefined): AsyncDisposableStore;
     /**
      * Create an async disposable store from an array of disposables.
      * @param disposables an array of disposables
      * @returns a disposable store containing the disposables
      */
-    static from(disposables: (AsyncDisposableLike | DisposableLike)[]): AsyncDisposableStore;
+    static from(disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[]): AsyncDisposableStore;
 }
 
 /**
