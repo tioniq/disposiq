@@ -6,6 +6,8 @@
 [![npm bundle size](https://img.shields.io/bundlephobia/minzip/@tioniq/disposiq)](https://bundlephobia.com/package/@tioniq/disposiq)
 ![license](https://img.shields.io/npm/l/@tioniq/disposiq)
 ![tree-shakeable](https://badgen.net/bundlephobia/tree-shaking/@tioniq/disposiq)
+![types](https://badgen.net/npm/types/@tioniq/disposiq)
+![downloads](https://img.shields.io/npm/dt/@tioniq/disposiq)
 
 **Disposiq** is a utility collection
 of [Dispose pattern](https://en.wikipedia.org/wiki/Dispose_pattern).

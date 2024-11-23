@@ -44,15 +44,22 @@ export class DisposableStore
     return this._disposed
   }
 
-  add(...disposables: DisposableLike[]): void
+  add(...disposables: (DisposableLike | null | undefined)[]): void
 
-  add(disposables: DisposableLike[]): void
+  add(disposables: (DisposableLike | null | undefined)[]): void
 
   /**
    * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
    * @param disposables disposables to add
    */
-  add(...disposables: (DisposableLike | DisposableLike[])[]): void {
+  add(
+    ...disposables: (
+      | DisposableLike
+      | (DisposableLike | null | undefined)[]
+      | null
+      | undefined
+    )[]
+  ): void {
     if (!disposables || disposables.length === 0) {
       return
     }
@@ -77,7 +84,7 @@ export class DisposableStore
    * Add multiple disposables to the store. If the store has already been disposed, the disposables will be disposed.
    * @param disposables an array of disposables to add
    */
-  addAll(disposables: DisposableLike[]): void {
+  addAll(disposables: (DisposableLike | null | undefined)[]): void {
     if (!disposables || disposables.length === 0) {
       return
     }
@@ -99,7 +106,7 @@ export class DisposableStore
    * @param disposable a disposable to add
    * @returns the disposable object
    */
-  addOne(disposable: DisposableLike): void {
+  addOne(disposable: DisposableLike | null | undefined): void {
     if (!disposable) {
       return
     }
@@ -115,7 +122,7 @@ export class DisposableStore
    * @param disposable a disposable to remove
    * @returns true if the disposable was found and removed
    */
-  remove(disposable: DisposableLike): boolean {
+  remove(disposable: DisposableLike | null | undefined): boolean {
     if (!disposable || this._disposed) {
       return false
     }
@@ -242,10 +249,12 @@ export class DisposableStore
    * @param disposables an array of disposables
    * @returns a disposable store containing the disposables
    */
-  static from(disposables: DisposableLike[]): DisposableStore
+  static from(
+    disposables: (DisposableLike | null | undefined)[],
+  ): DisposableStore
 
   static from<T>(
-    disposables: DisposableLike[] | T[],
+    disposables: (DisposableLike | null | undefined)[] | T[],
     mapper?: (value: T) => DisposableLike,
   ): DisposableStore {
     if (typeof mapper === "function") {
@@ -254,7 +263,7 @@ export class DisposableStore
       return store
     }
     const store = new DisposableStore()
-    store.addAll(disposables as DisposableLike[])
+    store.addAll(disposables as (DisposableLike | null | undefined)[])
     return store
   }
 }

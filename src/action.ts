@@ -71,7 +71,14 @@ export class AsyncDisposableAction
   extends AsyncDisposiq
   implements AsyncDisposableAwareCompat
 {
+  /**
+   * @internal
+   */
   private readonly _action: () => Promise<void> | void
+
+  /**
+   * @internal
+   */
   private _disposed = false
 
   constructor(action: () => Promise<void> | void) {

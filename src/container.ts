@@ -1,5 +1,10 @@
-import type { DisposableAwareCompat, IDisposable } from "./declarations"
+import type {
+  DisposableAwareCompat,
+  DisposableLike,
+  IDisposable,
+} from "./declarations"
 import { Disposiq } from "./disposiq"
+import { toDisposable } from "./aliases"
 
 /**
  * A container for a disposable object. It can be replaced with another disposable object.
@@ -24,9 +29,10 @@ export class DisposableContainer
    */
   private _disposed = false
 
-  constructor(disposable: IDisposable | undefined = undefined) {
+  constructor(disposable: DisposableLike | null | undefined = undefined) {
     super()
-    this._disposable = disposable
+    this._disposable =
+      disposable == undefined ? undefined : toDisposable(disposable)
   }
 
   /**
@@ -47,16 +53,17 @@ export class DisposableContainer
    * Set the new disposable and dispose the old one
    * @param disposable a new disposable to set
    */
-  set(disposable: IDisposable): void {
-    if (disposable === null) {
-      return
-    }
+  set(disposable: DisposableLike | null | undefined): void {
     if (this._disposed) {
-      disposable.dispose()
+      if (disposable == undefined) {
+        return
+      }
+      toDisposable(disposable).dispose()
       return
     }
     const oldDisposable = this._disposable
-    this._disposable = disposable
+    this._disposable =
+      disposable == undefined ? undefined : toDisposable(disposable)
     if (oldDisposable !== undefined) {
       oldDisposable.dispose()
     }
@@ -66,15 +73,16 @@ export class DisposableContainer
    * Replace the disposable with a new one. Does not dispose the old one
    * @param disposable a new disposable to replace the old one
    */
-  replace(disposable: IDisposable): void {
-    if (disposable === null) {
-      return
-    }
+  replace(disposable: DisposableLike | null | undefined): void {
     if (this._disposed) {
-      disposable.dispose()
+      if (disposable == undefined) {
+        return
+      }
+      toDisposable(disposable).dispose()
       return
     }
-    this._disposable = disposable
+    this._disposable =
+      disposable == undefined ? undefined : toDisposable(disposable)
   }
 
   /**
@@ -82,10 +90,11 @@ export class DisposableContainer
    */
   disposeCurrent(): void {
     const disposable = this._disposable
-    if (disposable !== undefined) {
-      this._disposable = undefined
-      disposable.dispose()
+    if (disposable === undefined) {
+      return
     }
+    this._disposable = undefined
+    disposable.dispose()
   }
 
   dispose(): void {
@@ -96,7 +105,8 @@ export class DisposableContainer
     if (this._disposable === undefined) {
       return
     }
-    this._disposable.dispose()
+    const disposable = this._disposable
     this._disposable = undefined
+    disposable.dispose()
   }
 }

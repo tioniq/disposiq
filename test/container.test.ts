@@ -19,6 +19,17 @@ describe("container", () => {
     container.dispose()
     expect(action).toHaveBeenCalledTimes(2)
   })
+  it("should set null disposable and not fail if already disposed", () => {
+    const container = new DisposableContainer()
+    container.dispose()
+    container.set(null)
+  })
+
+  it("should set undefined disposable and not fail if already disposed", () => {
+    const container = new DisposableContainer()
+    container.dispose()
+    container.set(undefined)
+  })
   it("should replace disposable", () => {
     const container = new DisposableContainer()
     const action = jest.fn()
@@ -30,6 +41,16 @@ describe("container", () => {
     expect(action).toHaveBeenCalledTimes(1)
     container.replace(new DisposableAction(action))
     expect(action).toHaveBeenCalledTimes(2)
+  })
+  it("should replace null disposable and not fail if already disposed", () => {
+    const container = new DisposableContainer()
+    container.dispose()
+    container.replace(null)
+  })
+  it("should replace undefined disposable and not fail if already disposed", () => {
+    const container = new DisposableContainer()
+    container.dispose()
+    container.replace(undefined)
   })
   it("should return last disposable", () => {
     const container = new DisposableContainer()
@@ -77,6 +98,11 @@ describe("container", () => {
     expect(fun).toHaveBeenCalledTimes(1)
     container.dispose()
     expect(fun).toHaveBeenCalledTimes(2)
+  })
+  it("should not fail on disposeCurrent if no disposable", () => {
+    const container = new DisposableContainer()
+    container.disposeCurrent()
+    container.dispose()
   })
   it("set should not fail on null", () => {
     const container = new DisposableContainer()

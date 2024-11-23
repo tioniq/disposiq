@@ -1,10 +1,12 @@
 import type { AsyncDisposableLike, DisposableLike } from "./declarations"
 import { ObjectPool } from "./utils/object-pool"
 
-const pool = new ObjectPool<DisposableLike[]>(10)
-const asyncPool = new ObjectPool<(DisposableLike | AsyncDisposableLike)[]>(10)
+const pool = new ObjectPool<(DisposableLike | null | undefined)[]>(10)
+const asyncPool = new ObjectPool<
+  (DisposableLike | AsyncDisposableLike | null | undefined)[]
+>(10)
 
-export function justDispose(disposable: DisposableLike) {
+export function justDispose(disposable: DisposableLike | null | undefined) {
   if (!disposable) {
     return
   }
@@ -16,7 +18,7 @@ export function justDispose(disposable: DisposableLike) {
 }
 
 export async function justDisposeAsync(
-  disposable: DisposableLike | AsyncDisposableLike,
+  disposable: DisposableLike | AsyncDisposableLike | null | undefined,
 ): Promise<void> {
   if (!disposable) {
     return
@@ -28,7 +30,9 @@ export async function justDisposeAsync(
   }
 }
 
-export function justDisposeAll(disposables: DisposableLike[]) {
+export function justDisposeAll(
+  disposables: (DisposableLike | null | undefined)[],
+) {
   for (let i = 0; i < disposables.length; ++i) {
     const disposable = disposables[i]
     if (!disposable) {
@@ -43,7 +47,7 @@ export function justDisposeAll(disposables: DisposableLike[]) {
 }
 
 export async function justDisposeAllAsync(
-  disposables: (AsyncDisposableLike | DisposableLike)[],
+  disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[],
 ): Promise<void> {
   for (let i = 0; i < disposables.length; ++i) {
     const disposable = disposables[i]
@@ -62,14 +66,14 @@ export async function justDisposeAllAsync(
  * Dispose all disposables in the array safely. During the disposal process, the array is safe to modify
  * @param disposables an array of disposables
  */
-export function disposeAll(disposables: DisposableLike[]) {
+export function disposeAll(disposables: (DisposableLike | null | undefined)[]) {
   const size = disposables.length
   if (size === 0) {
     return
   }
   let holder = pool.lift()
   if (holder === null) {
-    holder = new Array<DisposableLike>(size)
+    holder = new Array<DisposableLike | null | undefined>(size)
   } else {
     if (holder.length < size) {
       holder.length = size
@@ -106,7 +110,7 @@ export function disposeAll(disposables: DisposableLike[]) {
  * @param disposables an array of disposables
  */
 export async function disposeAllAsync(
-  disposables: (DisposableLike | AsyncDisposableLike)[],
+  disposables: (DisposableLike | AsyncDisposableLike | null | undefined)[],
 ): Promise<void> {
   const size = disposables.length
   if (size === 0) {
@@ -150,7 +154,9 @@ export async function disposeAllAsync(
  * Dispose all disposables in the array unsafely. During the disposal process, the array is not safe to modify
  * @param disposables an array of disposables
  */
-export function disposeAllUnsafe(disposables: DisposableLike[]) {
+export function disposeAllUnsafe(
+  disposables: (DisposableLike | null | undefined)[],
+) {
   for (let i = 0; i < disposables.length; ++i) {
     const disposable = disposables[i]
     if (!disposable) {
@@ -170,7 +176,7 @@ export function disposeAllUnsafe(disposables: DisposableLike[]) {
  * @param disposables an array of disposables
  */
 export async function disposeAllUnsafeAsync(
-  disposables: (AsyncDisposableLike | DisposableLike)[],
+  disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[],
 ) {
   for (let i = 0; i < disposables.length; ++i) {
     const disposable = disposables[i]
@@ -192,7 +198,7 @@ export async function disposeAllUnsafeAsync(
  * @param onErrorCallback a callback to handle errors
  */
 export function disposeAllSafely(
-  disposables: DisposableLike[],
+  disposables: (DisposableLike | null | undefined)[],
   onErrorCallback?: (error: unknown) => void,
 ) {
   if (disposables.length === 0) {
@@ -222,7 +228,7 @@ export function disposeAllSafely(
  * @param onErrorCallback a callback to handle errors
  */
 export async function disposeAllSafelyAsync(
-  disposables: (AsyncDisposableLike | DisposableLike)[],
+  disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[],
   onErrorCallback?: (error: unknown) => void,
 ) {
   if (disposables.length === 0) {

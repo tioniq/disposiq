@@ -39,9 +39,13 @@ export class AsyncDisposableStore
     return this._disposed
   }
 
-  add(...disposables: (AsyncDisposableLike | DisposableLike)[]): void
+  add(
+    ...disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[]
+  ): void
 
-  add(disposables: (AsyncDisposableLike | DisposableLike)[]): void
+  add(
+    disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[],
+  ): void
 
   /**
    * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
@@ -52,7 +56,9 @@ export class AsyncDisposableStore
     ...disposables: (
       | AsyncDisposableLike
       | DisposableLike
-      | (AsyncDisposableLike | DisposableLike)[]
+      | null
+      | undefined
+      | (AsyncDisposableLike | DisposableLike | null | undefined)[]
     )[]
   ): void | Promise<void> {
     if (!disposables || disposables.length === 0) {
@@ -60,8 +66,13 @@ export class AsyncDisposableStore
     }
     const first = disposables[0]
     const value = Array.isArray(first)
-      ? (first as (AsyncDisposableLike | DisposableLike)[])
-      : (disposables as (AsyncDisposableLike | DisposableLike)[])
+      ? (first as (AsyncDisposableLike | DisposableLike | null | undefined)[])
+      : (disposables as (
+          | AsyncDisposableLike
+          | DisposableLike
+          | null
+          | undefined
+        )[])
     if (this._disposed) {
       return justDisposeAllAsync(value)
     }
@@ -70,12 +81,14 @@ export class AsyncDisposableStore
       if (!disposable) {
         continue
       }
-      this._disposables.push(disposable as AsyncDisposableLike | DisposableLike)
+      this._disposables.push(
+        disposable as AsyncDisposableLike | DisposableLike | null | undefined,
+      )
     }
   }
 
   addAll(
-    disposables: (AsyncDisposableLike | DisposableLike)[],
+    disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[],
   ): void | Promise<void> {
     if (!disposables || disposables.length === 0) {
       return
@@ -98,7 +111,7 @@ export class AsyncDisposableStore
    * @returns void if the container has not been disposed, otherwise a promise that resolves when the disposable has been disposed
    */
   addOne(
-    disposable: AsyncDisposableLike | DisposableLike,
+    disposable: AsyncDisposableLike | DisposableLike | null | undefined,
   ): void | Promise<void> {
     if (!disposable) {
       return
@@ -114,7 +127,9 @@ export class AsyncDisposableStore
    * @param disposable the disposable to remove
    * @returns true if the disposable was removed, false otherwise
    */
-  remove(disposable: AsyncDisposableLike | DisposableLike): boolean {
+  remove(
+    disposable: AsyncDisposableLike | DisposableLike | null | undefined,
+  ): boolean {
     if (!disposable || this._disposed) {
       return false
     }
@@ -173,7 +188,9 @@ export class AsyncDisposableStore
    */
   static from<T>(
     values: T[],
-    mapper: (value: T) => AsyncDisposableLike | DisposableLike,
+    mapper: (
+      value: T,
+    ) => AsyncDisposableLike | DisposableLike | null | undefined,
   ): AsyncDisposableStore
 
   /**
@@ -182,12 +199,16 @@ export class AsyncDisposableStore
    * @returns a disposable store containing the disposables
    */
   static from(
-    disposables: (AsyncDisposableLike | DisposableLike)[],
+    disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[],
   ): AsyncDisposableStore
 
   static from<T>(
-    disposables: (AsyncDisposableLike | DisposableLike)[] | T[],
-    mapper?: (value: T) => AsyncDisposableLike | DisposableLike,
+    disposables:
+      | (AsyncDisposableLike | DisposableLike | null | undefined)[]
+      | T[],
+    mapper?: (
+      value: T,
+    ) => AsyncDisposableLike | DisposableLike | null | undefined,
   ): AsyncDisposableStore {
     if (typeof mapper === "function") {
       const store = new AsyncDisposableStore()
