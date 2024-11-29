@@ -90,6 +90,40 @@ interface AsyncDisposableCompat extends IAsyncDisposable, AsyncDisposable {
 interface AsyncDisposableAwareCompat extends AsyncDisposableAware, AsyncDisposableCompat {
 }
 
+/**
+ * Disposable is a base class for disposables. It will dispose all added disposables when it is disposed.
+ */
+declare abstract class Disposable$1 extends Disposiq implements DisposableCompat {
+    /**
+     * Returns true if the object has been disposed.
+     */
+    protected get disposed(): boolean;
+    /**
+     * Register a disposable object. The object will be disposed when the current object is disposed.
+     * @param t a disposable object
+     * @protected inherited classes should use this method to register disposables
+     * @returns the disposable object
+     */
+    protected register<T extends IDisposable>(t: T): T;
+    /**
+     * Throw an exception if the object has been disposed.
+     * @param message the message to include in the exception
+     * @protected inherited classes can use this method to throw an exception if the object has been disposed
+     */
+    protected throwIfDisposed(message?: string): void;
+    /**
+     * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
+     * @param disposable a disposable to add
+     */
+    addDisposable(disposable: DisposableLike): void;
+    /**
+     * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
+     * @param disposables disposables to add
+     */
+    addDisposables(...disposables: DisposableLike[]): void;
+    dispose(): void;
+}
+
 declare abstract class AsyncDisposiq extends Disposiq {
     abstract dispose(): Promise<void>;
     /**
@@ -115,7 +149,7 @@ interface Disposiq {
      * Dispose the object when the container is disposed.
      * @param container a container to add the disposable to
      */
-    disposeWith(container: IDisposablesContainer): void;
+    disposeWith(container: IDisposablesContainer | Disposable$1): void;
     /**
      * Dispose the object after a specified time.
      * @param ms time in milliseconds
@@ -503,40 +537,6 @@ declare class AsyncDisposableStore extends AsyncDisposiq implements AsyncDisposa
      * @returns a disposable store containing the disposables
      */
     static from(disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[]): AsyncDisposableStore;
-}
-
-/**
- * Disposable is a base class for disposables. It will dispose all added disposables when it is disposed.
- */
-declare abstract class Disposable$1 extends Disposiq implements DisposableCompat {
-    /**
-     * Returns true if the object has been disposed.
-     */
-    protected get disposed(): boolean;
-    /**
-     * Register a disposable object. The object will be disposed when the current object is disposed.
-     * @param t a disposable object
-     * @protected inherited classes should use this method to register disposables
-     * @returns the disposable object
-     */
-    protected register<T extends IDisposable>(t: T): T;
-    /**
-     * Throw an exception if the object has been disposed.
-     * @param message the message to include in the exception
-     * @protected inherited classes can use this method to throw an exception if the object has been disposed
-     */
-    protected throwIfDisposed(message?: string): void;
-    /**
-     * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
-     * @param disposable a disposable to add
-     */
-    addDisposable(disposable: DisposableLike): void;
-    /**
-     * Add disposables to the store. If the store has already been disposed, the disposables will be disposed.
-     * @param disposables disposables to add
-     */
-    addDisposables(...disposables: DisposableLike[]): void;
-    dispose(): void;
 }
 
 type EventListener<T extends Event = Event> = ((this: EventTarget, ev: T) => unknown) | {

@@ -1214,6 +1214,10 @@ function addEventListener(target, type, listener, options) {
 
 // src/extensions.ts
 Disposiq.prototype.disposeWith = function(container) {
+  if (container instanceof Disposable) {
+    container.addDisposable(this);
+    return;
+  }
   container.add(this);
 };
 Disposiq.prototype.toFunction = function() {
