@@ -1,10 +1,15 @@
 import { Disposiq } from "./disposiq"
 import type { IDisposablesContainer } from "./declarations"
+import { Disposable } from "./disposable"
 
 Disposiq.prototype.disposeWith = function (
   this: Disposiq,
-  container: IDisposablesContainer,
+  container: IDisposablesContainer | Disposable,
 ): void {
+  if (container instanceof Disposable) {
+    container.addDisposable(this)
+    return
+  }
   container.add(this)
 }
 

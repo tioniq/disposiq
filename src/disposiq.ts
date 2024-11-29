@@ -1,4 +1,5 @@
 import type { DisposableCompat, IDisposablesContainer } from "./declarations"
+import type { Disposable } from "./disposable"
 
 /**
  * Disposiq is a base class for disposables. The only reason is to have ability to extend it with additional functionality.
@@ -33,7 +34,7 @@ export interface Disposiq {
    * Dispose the object when the container is disposed.
    * @param container a container to add the disposable to
    */
-  disposeWith(container: IDisposablesContainer): void
+  disposeWith(container: IDisposablesContainer | Disposable): void
 
   /**
    * Dispose the object after a specified time.
