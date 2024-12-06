@@ -19,14 +19,7 @@ Disposiq.prototype.toFunction = function (this: Disposiq): () => void {
   }
 }
 
-const g =
-  typeof global !== "undefined"
-    ? global
-    : typeof window !== "undefined"
-      ? window
-      : typeof self !== "undefined"
-        ? self
-        : this
+const g = globalThis
 
 Disposiq.prototype.disposeIn = function (this: Disposiq, ms: number): void {
   g.setTimeout(() => {

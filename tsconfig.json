@@ -25,6 +25,10 @@
     "typeRoots": [
       "./node_modules/@types",
       "./types"
+    ],
+    "lib": [
+      "es6",
+      "es2021.weakref"
     ]
   },
   "include": [
