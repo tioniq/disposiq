@@ -13,6 +13,67 @@ describe("disposable", () => {
     expect(subscription.disposed).toBe(true)
     expect(action).toHaveBeenCalledTimes(1)
   })
+  it("registerAsync should register disposable", async () => {
+    const subscription = new Subscription()
+    const action = jest.fn()
+    const disposableAction = new DisposableAction(action)
+    const registered = await subscription.registerAsync(disposableAction)
+    expect(registered).toBe(disposableAction)
+    expect(subscription.disposed).toBe(false)
+    expect(action).toHaveBeenCalledTimes(0)
+    subscription.dispose()
+    expect(subscription.disposed).toBe(true)
+    expect(action).toHaveBeenCalledTimes(1)
+  })
+  it("registerAsync should register promise", async () => {
+    const subscription = new Subscription()
+    const action = jest.fn()
+    const actionDisposable = new DisposableAction(action)
+    const promise = new Promise<IDisposable>((resolve) => {
+      setTimeout(() => {
+        resolve(actionDisposable)
+      }, 1)
+    })
+    const registered = await subscription.registerAsync(promise)
+    expect(registered).toBe(actionDisposable)
+    expect(action).toHaveBeenCalledTimes(0)
+    subscription.dispose()
+    expect(action).toHaveBeenCalledTimes(1)
+  })
+  it("registerAsync should register promise after dispose", async () => {
+    const subscription = new Subscription()
+    const action = jest.fn()
+    const actionDisposable = new DisposableAction(action)
+    const promise = new Promise<IDisposable>((resolve) => {
+      setTimeout(() => {
+        resolve(actionDisposable)
+      }, 1)
+    })
+    const registrationPromise = subscription.registerAsync(promise)
+    expect(action).toHaveBeenCalledTimes(0)
+    subscription.dispose()
+    expect(action).toHaveBeenCalledTimes(0)
+    await registrationPromise
+    expect(action).toHaveBeenCalledTimes(1)
+  })
+  it("registerAsync should register function", async () => {
+    const subscription = new Subscription()
+    const action = jest.fn()
+    const actionDisposable = new DisposableAction(action)
+    const registrationPromise = subscription.registerAsync(
+      async () =>
+        new Promise<IDisposable>((resolve) => {
+          setTimeout(() => {
+            resolve(actionDisposable)
+          }, 1)
+        }),
+    )
+    expect(action).toHaveBeenCalledTimes(0)
+    subscription.dispose()
+    expect(action).toHaveBeenCalledTimes(0)
+    await registrationPromise
+    expect(action).toHaveBeenCalledTimes(1)
+  })
   it("can use global Disposable API", () => {
     let subscription: Subscription
     {
@@ -71,6 +132,12 @@ class Subscription extends Disposable {
 
   override register<T extends IDisposable>(t: T): T {
     return super.register(t)
+  }
+
+  async registerAsync<T extends IDisposable>(
+    promiseOrAction: Promise<T> | (() => Promise<T>) | T,
+  ): Promise<T> {
+    return super.registerAsync(promiseOrAction)
   }
 
   override throwIfDisposed(message?: string): void {

@@ -33,6 +33,23 @@ export abstract class Disposable extends Disposiq implements DisposableCompat {
     return t
   }
 
+  protected async registerAsync<T extends IDisposable>(
+    promiseOrAction: Promise<T> | (() => Promise<T>) | T,
+  ): Promise<T> {
+    if (typeof promiseOrAction === "function") {
+      const disposable = await promiseOrAction()
+      this._store.addOne(disposable)
+      return disposable
+    }
+    if (promiseOrAction instanceof Promise) {
+      const disposable = await promiseOrAction
+      this._store.addOne(disposable)
+      return disposable
+    }
+    this._store.addOne(promiseOrAction)
+    return promiseOrAction
+  }
+
   /**
    * Throw an exception if the object has been disposed.
    * @param message the message to include in the exception
