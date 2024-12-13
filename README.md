@@ -35,7 +35,7 @@ npm install @tioniq/disposiq
 ### Function as a disposable
 
 ```typescript
-import {DisposableAction} from '@tioniq/disposiq'
+import { DisposableAction } from '@tioniq/disposiq'
 
 // The action will be executed only once when the disposable is disposed
 const disposable = new DisposableAction(() => {
@@ -48,7 +48,7 @@ disposable.dispose() // No output
 ### Store-based disposable
 
 ```typescript
-import {DisposableStore, DisposableAction} from '@tioniq/disposiq'
+import { DisposableStore, DisposableAction } from '@tioniq/disposiq'
 
 const store = new DisposableStore()
 const disposable1 = new DisposableAction(() => {
@@ -73,7 +73,7 @@ store.add(disposable3) // Output: Resource cleaned up 3
 ### Store-based disposable to dispose temporary resources
 
 ```typescript
-import {DisposableStore, DisposableAction} from '@tioniq/disposiq'
+import { DisposableStore, DisposableAction } from '@tioniq/disposiq'
 
 const store = new DisposableStore()
 const disposable1 = new DisposableAction(() => {
@@ -101,7 +101,7 @@ store.dispose() // Output: Resource cleaned up 3
 ### [Explicit Resource Management API](https://github.com/tc39/proposal-explicit-resource-management) support (aka 'using' keyword)
 
 ```typescript
-import {DisposableStore, DisposableAction} from '@tioniq/disposiq'
+import { DisposableStore, DisposableAction } from '@tioniq/disposiq'
 
 // When using the new 'using' keyword, the disposable will be disposed of automatically when it goes out of scope
 {
@@ -125,7 +125,7 @@ import {DisposableStore, DisposableAction} from '@tioniq/disposiq'
 There is a way to achieve the same result without use of the 'using' keyword. You can use the 'using' function instead.
 
 ```typescript
-import {Disposable, using} from '@tioniq/disposiq'
+import { Disposable, using } from '@tioniq/disposiq'
 
 using(new Client(), async (client) => {
   await client.makeRequest() // Output: Request made
@@ -158,7 +158,7 @@ class, so you can add custom methods to the class.
 For example, you can add a custom method to the `Disposiq` class:
 
 ```typescript
-import {Disposiq, DisposableAction, IDisposable} from '@tioniq/disposiq'
+import { Disposiq, DisposableAction, IDisposable } from '@tioniq/disposiq'
 
 declare module '@tioniq/disposiq' {
   interface Disposiq {

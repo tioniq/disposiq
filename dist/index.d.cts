@@ -105,6 +105,7 @@ declare abstract class Disposable$1 extends Disposiq implements DisposableCompat
      * @returns the disposable object
      */
     protected register<T extends IDisposable>(t: T): T;
+    protected registerAsync<T extends IDisposable>(promiseOrAction: Promise<T> | (() => Promise<T>) | T): Promise<T>;
     /**
      * Throw an exception if the object has been disposed.
      * @param message the message to include in the exception

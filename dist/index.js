@@ -1101,6 +1101,22 @@ var Disposable = class extends Disposiq {
     this._store.addOne(t);
     return t;
   }
+  registerAsync(promiseOrAction) {
+    return __async(this, null, function* () {
+      if (typeof promiseOrAction === "function") {
+        const disposable = yield promiseOrAction();
+        this._store.addOne(disposable);
+        return disposable;
+      }
+      if (promiseOrAction instanceof Promise) {
+        const disposable = yield promiseOrAction;
+        this._store.addOne(disposable);
+        return disposable;
+      }
+      this._store.addOne(promiseOrAction);
+      return promiseOrAction;
+    });
+  }
   /**
    * Throw an exception if the object has been disposed.
    * @param message the message to include in the exception
