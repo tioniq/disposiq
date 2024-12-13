@@ -1149,7 +1149,7 @@ Disposiq.prototype.toFunction = function() {
     this.dispose();
   };
 };
-var g = typeof global !== "undefined" ? global : typeof window !== "undefined" ? window : typeof self !== "undefined" ? self : void 0;
+var g = globalThis;
 Disposiq.prototype.disposeIn = function(ms) {
   g.setTimeout(() => {
     this.dispose();
@@ -1318,6 +1318,26 @@ function runDispose(disposable, action) {
   }
   return action();
 }
+
+// src/weak-ref-disposable.ts
+var WeakRefDisposable = class extends Disposiq {
+  constructor(value) {
+    super();
+    this.disposed = false;
+    this._value = new WeakRef(value);
+  }
+  dispose() {
+    if (this.disposed) {
+      return;
+    }
+    this.disposed = true;
+    const value = this._value.deref();
+    if (!value) {
+      return;
+    }
+    createDisposable(value).dispose();
+  }
+};
 export {
   AbortDisposable,
   AsyncDisposableAction,
@@ -1340,6 +1360,7 @@ export {
   SafeActionDisposable,
   SafeAsyncActionDisposable,
   DisposableContainer as SerialDisposable,
+  WeakRefDisposable,
   addEventListener,
   createDisposable,
   createDisposableCompat,

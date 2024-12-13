@@ -61,6 +61,7 @@ __export(src_exports, {
   SafeActionDisposable: () => SafeActionDisposable,
   SafeAsyncActionDisposable: () => SafeAsyncActionDisposable,
   SerialDisposable: () => DisposableContainer,
+  WeakRefDisposable: () => WeakRefDisposable,
   addEventListener: () => addEventListener,
   createDisposable: () => createDisposable,
   createDisposableCompat: () => createDisposableCompat,
@@ -1225,7 +1226,7 @@ Disposiq.prototype.toFunction = function() {
     this.dispose();
   };
 };
-var g = typeof global !== "undefined" ? global : typeof window !== "undefined" ? window : typeof self !== "undefined" ? self : void 0;
+var g = globalThis;
 Disposiq.prototype.disposeIn = function(ms) {
   g.setTimeout(() => {
     this.dispose();
@@ -1394,6 +1395,26 @@ function runDispose(disposable, action) {
   }
   return action();
 }
+
+// src/weak-ref-disposable.ts
+var WeakRefDisposable = class extends Disposiq {
+  constructor(value) {
+    super();
+    this.disposed = false;
+    this._value = new WeakRef(value);
+  }
+  dispose() {
+    if (this.disposed) {
+      return;
+    }
+    this.disposed = true;
+    const value = this._value.deref();
+    if (!value) {
+      return;
+    }
+    createDisposable(value).dispose();
+  }
+};
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   AbortDisposable,
@@ -1417,6 +1438,7 @@ function runDispose(disposable, action) {
   SafeActionDisposable,
   SafeAsyncActionDisposable,
   SerialDisposable,
+  WeakRefDisposable,
   addEventListener,
   createDisposable,
   createDisposableCompat,
