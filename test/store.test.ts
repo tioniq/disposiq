@@ -281,4 +281,32 @@ describe("store", () => {
     disposable.dispose()
     disposable.disposeSafely()
   })
+  it("should 'use' return the value", () => {
+    const disposable = new DisposableStore()
+    const value = {
+      dispose: jest.fn(),
+    }
+    const result = disposable.use(() => value)
+    expect(result).toBe(value)
+  })
+  it("should async 'use' return the value", async () => {
+    const disposable = new DisposableStore()
+    const value = {
+      dispose: jest.fn(),
+    }
+    const result = await disposable.use(
+      () => new Promise<IDisposable>((resolve) => resolve(value)),
+    )
+    expect(result).toBe(value)
+  })
+  it("should 'use' auto dispose the value if the store already disposed", async () => {
+    const disposable = new DisposableStore()
+    const value = {
+      dispose: jest.fn(),
+    }
+    disposable.dispose()
+    const result = disposable.use(() => value)
+    expect(result).toBe(value)
+    expect(value.dispose).toHaveBeenCalled()
+  })
 })

@@ -34,12 +34,10 @@ export abstract class Disposable extends Disposiq implements DisposableCompat {
   }
 
   protected async registerAsync<T extends IDisposable>(
-    promiseOrAction: Promise<T> | (() => Promise<T>) | T,
+    promiseOrAction: Promise<T> | (() => Promise<T>) | (() => T) | T,
   ): Promise<T> {
     if (typeof promiseOrAction === "function") {
-      const disposable = await promiseOrAction()
-      this._store.addOne(disposable)
-      return disposable
+      return this._store.use<T>(promiseOrAction)
     }
     if (promiseOrAction instanceof Promise) {
       const disposable = await promiseOrAction

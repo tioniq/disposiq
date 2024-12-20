@@ -135,7 +135,7 @@ class Subscription extends Disposable {
   }
 
   async registerAsync<T extends IDisposable>(
-    promiseOrAction: Promise<T> | (() => Promise<T>) | T,
+    promiseOrAction: Promise<T> | (() => Promise<T>) | (() => T) | T,
   ): Promise<T> {
     return super.registerAsync(promiseOrAction)
   }
