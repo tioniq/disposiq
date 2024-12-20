@@ -105,7 +105,7 @@ declare abstract class Disposable$1 extends Disposiq implements DisposableCompat
      * @returns the disposable object
      */
     protected register<T extends IDisposable>(t: T): T;
-    protected registerAsync<T extends IDisposable>(promiseOrAction: Promise<T> | (() => Promise<T>) | T): Promise<T>;
+    protected registerAsync<T extends IDisposable>(promiseOrAction: Promise<T> | (() => Promise<T>) | (() => T) | T): Promise<T>;
     /**
      * Throw an exception if the object has been disposed.
      * @param message the message to include in the exception
@@ -278,6 +278,9 @@ declare class DisposableStore extends Disposiq implements IDisposablesContainer,
      * @param message the message to include in the exception
      */
     throwIfDisposed(message?: string): void;
+    use<T extends DisposableLike>(supplier: () => T): T;
+    use<T extends DisposableLike>(supplier: () => Promise<T>): Promise<T>;
+    use<T extends DisposableLike>(supplier: () => T | Promise<T>): T | Promise<T>;
     /**
      * Dispose all disposables in the store. The store does not become disposed. The disposables are removed from the
      * store. The store can continue to be used after this method is called. This method is useful when the store is

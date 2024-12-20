@@ -1,6 +1,6 @@
 {
   "name": "@tioniq/disposiq",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Disposiq is a utility collection of Dispose pattern",
   "private": false,
   "author": {
@@ -24,10 +24,10 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
     "test": "jest",
     "test:coverage": "jest --coverage --collect-coverage",
     "test:badges": "coverage-badges",
+    "build": "tsup",
     "build:watch": "tsup --watch",
     "run:example": "npx tsx ./example/index.ts",
     "prepublishOnly": "npm run build && npm run test:coverage && npm run test:badges",

@@ -646,6 +646,32 @@ var DisposableStore = class _DisposableStore extends Disposiq {
     }
   }
   /**
+   * Accepts a function that returns a disposable and adds it to the store. If the function is asynchronous,
+   * it waits for the result and then adds it to the store. Returns a Promise if the supplier is asynchronous,
+   * otherwise returns the disposable directly.
+   * @param supplier A function that returns a disposable or a promise resolving to a disposable.
+   * @returns The disposable or a promise resolving to the disposable.
+   */
+  use(supplier) {
+    const result = supplier();
+    if (result instanceof Promise) {
+      return result.then((disposable) => {
+        if (this._disposed) {
+          justDispose(disposable);
+          return disposable;
+        }
+        this._disposables.push(disposable);
+        return disposable;
+      });
+    }
+    if (this._disposed) {
+      justDispose(result);
+      return result;
+    }
+    this._disposables.push(result);
+    return result;
+  }
+  /**
    * Dispose all disposables in the store. The store does not become disposed. The disposables are removed from the
    * store. The store can continue to be used after this method is called. This method is useful when the store is
    * used as a temporary container. The store can be disposed later by calling the dispose method. Calling add during
@@ -1181,9 +1207,7 @@ var Disposable = class extends Disposiq {
   registerAsync(promiseOrAction) {
     return __async(this, null, function* () {
       if (typeof promiseOrAction === "function") {
-        const disposable = yield promiseOrAction();
-        this._store.addOne(disposable);
-        return disposable;
+        return this._store.use(promiseOrAction);
       }
       if (promiseOrAction instanceof Promise) {
         const disposable = yield promiseOrAction;
