@@ -18,6 +18,9 @@ export abstract class Disposiq implements DisposableCompat {
   }
 }
 
+/**
+ * AsyncDisposiq is a base class for disposables that can be disposed asynchronously.
+ */
 export abstract class AsyncDisposiq extends Disposiq {
   abstract dispose(): Promise<void>
 
