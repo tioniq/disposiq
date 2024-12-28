@@ -6,6 +6,15 @@ import { ExceptionHandlerManager } from "./utils/exception-handler-manager"
 import { noop, noopAsync } from "./utils/noop"
 import { AsyncDisposiq, Disposiq } from "./disposiq"
 
+/**
+ * A variable that manages exception handling for safe disposable objects.
+ *
+ * The `safeDisposableExceptionHandlerManager` is an instance of
+ * the `ExceptionHandlerManager` class. It is designed to handle the
+ * registration, management, and execution of exception handlers,
+ * ensuring robust error management in systems involving disposable
+ * resources.
+ */
 export const safeDisposableExceptionHandlerManager: ExceptionHandlerManager =
   new ExceptionHandlerManager()
 

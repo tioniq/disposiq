@@ -6,6 +6,10 @@ const asyncPool = new ObjectPool<
   (DisposableLike | AsyncDisposableLike | null | undefined)[]
 >(10)
 
+/**
+ * Dispose a disposable object or call a dispose function
+ * @param disposable a disposable object or a dispose function. Can be null or undefined - no-op
+ */
 export function justDispose(disposable: DisposableLike | null | undefined) {
   if (!disposable) {
     return
@@ -17,6 +21,11 @@ export function justDispose(disposable: DisposableLike | null | undefined) {
   }
 }
 
+/**
+ * Dispose an async disposable object or call an async dispose function
+ * @param disposable an async disposable object or an async dispose function. Can be null or undefined - no-op
+ * @returns a promise that resolves when the disposal is complete
+ */
 export async function justDisposeAsync(
   disposable: DisposableLike | AsyncDisposableLike | null | undefined,
 ): Promise<void> {
@@ -30,6 +39,10 @@ export async function justDisposeAsync(
   }
 }
 
+/**
+ * Dispose all disposables in the array. Will check each item for null or undefined
+ * @param disposables an array of disposables
+ */
 export function justDisposeAll(
   disposables: (DisposableLike | null | undefined)[],
 ) {
@@ -46,6 +59,11 @@ export function justDisposeAll(
   }
 }
 
+/**
+ * Dispose all async disposables in the array. Will check each item for null or undefined
+ * @param disposables an array of disposables
+ * @returns a promise that resolves when all disposals are complete
+ */
 export async function justDisposeAllAsync(
   disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[],
 ): Promise<void> {
