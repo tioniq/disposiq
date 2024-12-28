@@ -10,9 +10,21 @@ interface IDisposable {
 interface IAsyncDisposable {
     dispose(): Promise<void>;
 }
+/**
+ * A function that disposes a resource.
+ */
 type DisposeFunc = () => void;
+/**
+ * A disposable object or a function that disposes a resource.
+ */
 type DisposableLike = IDisposable | DisposeFunc;
+/**
+ * A function that disposes a resource asynchronously.
+ */
 type AsyncDisposeFunc = () => Promise<void>;
+/**
+ * An async disposable object or a function that disposes a resource asynchronously.
+ */
 type AsyncDisposableLike = IAsyncDisposable | AsyncDisposeFunc;
 /**
  * A container interface for disposables collection. Implementation is {@link DisposableStore}.
@@ -357,9 +369,27 @@ declare class BoolDisposable extends Disposiq implements DisposableAwareCompat {
     dispose(): void;
 }
 
+/**
+ * Dispose a disposable object or call a dispose function
+ * @param disposable a disposable object or a dispose function. Can be null or undefined - no-op
+ */
 declare function justDispose(disposable: DisposableLike | null | undefined): void;
+/**
+ * Dispose an async disposable object or call an async dispose function
+ * @param disposable an async disposable object or an async dispose function. Can be null or undefined - no-op
+ * @returns a promise that resolves when the disposal is complete
+ */
 declare function justDisposeAsync(disposable: DisposableLike | AsyncDisposableLike | null | undefined): Promise<void>;
+/**
+ * Dispose all disposables in the array. Will check each item for null or undefined
+ * @param disposables an array of disposables
+ */
 declare function justDisposeAll(disposables: (DisposableLike | null | undefined)[]): void;
+/**
+ * Dispose all async disposables in the array. Will check each item for null or undefined
+ * @param disposables an array of disposables
+ * @returns a promise that resolves when all disposals are complete
+ */
 declare function justDisposeAllAsync(disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[]): Promise<void>;
 /**
  * Dispose all disposables in the array safely. During the disposal process, the array is safe to modify
@@ -558,6 +588,16 @@ interface EventTarget {
     addEventListener<E extends Event>(type: string, listener: EventListener<E>, options?: boolean | AddEventListenerOptions): void;
     removeEventListener<E extends Event>(type: string, listener: EventListener<E>, options?: boolean | EventListenerOptions): void;
 }
+/**
+ * Adds an event listener to the specified target for a given event type.
+ * Returns a disposable object to remove the listener when no longer needed.
+ *
+ * @param {EventTarget} target - The target to which the event listener will be added.
+ * @param {string} type - The type of event to listen for (e.g., 'click', 'keydown').
+ * @param {EventListener<E>} listener - The callback function to be invoked when the event occurs.
+ * @param {boolean | AddEventListenerOptions} [options] - Optional options object or boolean to provide additional configuration for the event listener.
+ * @return {Disposiq} A disposable object to remove the event listener.
+ */
 declare function addEventListener<E extends Event>(target: EventTarget, type: string, listener: EventListener<E>, options?: boolean | AddEventListenerOptions): Disposiq;
 
 /**
@@ -631,6 +671,15 @@ declare class ExceptionHandlerManager {
     handleSafe(error: Error): void;
 }
 
+/**
+ * A variable that manages exception handling for safe disposable objects.
+ *
+ * The `safeDisposableExceptionHandlerManager` is an instance of
+ * the `ExceptionHandlerManager` class. It is designed to handle the
+ * registration, management, and execution of exception handlers,
+ * ensuring robust error management in systems involving disposable
+ * resources.
+ */
 declare const safeDisposableExceptionHandlerManager: ExceptionHandlerManager;
 /**
  * Represents a safe action that can be disposed. The action is invoked when the action is disposed.
@@ -658,9 +707,38 @@ declare class SafeAsyncActionDisposable extends AsyncDisposiq implements AsyncDi
     dispose(): Promise<void>;
 }
 
+/**
+ * Executes a provided action function using a resource that implements the IDisposable interface.
+ * Ensures that the resource is properly disposed of after the action completes or if an exception occurs.
+ * @param resource The disposable resource to be used in the action.
+ * @param action A callback function that performs an operation using the resource.
+ * @return Returns the result of the action performed.
+ */
 declare function using<T extends IDisposable, R>(resource: T, action: (resource: T) => R): R;
+/**
+ * Executes a provided action function using a resource that implements the IDisposable interface.
+ * Ensures that the resource is properly disposed of after the action completes or if an exception occurs.
+ * @param resource The disposable resource to be used in the action.
+ * @param action A callback function that performs an operation using the resource.
+ * @return Returns the result of the action performed.
+ */
 declare function using<T extends IDisposable | IAsyncDisposable, R>(resource: T, action: (resource: T) => Promise<R>): Promise<R>;
 
+/**
+ * Represents a disposable object that holds a weak reference to another object,
+ * enabling efficient memory management.
+ *
+ * This class is particularly useful for scenarios where you want to associate
+ * a disposable behavior with an object, but you don't want to prolong its
+ * lifespan unnecessarily by holding a strong reference to it.
+ *
+ * The class ensures that the referenced object's `dispose` method is called
+ * when disposing of the `WeakRefDisposable` instance, provided the referenced
+ * object is still available.
+ *
+ * T must be a type that implements `IDisposable`, `IAsyncDisposable`, or is an
+ * `AbortController`.
+ */
 declare class WeakRefDisposable<T extends IDisposable | IAsyncDisposable | AbortController> extends Disposiq {
     private readonly _value;
     private disposed;
