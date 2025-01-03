@@ -8,9 +8,9 @@ export class WeakRefDisposable<
   private readonly _value: WeakRef<T>
   private disposed = false
 
-  constructor(value: T) {
+  constructor(value: T | WeakRef<T>) {
     super()
-    this._value = new WeakRef<T>(value)
+    this._value = value instanceof WeakRef ? value : new WeakRef<T>(value)
   }
 
   dispose(): void {

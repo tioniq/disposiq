@@ -52,4 +52,16 @@ describe("weak-ref-disposable", () => {
     expect(fn).toHaveBeenCalled()
     weakRefDisposable.dispose()
   })
+
+  it("constructor should accept WeakRef as a param", () => {
+    const fn = jest.fn()
+    const disposable = createDisposable(fn)
+    // @ts-ignore
+    const weakRef = new WeakRef(disposable)
+    const weakRefDisposable = new WeakRefDisposable(weakRef)
+
+    expect(fn).not.toHaveBeenCalled()
+    weakRefDisposable.dispose()
+    expect(fn).toHaveBeenCalled()
+  })
 })
