@@ -12,12 +12,24 @@ export interface IAsyncDisposable {
   dispose(): Promise<void>
 }
 
+/**
+ * A function that disposes a resource.
+ */
 export type DisposeFunc = () => void
 
+/**
+ * A disposable object or a function that disposes a resource.
+ */
 export type DisposableLike = IDisposable | DisposeFunc
 
+/**
+ * A function that disposes a resource asynchronously.
+ */
 export type AsyncDisposeFunc = () => Promise<void>
 
+/**
+ * An async disposable object or a function that disposes a resource asynchronously.
+ */
 export type AsyncDisposableLike = IAsyncDisposable | AsyncDisposeFunc
 
 /**

@@ -1,10 +1,24 @@
 import type { IAsyncDisposable, IDisposable } from "./declarations"
 
+/**
+ * Executes a provided action function using a resource that implements the IDisposable interface.
+ * Ensures that the resource is properly disposed of after the action completes or if an exception occurs.
+ * @param resource The disposable resource to be used in the action.
+ * @param action A callback function that performs an operation using the resource.
+ * @return Returns the result of the action performed.
+ */
 export function using<T extends IDisposable, R>(
   resource: T,
   action: (resource: T) => R,
 ): R
 
+/**
+ * Executes a provided action function using a resource that implements the IDisposable interface.
+ * Ensures that the resource is properly disposed of after the action completes or if an exception occurs.
+ * @param resource The disposable resource to be used in the action.
+ * @param action A callback function that performs an operation using the resource.
+ * @return Returns the result of the action performed.
+ */
 export function using<T extends IDisposable | IAsyncDisposable, R>(
   resource: T,
   action: (resource: T) => Promise<R>,
