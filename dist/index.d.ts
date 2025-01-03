@@ -137,6 +137,9 @@ declare abstract class Disposable$1 extends Disposiq implements DisposableCompat
     dispose(): void;
 }
 
+/**
+ * AsyncDisposiq is a base class for disposables that can be disposed asynchronously.
+ */
 declare abstract class AsyncDisposiq extends Disposiq {
     abstract dispose(): Promise<void>;
     /**
@@ -742,7 +745,7 @@ declare function using<T extends IDisposable | IAsyncDisposable, R>(resource: T,
 declare class WeakRefDisposable<T extends IDisposable | IAsyncDisposable | AbortController> extends Disposiq {
     private readonly _value;
     private disposed;
-    constructor(value: T);
+    constructor(value: T | WeakRef<T>);
     dispose(): void;
 }
 

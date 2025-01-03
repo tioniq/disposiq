@@ -38,8 +38,8 @@ var __async = (__this, __arguments, generator) => {
 };
 
 // src/index.ts
-var src_exports = {};
-__export(src_exports, {
+var index_exports = {};
+__export(index_exports, {
   AbortDisposable: () => AbortDisposable,
   AsyncDisposableAction: () => AsyncDisposableAction,
   AsyncDisposableStore: () => AsyncDisposableStore,
@@ -94,7 +94,7 @@ __export(src_exports, {
   toDisposiq: () => createDisposiq,
   using: () => using
 });
-module.exports = __toCommonJS(src_exports);
+module.exports = __toCommonJS(index_exports);
 
 // src/init.ts
 if (!("dispose" in Symbol)) {
@@ -1441,7 +1441,7 @@ var WeakRefDisposable = class extends Disposiq {
   constructor(value) {
     super();
     this.disposed = false;
-    this._value = new WeakRef(value);
+    this._value = value instanceof WeakRef ? value : new WeakRef(value);
   }
   dispose() {
     if (this.disposed) {

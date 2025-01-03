@@ -1364,7 +1364,7 @@ var WeakRefDisposable = class extends Disposiq {
   constructor(value) {
     super();
     this.disposed = false;
-    this._value = new WeakRef(value);
+    this._value = value instanceof WeakRef ? value : new WeakRef(value);
   }
   dispose() {
     if (this.disposed) {
