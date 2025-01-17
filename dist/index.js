@@ -1195,6 +1195,13 @@ Disposiq.prototype.disposeIn = function(ms) {
     this.dispose();
   }, ms);
 };
+Disposiq.prototype.toPlainObject = function() {
+  return {
+    dispose: () => {
+      this.dispose();
+    }
+  };
+};
 
 // src/is.ts
 function isDisposable(value) {

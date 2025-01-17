@@ -175,6 +175,10 @@ interface Disposiq {
      * Convert the object to a function that disposes the object.
      */
     toFunction(): () => void;
+    /**
+     * Convert the object to a plain object with a dispose method.
+     */
+    toPlainObject(): IDisposable;
 }
 
 /**
