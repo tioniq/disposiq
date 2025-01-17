@@ -1,5 +1,5 @@
 import { Disposiq } from "./disposiq"
-import type { IDisposablesContainer } from "./declarations"
+import type { IDisposable, IDisposablesContainer } from "./declarations"
 import { Disposable } from "./disposable"
 
 Disposiq.prototype.disposeWith = function (
@@ -25,4 +25,12 @@ Disposiq.prototype.disposeIn = function (this: Disposiq, ms: number): void {
   g.setTimeout(() => {
     this.dispose()
   }, ms)
+}
+
+Disposiq.prototype.toPlainObject = function (this: Disposiq): IDisposable {
+  return {
+    dispose: () => {
+      this.dispose()
+    }
+  }
 }

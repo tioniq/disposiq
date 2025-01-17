@@ -18,7 +18,8 @@ describe("disposeWith extension", () => {
   it("should disposeWith add a disposable to a Disposable class", () => {
     const action = jest.fn()
     const disposable = new DisposableAction(action)
-    const store = new (class extends Disposable {})()
+    const store = new (class extends Disposable {
+    })()
 
     disposable.disposeWith(store)
 
@@ -65,6 +66,23 @@ describe("disposeIn extension", () => {
     expect(disposable.disposed).toBe(false)
 
     await new Promise((resolve) => setTimeout(resolve, delay))
+
+    expect(disposable.disposed).toBe(true)
+  })
+})
+
+describe('toPlainObject extension', () => {
+  it("should return plain object", () => {
+    const action = jest.fn()
+    const disposable = new DisposableAction(action)
+    const plainObject = disposable.toPlainObject()
+
+    expect(typeof plainObject).toBe("object")
+    expect(typeof plainObject.dispose).toBe("function")
+    expect(disposable.constructor).not.toBe({}.constructor)
+    expect(plainObject.constructor).toBe({}.constructor)
+
+    plainObject.dispose()
 
     expect(disposable.disposed).toBe(true)
   })

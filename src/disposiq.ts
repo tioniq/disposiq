@@ -1,4 +1,4 @@
-import type { DisposableCompat, IDisposablesContainer } from "./declarations"
+import type { DisposableCompat, IDisposable, IDisposablesContainer } from "./declarations"
 import type { Disposable } from "./disposable"
 
 /**
@@ -49,4 +49,9 @@ export interface Disposiq {
    * Convert the object to a function that disposes the object.
    */
   toFunction(): () => void
+
+  /**
+   * Convert the object to a plain object with a dispose method.
+   */
+  toPlainObject(): IDisposable
 }
