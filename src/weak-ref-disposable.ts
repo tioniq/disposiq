@@ -20,8 +20,15 @@ import type { IAsyncDisposable, IDisposable } from "./declarations"
 export class WeakRefDisposable<
   T extends IDisposable | IAsyncDisposable | AbortController,
 > extends Disposiq {
+  /**
+   * @internal
+   */
   private readonly _value: WeakRef<T>
-  private disposed = false
+
+  /**
+   * @internal
+   */
+  private _disposed = false
 
   constructor(value: T | WeakRef<T>) {
     super()
@@ -29,10 +36,10 @@ export class WeakRefDisposable<
   }
 
   dispose(): void {
-    if (this.disposed) {
+    if (this._disposed) {
       return
     }
-    this.disposed = true
+    this._disposed = true
     const value = this._value.deref()
     if (!value) {
       return
