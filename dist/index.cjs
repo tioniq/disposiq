@@ -1447,14 +1447,17 @@ function runDispose(disposable, action) {
 var WeakRefDisposable = class extends Disposiq {
   constructor(value) {
     super();
-    this.disposed = false;
+    /**
+     * @internal
+     */
+    this._disposed = false;
     this._value = value instanceof WeakRef ? value : new WeakRef(value);
   }
   dispose() {
-    if (this.disposed) {
+    if (this._disposed) {
       return;
     }
-    this.disposed = true;
+    this._disposed = true;
     const value = this._value.deref();
     if (!value) {
       return;

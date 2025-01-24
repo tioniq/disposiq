@@ -747,8 +747,6 @@ declare function using<T extends IDisposable | IAsyncDisposable, R>(resource: T,
  * `AbortController`.
  */
 declare class WeakRefDisposable<T extends IDisposable | IAsyncDisposable | AbortController> extends Disposiq {
-    private readonly _value;
-    private disposed;
     constructor(value: T | WeakRef<T>);
     dispose(): void;
 }
