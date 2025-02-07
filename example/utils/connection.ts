@@ -1,4 +1,4 @@
-import {EventEmitter} from "node:events";
+import { EventEmitter } from "node:events";
 
 export interface IConnection {
   get connected(): boolean

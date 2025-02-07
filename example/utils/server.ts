@@ -1,5 +1,5 @@
-import {EventEmitter} from "node:events";
-import {IConnection} from "./connection";
+import { EventEmitter } from "node:events";
+import type { IConnection } from "./connection";
 
 export interface IServer {
   get connections(): Array<IConnection>
