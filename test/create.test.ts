@@ -13,11 +13,12 @@ import {
 
 describe("create", () => {
   it("should return disposable as is", () => {
-    const disposable = new DisposableAction(() => {})
+    const disposable = new DisposableAction(() => {
+    })
     expect(createDisposable(disposable)).toBe(disposable)
   })
   it("should return empty disposable if undefined", () => {
-    expect(createDisposable(undefined as unknown as DisposableLike)).toBe(
+    expect(createDisposable(undefined)).toBe(
       emptyDisposable,
     )
   })
@@ -78,11 +79,12 @@ describe("create", () => {
 })
 describe("create compat", () => {
   it("should return disposable as is", () => {
-    const disposable = new DisposableAction(() => {})
+    const disposable = new DisposableAction(() => {
+    })
     expect(createDisposableCompat(disposable)).toBe(disposable)
   })
   it("should return empty disposable if undefined", () => {
-    expect(createDisposableCompat(undefined as unknown as DisposableLike)).toBe(
+    expect(createDisposableCompat(undefined)).toBe(
       emptyDisposable,
     )
   })
@@ -153,11 +155,12 @@ describe("create compat", () => {
 
 describe("create disposiq", () => {
   it("should return disposable as is", () => {
-    const disposable = new DisposableAction(() => {})
+    const disposable = new DisposableAction(() => {
+    })
     expect(createDisposiq(disposable)).toBe(disposable)
   })
   it("should return empty disposable if undefined", () => {
-    expect(createDisposiq(undefined as unknown as DisposableLike)).toBe(
+    expect(createDisposiq(undefined)).toBe(
       emptyDisposable,
     )
   })
