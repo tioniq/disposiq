@@ -1,6 +1,6 @@
 {
   "name": "@tioniq/disposiq",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Disposiq is a utility collection of Dispose pattern",
   "private": false,
   "author": {
@@ -20,7 +20,9 @@
   "types": "./dist/index.d.ts",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "lint": "biome lint ./src",
     "test": "jest",
@@ -75,5 +77,7 @@
     "explicit resource management",
     "erm"
   ],
-  "contributors": ["Tim (https://github.com/Timoniann)"]
+  "contributors": [
+    "Tim (https://github.com/Timoniann)"
+  ]
 }

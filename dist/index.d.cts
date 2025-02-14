@@ -467,7 +467,7 @@ declare function disposableFromEventOnce<K extends string | symbol>(emitter: Eve
  * If the input is an AbortController, it will be wrapped in an AbortDisposable object.
  * If the input is invalid, an empty disposable object will be returned.
  */
-declare function createDisposable(disposableLike: DisposableLike | Disposable | AsyncDisposable | AbortController): IDisposable;
+declare function createDisposable(disposableLike: DisposableLike | Disposable | AsyncDisposable | AbortController | null | undefined): IDisposable;
 /**
  * Create a system-compatible disposable from a disposable like object. The object can be a function, an object with a dispose method,
  * an AbortController, or an object with an internal Symbol.dispose/Symbol.asyncDispose method. This function is used to create
@@ -479,7 +479,7 @@ declare function createDisposable(disposableLike: DisposableLike | Disposable | 
  * If the input is an AbortController, it will be wrapped in an AbortDisposable object.
  * If the input is invalid, an empty disposable object will be returned.
  */
-declare function createDisposableCompat(disposableLike: DisposableLike | Disposable | AsyncDisposable | AbortController): DisposableCompat;
+declare function createDisposableCompat(disposableLike: DisposableLike | Disposable | AsyncDisposable | AbortController | null | undefined): DisposableCompat;
 /**
  * Create a Disposiq-inherited object from a disposable like object. The object can be a function, an object with a
  * dispose method, an AbortController, or an object with an internal Symbol.dispose/Symbol.asyncDispose method. This
@@ -487,7 +487,7 @@ declare function createDisposableCompat(disposableLike: DisposableLike | Disposa
  * @param disposableLike a disposable like object
  * @returns a Disposiq object. If the input is already a Disposiq object, it will be returned as is.
  */
-declare function createDisposiq(disposableLike: DisposableLike | Disposable | AsyncDisposable | AbortController): Disposiq;
+declare function createDisposiq(disposableLike: DisposableLike | Disposable | AsyncDisposable | AbortController | null | undefined): Disposiq;
 
 /**
  * A key-value store that stores disposable values. When the store is disposed, all the values will be disposed as well
