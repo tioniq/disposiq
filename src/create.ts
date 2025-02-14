@@ -23,7 +23,9 @@ export function createDisposable(
     | DisposableLike
     | Disposable
     | AsyncDisposable
-    | AbortController,
+    | AbortController
+    | null
+    | undefined,
 ): IDisposable {
   if (!disposableLike) {
     return emptyDisposable
@@ -74,7 +76,9 @@ export function createDisposableCompat(
     | DisposableLike
     | Disposable
     | AsyncDisposable
-    | AbortController,
+    | AbortController
+    | null
+    | undefined,
 ): DisposableCompat {
   if (!disposableLike) {
     return emptyDisposable
@@ -124,7 +128,9 @@ export function createDisposiq(
     | DisposableLike
     | Disposable
     | AsyncDisposable
-    | AbortController,
+    | AbortController
+    | null
+    | undefined,
 ): Disposiq {
   if (!disposableLike) {
     return emptyDisposable
