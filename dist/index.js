@@ -137,6 +137,7 @@ var AsyncDisposableAction = class extends AsyncDisposiq {
 var ObjectDisposedException = class extends Error {
   constructor(message) {
     super(message || "Object disposed");
+    this.name = "ObjectDisposedException";
   }
 };
 
