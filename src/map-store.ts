@@ -1,7 +1,7 @@
 import { Disposiq } from "./disposiq"
 import type {
+  CanBeDisposable,
   DisposableAware,
-  DisposableLike,
   IDisposable,
 } from "./declarations"
 import { toDisposable } from "./aliases"
@@ -33,7 +33,7 @@ export class DisposableMapStore<K> extends Disposiq implements DisposableAware {
    * @param key the key
    * @param value the disposable value
    */
-  set(key: K, value: DisposableLike): void {
+  set(key: K, value: CanBeDisposable): void {
     const disposable = toDisposable(value)
     if (this._disposed) {
       disposable.dispose()

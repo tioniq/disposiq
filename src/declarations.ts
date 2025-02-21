@@ -33,6 +33,11 @@ export type AsyncDisposeFunc = () => Promise<void>
 export type AsyncDisposableLike = IAsyncDisposable | AsyncDisposeFunc
 
 /**
+ * A disposable object that is possible to dispose
+ */
+export type CanBeDisposable = DisposableLike | Disposable | AsyncDisposable | AbortController
+
+/**
  * A container interface for disposables collection. Implementation is {@link DisposableStore}.
  */
 export interface IDisposablesContainer extends DisposableAware {
@@ -93,14 +98,16 @@ export interface DisposableAware extends IDisposable {
 /**
  * A compatibility interface for IDisposable interface and global Disposable API
  */
-export interface DisposableCompat extends IDisposable, Disposable {}
+export interface DisposableCompat extends IDisposable, Disposable {
+}
 
 /**
  * A compatibility interface for DisposableAware interface and global Disposable API
  */
 export interface DisposableAwareCompat
   extends DisposableAware,
-    DisposableCompat {}
+    DisposableCompat {
+}
 
 /**
  * An interface for an async disposable that can be checked for disposal status.
@@ -114,11 +121,13 @@ export interface AsyncDisposableAware extends IAsyncDisposable {
  */
 export interface AsyncDisposableCompat
   extends IAsyncDisposable,
-    AsyncDisposable {}
+    AsyncDisposable {
+}
 
 /**
  * A compatibility interface for AsyncDisposableAware interface and global Disposable API
  */
 export interface AsyncDisposableAwareCompat
   extends AsyncDisposableAware,
-    AsyncDisposableCompat {}
+    AsyncDisposableCompat {
+}

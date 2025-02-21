@@ -1,6 +1,6 @@
 import type {
+  CanBeDisposable,
   DisposableAwareCompat,
-  DisposableLike,
   IDisposable,
 } from "./declarations"
 import { Disposiq } from "./disposiq"
@@ -17,8 +17,7 @@ import { toDisposable } from "./aliases"
  */
 export class DisposableContainer
   extends Disposiq
-  implements DisposableAwareCompat
-{
+  implements DisposableAwareCompat {
   /**
    * @internal
    */
@@ -29,7 +28,7 @@ export class DisposableContainer
    */
   private _disposed = false
 
-  constructor(disposable: DisposableLike | null | undefined = undefined) {
+  constructor(disposable: CanBeDisposable | null | undefined = undefined) {
     super()
     this._disposable =
       disposable == undefined ? undefined : toDisposable(disposable)
@@ -53,7 +52,7 @@ export class DisposableContainer
    * Set the new disposable and dispose the old one
    * @param disposable a new disposable to set
    */
-  set(disposable: DisposableLike | null | undefined): void {
+  set(disposable: CanBeDisposable | null | undefined): void {
     if (this._disposed) {
       if (disposable == undefined) {
         return
@@ -73,7 +72,7 @@ export class DisposableContainer
    * Replace the disposable with a new one. Does not dispose the old one
    * @param disposable a new disposable to replace the old one
    */
-  replace(disposable: DisposableLike | null | undefined): void {
+  replace(disposable: CanBeDisposable | null | undefined): void {
     if (this._disposed) {
       if (disposable == undefined) {
         return

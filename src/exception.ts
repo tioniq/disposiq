@@ -4,5 +4,6 @@
 export class ObjectDisposedException extends Error {
   constructor(message?: string | undefined) {
     super(message || "Object disposed")
+    this.name = "ObjectDisposedException"
   }
 }

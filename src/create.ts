@@ -1,6 +1,6 @@
 import type {
+  CanBeDisposable,
   DisposableCompat,
-  DisposableLike,
   IDisposable,
 } from "./declarations"
 import { emptyDisposable } from "./empty"
@@ -19,13 +19,7 @@ import { Disposiq } from "./disposiq"
  * If the input is invalid, an empty disposable object will be returned.
  */
 export function createDisposable(
-  disposableLike:
-    | DisposableLike
-    | Disposable
-    | AsyncDisposable
-    | AbortController
-    | null
-    | undefined,
+  disposableLike: CanBeDisposable | null | undefined
 ): IDisposable {
   if (!disposableLike) {
     return emptyDisposable
@@ -72,13 +66,7 @@ export function createDisposable(
  * If the input is invalid, an empty disposable object will be returned.
  */
 export function createDisposableCompat(
-  disposableLike:
-    | DisposableLike
-    | Disposable
-    | AsyncDisposable
-    | AbortController
-    | null
-    | undefined,
+  disposableLike: CanBeDisposable | null | undefined
 ): DisposableCompat {
   if (!disposableLike) {
     return emptyDisposable
@@ -124,13 +112,7 @@ export function createDisposableCompat(
  * @returns a Disposiq object. If the input is already a Disposiq object, it will be returned as is.
  */
 export function createDisposiq(
-  disposableLike:
-    | DisposableLike
-    | Disposable
-    | AsyncDisposable
-    | AbortController
-    | null
-    | undefined,
+  disposableLike: CanBeDisposable | null | undefined
 ): Disposiq {
   if (!disposableLike) {
     return emptyDisposable
