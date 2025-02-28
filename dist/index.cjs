@@ -48,6 +48,7 @@ __export(index_exports, {
   BaseDisposable: () => Disposiq,
   BoolDisposable: () => BoolDisposable,
   BooleanDisposable: () => BoolDisposable,
+  CancellationTokenDisposable: () => CancellationTokenDisposable,
   CompositeAsyncDisposable: () => AsyncDisposableStore,
   CompositeDisposable: () => DisposableStore,
   Disposable: () => Disposable,
@@ -63,9 +64,11 @@ __export(index_exports, {
   SerialDisposable: () => DisposableContainer,
   WeakRefDisposable: () => WeakRefDisposable,
   addEventListener: () => addEventListener,
+  createCancellationTokenDisposable: () => disposableFromCancellationToken,
   createDisposable: () => createDisposable,
   createDisposableCompat: () => createDisposableCompat,
   createDisposiq: () => createDisposiq,
+  disposableFromCancellationToken: () => disposableFromCancellationToken,
   disposableFromEvent: () => disposableFromEvent,
   disposableFromEventOnce: () => disposableFromEventOnce,
   disposeAll: () => disposeAll,
@@ -1180,6 +1183,53 @@ var AsyncDisposableStore = class _AsyncDisposableStore extends AsyncDisposiq {
   }
 };
 
+// src/cancellation.ts
+function disposableFromCancellationToken(token) {
+  return new CancellationTokenDisposable(token);
+}
+var customDisposeGetter = Object.freeze(() => false);
+var CancellationTokenDisposable = class extends Disposiq {
+  constructor(token) {
+    super();
+    if (token == null) {
+      throw new Error("Invalid token");
+    }
+    this._token = token;
+    const isCancelledType = typeof token.isCancelled;
+    if (isCancelledType === "function") {
+      this._disposedGetter = () => token.isCancelled();
+    } else if (isCancelledType === "boolean") {
+      this._disposedGetter = () => token.isCancelled;
+    } else if (typeof token.onCancel === "function") {
+      let cancelled = false;
+      token.onCancel(() => {
+        cancelled = true;
+      });
+      this._disposedGetter = () => cancelled;
+    } else {
+      this._disposedGetter = customDisposeGetter;
+    }
+  }
+  get disposed() {
+    return this._disposedGetter();
+  }
+  /**
+   * Throw an exception if the object has been disposed.
+   * @param message the message to include in the exception
+   */
+  throwIfDisposed(message) {
+    if (this.disposed) {
+      throw new ObjectDisposedException(message);
+    }
+  }
+  dispose() {
+    if (this._disposedGetter === customDisposeGetter) {
+      this._disposedGetter = () => true;
+    }
+    this._token.cancel();
+  }
+};
+
 // src/disposable.ts
 var Disposable = class extends Disposiq {
   constructor() {
@@ -1476,6 +1526,7 @@ var WeakRefDisposable = class extends Disposiq {
   BaseDisposable,
   BoolDisposable,
   BooleanDisposable,
+  CancellationTokenDisposable,
   CompositeAsyncDisposable,
   CompositeDisposable,
   Disposable,
@@ -1491,9 +1542,11 @@ var WeakRefDisposable = class extends Disposiq {
   SerialDisposable,
   WeakRefDisposable,
   addEventListener,
+  createCancellationTokenDisposable,
   createDisposable,
   createDisposableCompat,
   createDisposiq,
+  disposableFromCancellationToken,
   disposableFromEvent,
   disposableFromEventOnce,
   disposeAll,

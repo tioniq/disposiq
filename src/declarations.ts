@@ -92,6 +92,9 @@ export interface IDisposablesContainer extends DisposableAware {
  * An interface for a disposable that can be checked for disposal status.
  */
 export interface DisposableAware extends IDisposable {
+  /**
+   * Returns true if the object is disposed.
+   */
   get disposed(): boolean
 }
 
@@ -113,6 +116,9 @@ export interface DisposableAwareCompat
  * An interface for an async disposable that can be checked for disposal status.
  */
 export interface AsyncDisposableAware extends IAsyncDisposable {
+  /**
+   * Returns true if the object is disposed.
+   */
   get disposed(): boolean
 }
 

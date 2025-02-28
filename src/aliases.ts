@@ -11,6 +11,7 @@ import {
 import { AsyncDisposiq, Disposiq } from "./disposiq"
 import { DisposableMapStore } from "./map-store"
 import { AsyncDisposableStore } from "./store-async"
+import { disposableFromCancellationToken } from "./cancellation"
 
 export {
   BoolDisposable as BooleanDisposable,
@@ -26,4 +27,5 @@ export {
   createDisposable as toDisposable,
   createDisposableCompat as toDisposableCompat,
   createDisposiq as toDisposiq,
+  disposableFromCancellationToken as createCancellationTokenDisposable
 }
