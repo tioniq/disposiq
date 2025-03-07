@@ -27,9 +27,39 @@ type AsyncDisposeFunc = () => Promise<void>;
  */
 type AsyncDisposableLike = IAsyncDisposable | AsyncDisposeFunc;
 /**
+ * Represents an interface that provides a mechanism to signal and handle cancellation requests.
+ * The interface requires that the `cancel` method be called to request cancellation. All other methods and properties
+ * are optional
+ */
+interface CancellationTokenLike {
+    /**
+     * Cancels the current operation or action, stopping any ongoing processes or tasks.
+     */
+    cancel(): void;
+    /**
+     * Gets a value that indicates whether the operation has been cancelled. Can be a boolean value or a function that
+     * returns a boolean value.
+     */
+    isCancelled?: boolean | (() => boolean);
+    /**
+     * Throws an exception if the operation has been cancelled.
+     */
+    throwIfCancelled?(): void;
+    /**
+     * Registers a callback that will be called when the operation is cancelled.
+     * @param callback the callback to call when the operation is cancelled
+     */
+    onCancel?(callback: () => void): void;
+    /**
+     * Removes a callback that was previously registered with the `onCancel` method.
+     * @param callback the callback to remove
+     */
+    removeCallback?(callback: () => void): void;
+}
+/**
  * A disposable object that is possible to dispose
  */
-type CanBeDisposable = DisposableLike | Disposable | AsyncDisposable | AbortController;
+type CanBeDisposable = DisposableLike | Disposable | AsyncDisposable | AbortController | CancellationTokenLike;
 /**
  * A container interface for disposables collection. Implementation is {@link DisposableStore}.
  */
@@ -591,36 +621,6 @@ declare class AsyncDisposableStore extends AsyncDisposiq implements AsyncDisposa
 }
 
 /**
- * Represents an interface that provides a mechanism to signal and handle cancellation requests.
- * The interface requires that the `cancel` method be called to request cancellation. All other methods and properties
- * are optional
- */
-interface CancellationTokenLike {
-    /**
-     * Cancels the current operation or action, stopping any ongoing processes or tasks.
-     */
-    cancel(): void;
-    /**
-     * Gets a value that indicates whether the operation has been cancelled. Can be a boolean value or a function that
-     * returns a boolean value.
-     */
-    isCancelled?: boolean | (() => boolean);
-    /**
-     * Throws an exception if the operation has been cancelled.
-     */
-    throwIfCancelled?(): void;
-    /**
-     * Registers a callback that will be called when the operation is cancelled.
-     * @param callback the callback to call when the operation is cancelled
-     */
-    onCancel?(callback: () => void): void;
-    /**
-     * Removes a callback that was previously registered with the `onCancel` method.
-     * @param callback the callback to remove
-     */
-    removeCallback?(callback: () => void): void;
-}
-/**
  * Converts a cancellation token into a disposable object that can be used
  * to manage and respond to cancellation requests.
  *
@@ -636,7 +636,7 @@ declare function disposableFromCancellationToken(token: CancellationTokenLike): 
  * and exposes a mechanism to track if it has been disposed.
  * Implements the DisposableAware interface.
  */
-declare class CancellationTokenDisposable extends Disposiq implements DisposableAware {
+declare class CancellationTokenDisposable extends Disposiq implements DisposableAwareCompat {
     constructor(token: CancellationTokenLike);
     get disposed(): boolean;
     /**

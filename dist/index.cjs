@@ -846,10 +846,75 @@ var EmptyDisposable = class extends AsyncDisposiq {
 var emptyDisposableImpl = new EmptyDisposable();
 var emptyDisposable = Object.freeze(emptyDisposableImpl);
 
+// src/cancellation.ts
+function disposableFromCancellationToken(token) {
+  return new CancellationTokenDisposable(token);
+}
+var customDisposeGetter = Object.freeze(() => false);
+var CancellationTokenDisposable = class extends Disposiq {
+  constructor(token) {
+    super();
+    if (token == null) {
+      throw new Error("Invalid token");
+    }
+    this._token = token;
+    const isCancelledType = typeof token.isCancelled;
+    if (isCancelledType === "function") {
+      this._disposedGetter = () => token.isCancelled();
+    } else if (isCancelledType === "boolean") {
+      this._disposedGetter = () => token.isCancelled;
+    } else if (typeof token.onCancel === "function") {
+      let cancelled = false;
+      token.onCancel(() => {
+        cancelled = true;
+      });
+      this._disposedGetter = () => cancelled;
+    } else {
+      this._disposedGetter = customDisposeGetter;
+    }
+  }
+  get disposed() {
+    return this._disposedGetter();
+  }
+  /**
+   * Throw an exception if the object has been disposed.
+   * @param message the message to include in the exception
+   */
+  throwIfDisposed(message) {
+    if (this.disposed) {
+      throw new ObjectDisposedException(message);
+    }
+  }
+  dispose() {
+    if (this._disposedGetter === customDisposeGetter) {
+      this._disposedGetter = () => true;
+    }
+    this._token.cancel();
+  }
+};
+
 // src/create.ts
 function createDisposable(disposableLike) {
   if (!disposableLike) {
     return emptyDisposable;
+  }
+  if (typeof disposableLike === "object" && "dispose" in disposableLike) {
+    return disposableLike;
+  }
+  return createDisposiqFrom(disposableLike);
+}
+function createDisposableCompat(disposableLike) {
+  return createDisposiqFrom(disposableLike);
+}
+function createDisposiq(disposableLike) {
+  return createDisposiqFrom(disposableLike);
+}
+function createDisposiqFrom(disposableLike) {
+  if (!disposableLike) {
+    return emptyDisposable;
+  }
+  if (disposableLike instanceof Disposiq) {
+    return disposableLike;
   }
   if (typeof disposableLike === "function") {
     return new DisposableAction(disposableLike);
@@ -858,7 +923,9 @@ function createDisposable(disposableLike) {
     return emptyDisposable;
   }
   if ("dispose" in disposableLike) {
-    return disposableLike;
+    return new DisposableAction(() => {
+      disposableLike.dispose();
+    });
   }
   if (Symbol.dispose in disposableLike) {
     return new DisposableAction(() => {
@@ -876,83 +943,8 @@ function createDisposable(disposableLike) {
   if (disposableLike instanceof AbortController) {
     return new AbortDisposable(disposableLike);
   }
-  return emptyDisposable;
-}
-function createDisposableCompat(disposableLike) {
-  if (!disposableLike) {
-    return emptyDisposable;
-  }
-  if (typeof disposableLike === "function") {
-    return new DisposableAction(disposableLike);
-  }
-  if (typeof disposableLike !== "object") {
-    return emptyDisposable;
-  }
-  const hasDispose = "dispose" in disposableLike;
-  const hasSymbolDispose = Symbol.dispose in disposableLike;
-  if (hasDispose && hasSymbolDispose) {
-    return disposableLike;
-  }
-  if (hasDispose) {
-    return new DisposableAction(() => disposableLike.dispose());
-  }
-  if (hasSymbolDispose) {
-    return new DisposableAction(() => disposableLike[Symbol.dispose]());
-  }
-  if (Symbol.asyncDispose in disposableLike) {
-    return new DisposableAction(() => __async(this, null, function* () {
-      disposableLike[Symbol.asyncDispose]();
-    }));
-  }
-  if ("unref" in disposableLike) {
-    return new DisposableAction(() => disposableLike.unref());
-  }
-  if (disposableLike instanceof AbortController) {
-    return new AbortDisposable(disposableLike);
-  }
-  return emptyDisposable;
-}
-function createDisposiq(disposableLike) {
-  if (!disposableLike) {
-    return emptyDisposable;
-  }
-  if (disposableLike instanceof Disposiq) {
-    return disposableLike;
-  }
-  if (typeof disposableLike === "function") {
-    return new DisposableAction(disposableLike);
-  }
-  if (typeof disposableLike !== "object") {
-    return emptyDisposable;
-  }
-  const hasDispose = "dispose" in disposableLike && typeof disposableLike.dispose === "function";
-  const hasSymbolDispose = Symbol.dispose in disposableLike;
-  if (hasDispose && hasSymbolDispose) {
-    return new class extends Disposiq {
-      dispose() {
-        disposableLike.dispose();
-      }
-      [Symbol.dispose]() {
-        disposableLike[Symbol.dispose]();
-      }
-    }();
-  }
-  if (hasDispose) {
-    return new DisposableAction(() => disposableLike.dispose());
-  }
-  if (hasSymbolDispose) {
-    return new DisposableAction(() => disposableLike[Symbol.dispose]());
-  }
-  if (Symbol.asyncDispose in disposableLike) {
-    return new AsyncDisposableAction(() => __async(this, null, function* () {
-      yield disposableLike[Symbol.asyncDispose]();
-    }));
-  }
-  if ("unref" in disposableLike) {
-    return new DisposableAction(() => disposableLike.unref());
-  }
-  if (disposableLike instanceof AbortController) {
-    return new AbortDisposable(disposableLike);
+  if ("cancel" in disposableLike) {
+    return new CancellationTokenDisposable(disposableLike);
   }
   return emptyDisposable;
 }
@@ -1180,53 +1172,6 @@ var AsyncDisposableStore = class _AsyncDisposableStore extends AsyncDisposiq {
     const store = new _AsyncDisposableStore();
     store.addAll(disposables);
     return store;
-  }
-};
-
-// src/cancellation.ts
-function disposableFromCancellationToken(token) {
-  return new CancellationTokenDisposable(token);
-}
-var customDisposeGetter = Object.freeze(() => false);
-var CancellationTokenDisposable = class extends Disposiq {
-  constructor(token) {
-    super();
-    if (token == null) {
-      throw new Error("Invalid token");
-    }
-    this._token = token;
-    const isCancelledType = typeof token.isCancelled;
-    if (isCancelledType === "function") {
-      this._disposedGetter = () => token.isCancelled();
-    } else if (isCancelledType === "boolean") {
-      this._disposedGetter = () => token.isCancelled;
-    } else if (typeof token.onCancel === "function") {
-      let cancelled = false;
-      token.onCancel(() => {
-        cancelled = true;
-      });
-      this._disposedGetter = () => cancelled;
-    } else {
-      this._disposedGetter = customDisposeGetter;
-    }
-  }
-  get disposed() {
-    return this._disposedGetter();
-  }
-  /**
-   * Throw an exception if the object has been disposed.
-   * @param message the message to include in the exception
-   */
-  throwIfDisposed(message) {
-    if (this.disposed) {
-      throw new ObjectDisposedException(message);
-    }
-  }
-  dispose() {
-    if (this._disposedGetter === customDisposeGetter) {
-      this._disposedGetter = () => true;
-    }
-    this._token.cancel();
   }
 };
 
