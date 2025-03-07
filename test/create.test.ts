@@ -221,6 +221,7 @@ describe("create disposiq", () => {
     expect(func).toHaveBeenCalledTimes(1)
   })
   it("support custom disposiq-like object", () => {
+    // symbol func should not be called after dispose method, because it can break the internal object logic
     const func = jest.fn()
     const symbolFunc = jest.fn()
     const disposable = createDisposiq({
@@ -233,7 +234,7 @@ describe("create disposiq", () => {
     disposable.dispose()
     disposable[Symbol.dispose]()
     expect(func).toHaveBeenCalledTimes(1)
-    expect(symbolFunc).toHaveBeenCalledTimes(1)
+    expect(symbolFunc).toHaveBeenCalledTimes(0)
   })
   it("should wrap dispose function", () => {
     const func = jest.fn()
@@ -248,5 +249,15 @@ describe("create disposiq", () => {
   it("should return empty disposable on bad object", () => {
     const disposable = createDisposiq({} as IDisposable)
     expect(disposable).toBe(emptyDisposable)
+  })
+  it("should create disposable from cancel object", () => {
+    const func = jest.fn()
+    const disposable = createDisposiq({
+      cancel: func,
+    })
+    expect(disposable).toBeInstanceOf(Disposiq)
+    expect(func).toHaveBeenCalledTimes(0)
+    disposable.dispose()
+    expect(func).toHaveBeenCalledTimes(1)
   })
 })
