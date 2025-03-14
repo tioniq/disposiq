@@ -21,6 +21,27 @@ export function justDispose(disposable: DisposableLike | null | undefined) {
   }
 }
 
+
+/**
+ * Dispose a disposable object or call a dispose function
+ * @param disposable a disposable object or a dispose function. Can be null or undefined - no-op
+ * @param onError a callback to handle errors
+ */
+export function justDisposeSafe(disposable: DisposableLike | null | undefined, onError?: (error: unknown) => void) {
+  if (!disposable) {
+    return
+  }
+  try {
+    if (typeof disposable === "function") {
+      disposable()
+    } else {
+      disposable.dispose()
+    }
+  } catch (e) {
+    onError?.(e)
+  }
+}
+
 /**
  * Dispose an async disposable object or call an async dispose function
  * @param disposable an async disposable object or an async dispose function. Can be null or undefined - no-op

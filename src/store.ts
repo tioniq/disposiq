@@ -9,7 +9,7 @@ import {
   disposeAllSafely,
   disposeAllUnsafe,
   justDispose,
-  justDisposeAll,
+  justDisposeAll, justDisposeSafe,
 } from "./dispose-batch"
 import { disposeAllSafe } from "./aliases"
 
@@ -20,8 +20,7 @@ import { disposeAllSafe } from "./aliases"
  */
 export class DisposableStore
   extends Disposiq
-  implements IDisposablesContainer, DisposableAwareCompat
-{
+  implements IDisposablesContainer, DisposableAwareCompat {
   /**
    * @internal
    */
@@ -58,7 +57,7 @@ export class DisposableStore
       | (DisposableLike | null | undefined)[]
       | null
       | undefined
-    )[]
+      )[]
   ): void {
     if (!disposables || disposables.length === 0) {
       return
@@ -115,6 +114,33 @@ export class DisposableStore
       return
     }
     this._disposables.push(disposable)
+  }
+
+  /**
+   * Adds a disposable resource safely to the internal disposables collection.
+   * If the containing object is already disposed, the given disposable resource
+   * will be disposed immediately.
+   * Safely means that the method will not throw an exception if an error occurs
+   * during disposal of the resource.
+   * You CAN NOT remove the disposable from the store after adding it with this method.
+   *
+   * @param {DisposableLike | null | undefined} disposable - The disposable resource to be added.
+   *   If null or undefined, the method does nothing.
+   * @param {(error: unknown) => void} [onError] - An optional callback that is invoked when an
+   *   error occurs during disposal of the resource.
+   * @return {void}
+   */
+  addOneSafe(disposable: DisposableLike | null | undefined, onError?: (error: unknown) => void): void {
+    if (!disposable) {
+      return
+    }
+    if (this._disposed) {
+      justDisposeSafe(disposable, onError)
+      return
+    }
+    this._disposables.push(() => {
+      justDisposeSafe(disposable, onError)
+    })
   }
 
   /**
