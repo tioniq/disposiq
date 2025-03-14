@@ -258,6 +258,20 @@ function justDispose(disposable) {
     disposable.dispose();
   }
 }
+function justDisposeSafe(disposable, onError) {
+  if (!disposable) {
+    return;
+  }
+  try {
+    if (typeof disposable === "function") {
+      disposable();
+    } else {
+      disposable.dispose();
+    }
+  } catch (e) {
+    onError == null ? void 0 : onError(e);
+  }
+}
 function justDisposeAsync(disposable) {
   return __async(this, null, function* () {
     if (!disposable) {
@@ -521,6 +535,32 @@ var DisposableStore = class _DisposableStore extends Disposiq {
       return;
     }
     this._disposables.push(disposable);
+  }
+  /**
+   * Adds a disposable resource safely to the internal disposables collection.
+   * If the containing object is already disposed, the given disposable resource
+   * will be disposed immediately.
+   * Safely means that the method will not throw an exception if an error occurs
+   * during disposal of the resource.
+   * You CAN NOT remove the disposable from the store after adding it with this method.
+   *
+   * @param {DisposableLike | null | undefined} disposable - The disposable resource to be added.
+   *   If null or undefined, the method does nothing.
+   * @param {(error: unknown) => void} [onError] - An optional callback that is invoked when an
+   *   error occurs during disposal of the resource.
+   * @return {void}
+   */
+  addOneSafe(disposable, onError) {
+    if (!disposable) {
+      return;
+    }
+    if (this._disposed) {
+      justDisposeSafe(disposable, onError);
+      return;
+    }
+    this._disposables.push(() => {
+      justDisposeSafe(disposable, onError);
+    });
   }
   /**
    * Remove a disposable from the store. If the disposable is found and removed, it will NOT be disposed
@@ -1431,6 +1471,7 @@ export {
   justDisposeAll,
   justDisposeAllAsync,
   justDisposeAsync,
+  justDisposeSafe,
   disposableFromEvent as on,
   disposableFromEventOnce as once,
   safeDisposableExceptionHandlerManager,

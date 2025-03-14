@@ -305,6 +305,21 @@ declare class DisposableStore extends Disposiq implements IDisposablesContainer,
      */
     addOne(disposable: DisposableLike | null | undefined): void;
     /**
+     * Adds a disposable resource safely to the internal disposables collection.
+     * If the containing object is already disposed, the given disposable resource
+     * will be disposed immediately.
+     * Safely means that the method will not throw an exception if an error occurs
+     * during disposal of the resource.
+     * You CAN NOT remove the disposable from the store after adding it with this method.
+     *
+     * @param {DisposableLike | null | undefined} disposable - The disposable resource to be added.
+     *   If null or undefined, the method does nothing.
+     * @param {(error: unknown) => void} [onError] - An optional callback that is invoked when an
+     *   error occurs during disposal of the resource.
+     * @return {void}
+     */
+    addOneSafe(disposable: DisposableLike | null | undefined, onError?: (error: unknown) => void): void;
+    /**
      * Remove a disposable from the store. If the disposable is found and removed, it will NOT be disposed
      * @param disposable a disposable to remove
      * @returns true if the disposable was found and removed
@@ -421,6 +436,12 @@ declare class BoolDisposable extends Disposiq implements DisposableAwareCompat {
  * @param disposable a disposable object or a dispose function. Can be null or undefined - no-op
  */
 declare function justDispose(disposable: DisposableLike | null | undefined): void;
+/**
+ * Dispose a disposable object or call a dispose function
+ * @param disposable a disposable object or a dispose function. Can be null or undefined - no-op
+ * @param onError a callback to handle errors
+ */
+declare function justDisposeSafe(disposable: DisposableLike | null | undefined, onError?: (error: unknown) => void): void;
 /**
  * Dispose an async disposable object or call an async dispose function
  * @param disposable an async disposable object or an async dispose function. Can be null or undefined - no-op
@@ -818,4 +839,4 @@ declare class WeakRefDisposable<T extends IDisposable | IAsyncDisposable | Abort
     dispose(): void;
 }
 
-export { AbortDisposable, AsyncDisposableAction, type AsyncDisposableAware, type AsyncDisposableAwareCompat, type AsyncDisposableCompat, type AsyncDisposableLike, AsyncDisposableStore, type AsyncDisposeFunc, AsyncDisposiq, AsyncDisposiq as BaseAsyncDisposable, Disposiq as BaseDisposable, BoolDisposable, BoolDisposable as BooleanDisposable, type CanBeDisposable, CancellationTokenDisposable, type CancellationTokenLike, AsyncDisposableStore as CompositeAsyncDisposable, DisposableStore as CompositeDisposable, Disposable$1 as Disposable, DisposableAction, type DisposableAware, type DisposableAwareCompat, type DisposableCompat, DisposableContainer, DisposableMapStore as DisposableDictionary, type DisposableLike, DisposableMapStore, DisposableStore, type DisposeFunc, Disposiq, type IAsyncDisposable, type IDisposable, type IDisposablesContainer, ObjectDisposedException, SafeActionDisposable, SafeAsyncActionDisposable, DisposableContainer as SerialDisposable, WeakRefDisposable, addEventListener, disposableFromCancellationToken as createCancellationTokenDisposable, createDisposable, createDisposableCompat, createDisposiq, disposableFromCancellationToken, disposableFromEvent, disposableFromEventOnce, disposeAll, disposeAllAsync, disposeAll as disposeAllSafe, disposeAllSafely, disposeAllSafelyAsync, disposeAllUnsafe, disposeAllUnsafeAsync, emptyDisposable, isAsyncDisposableCompat, isDisposable, isDisposableCompat, isDisposableLike, isSystemAsyncDisposable, isSystemDisposable, justDispose, justDisposeAll, justDisposeAllAsync, justDisposeAsync, disposableFromEvent as on, disposableFromEventOnce as once, safeDisposableExceptionHandlerManager, createDisposable as toDisposable, createDisposableCompat as toDisposableCompat, createDisposiq as toDisposiq, using };
+export { AbortDisposable, AsyncDisposableAction, type AsyncDisposableAware, type AsyncDisposableAwareCompat, type AsyncDisposableCompat, type AsyncDisposableLike, AsyncDisposableStore, type AsyncDisposeFunc, AsyncDisposiq, AsyncDisposiq as BaseAsyncDisposable, Disposiq as BaseDisposable, BoolDisposable, BoolDisposable as BooleanDisposable, type CanBeDisposable, CancellationTokenDisposable, type CancellationTokenLike, AsyncDisposableStore as CompositeAsyncDisposable, DisposableStore as CompositeDisposable, Disposable$1 as Disposable, DisposableAction, type DisposableAware, type DisposableAwareCompat, type DisposableCompat, DisposableContainer, DisposableMapStore as DisposableDictionary, type DisposableLike, DisposableMapStore, DisposableStore, type DisposeFunc, Disposiq, type IAsyncDisposable, type IDisposable, type IDisposablesContainer, ObjectDisposedException, SafeActionDisposable, SafeAsyncActionDisposable, DisposableContainer as SerialDisposable, WeakRefDisposable, addEventListener, disposableFromCancellationToken as createCancellationTokenDisposable, createDisposable, createDisposableCompat, createDisposiq, disposableFromCancellationToken, disposableFromEvent, disposableFromEventOnce, disposeAll, disposeAllAsync, disposeAll as disposeAllSafe, disposeAllSafely, disposeAllSafelyAsync, disposeAllUnsafe, disposeAllUnsafeAsync, emptyDisposable, isAsyncDisposableCompat, isDisposable, isDisposableCompat, isDisposableLike, isSystemAsyncDisposable, isSystemDisposable, justDispose, justDisposeAll, justDisposeAllAsync, justDisposeAsync, justDisposeSafe, disposableFromEvent as on, disposableFromEventOnce as once, safeDisposableExceptionHandlerManager, createDisposable as toDisposable, createDisposableCompat as toDisposableCompat, createDisposiq as toDisposiq, using };
