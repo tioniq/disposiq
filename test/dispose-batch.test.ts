@@ -8,6 +8,7 @@ import {
   disposeAllUnsafeAsync,
   justDispose,
   justDisposeAsync,
+  justDisposeSafe,
 } from "../src"
 import type { DisposableLike, IDisposable } from "../src"
 
@@ -173,7 +174,11 @@ describe("dispose-all-safe", () => {
 
 describe("dispose-other", () => {
   it("should not fail when just dispose null", () => {
-    justDispose(null as IDisposable)
+    justDispose(null)
+  })
+
+  it("should not fail when just dispose safe null", () => {
+    justDisposeSafe(null)
   })
 
   it("should not fail when just dispose async", async () => {
@@ -183,7 +188,7 @@ describe("dispose-other", () => {
   })
 
   it("should not fail when just dispose async null", async () => {
-    await justDisposeAsync(null as IDisposable)
+    await justDisposeAsync(null)
   })
 
   it("should not fail disposeAllAsync when disposables is empty", async () => {
@@ -256,7 +261,7 @@ describe("dispose-other", () => {
     const disposablesOfDisposables2: (
       | DisposableLike
       | AsyncDisposableLike
-    )[][] = []
+      )[][] = []
     const disposableFunc2 = jest.fn()
     const iCount2 = 200
     for (let i = 0; i < iCount2; i++) {

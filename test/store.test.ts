@@ -124,6 +124,62 @@ describe("store", () => {
     disposable.dispose()
     disposable.addOne(undefined as IDisposable)
   })
+  it("should not fail while using addOneSafe", () => {
+    const disposable = new DisposableStore()
+    const disposable1 = {
+      dispose: () => {
+        throw new Error("Test1")
+      }
+    }
+    disposable.addOneSafe(disposable1)
+    disposable.dispose()
+  })
+  it("should not fail while using addOneSafe with error callback", () => {
+    const disposable = new DisposableStore()
+    const error = new Error("TestAddOneSafe")
+    const disposable1 = {
+      dispose: () => {
+        throw error
+      }
+    }
+    const errorHandler = jest.fn()
+    disposable.addOneSafe(disposable1, errorHandler)
+    disposable.dispose()
+
+    expect(errorHandler).toHaveBeenCalledTimes(1)
+    expect(errorHandler).toHaveBeenCalledWith(error)
+  })
+  it("should not fail while using addOneSafe in disposed store", () => {
+    const disposable = new DisposableStore()
+    const error = new Error("TestAddOneSafe")
+    const disposable1 = {
+      dispose: () => {
+        throw error
+      }
+    }
+    const errorHandler = jest.fn()
+    disposable.dispose()
+    disposable.addOneSafe(disposable1, errorHandler)
+
+    expect(errorHandler).toHaveBeenCalledTimes(1)
+    expect(errorHandler).toHaveBeenCalledWith(error)
+  })
+  it("should not fail addOneSafe on null value", () => {
+    const disposable = new DisposableStore()
+    const errorHandler = jest.fn()
+    disposable.addOneSafe(null, errorHandler)
+    disposable.dispose()
+  })
+  it("should not fail addOneSafe on function value", () => {
+    const disposable = new DisposableStore()
+    const errorHandler = jest.fn()
+    const func = jest.fn()
+    disposable.addOneSafe(func, errorHandler)
+    disposable.dispose()
+
+    expect(func).toHaveBeenCalled()
+    expect(errorHandler).not.toHaveBeenCalled()
+  })
   it("should dispose only current disposables", () => {
     const disposable = new DisposableStore()
     const disposable1 = { dispose: jest.fn() }
