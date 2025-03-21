@@ -34,3 +34,18 @@ Disposiq.prototype.toPlainObject = function (this: Disposiq): IDisposable {
     }
   }
 }
+
+Disposiq.prototype.embedTo = function <T extends object>(this: Disposiq, obj: T): T & IDisposable {
+  if ("dispose" in obj && typeof obj.dispose === "function") {
+    const objDispose = obj.dispose
+    obj.dispose = () => {
+      objDispose.call(obj)
+      this.dispose()
+    }
+    return obj as T & IDisposable
+  }
+  (obj as T & IDisposable).dispose = () => {
+    this.dispose()
+  }
+  return obj as T & IDisposable
+}

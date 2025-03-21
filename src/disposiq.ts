@@ -54,4 +54,15 @@ export interface Disposiq {
    * Convert the object to a plain object with a dispose method.
    */
   toPlainObject(): IDisposable
+
+  /**
+   * Embeds the current object to extend its functionality by combining
+   * its properties and behaviors with the IDisposable type. This method
+   * modifies the current object to include the dispose method.
+   *
+   * @param {T} obj - The object to be embedded with the IDisposable type.
+   * @template T - The type of the current object.
+   * @return {T & IDisposable} - The `obj` object with the dispose method added.
+   */
+  embedTo<T extends object>(obj: T): T & IDisposable
 }

@@ -87,3 +87,39 @@ describe('toPlainObject extension', () => {
     expect(disposable.disposed).toBe(true)
   })
 })
+
+describe("embedTo extension", () => {
+  it("should embed to a plain object", () => {
+    const action = jest.fn()
+    const disposable = new DisposableAction(action)
+    const obj = {}
+
+    const embeddedObj = disposable.embedTo(obj)
+
+    expect(embeddedObj).toBe(obj)
+    expect(typeof embeddedObj.dispose).toBe("function")
+
+    embeddedObj.dispose()
+
+    expect(disposable.disposed).toBe(true)
+  })
+
+  it("should embed to an object with dispose method", () => {
+    const originalDispose = jest.fn()
+    const action = jest.fn()
+    const disposable = new DisposableAction(action)
+    const obj = {
+      dispose: originalDispose
+    }
+
+    const embeddedObj = disposable.embedTo(obj)
+
+    expect(embeddedObj).toBe(obj)
+    expect(typeof embeddedObj.dispose).toBe("function")
+
+    embeddedObj.dispose()
+
+    expect(disposable.disposed).toBe(true)
+    expect(originalDispose).toHaveBeenCalled()
+  })
+})
