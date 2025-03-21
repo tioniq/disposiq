@@ -1235,6 +1235,20 @@ Disposiq.prototype.toPlainObject = function() {
     }
   };
 };
+Disposiq.prototype.embedTo = function(obj) {
+  if ("dispose" in obj && typeof obj.dispose === "function") {
+    const objDispose = obj.dispose;
+    obj.dispose = () => {
+      objDispose.call(obj);
+      this.dispose();
+    };
+    return obj;
+  }
+  obj.dispose = () => {
+    this.dispose();
+  };
+  return obj;
+};
 
 // src/is.ts
 function isDisposable(value) {

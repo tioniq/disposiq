@@ -1,6 +1,6 @@
 {
   "name": "@tioniq/disposiq",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Disposiq is a utility collection of Dispose pattern",
   "private": false,
   "author": {
