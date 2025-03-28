@@ -1,4 +1,4 @@
-import { Disposiq } from "./disposiq"
+import { AsyncDisposiq, Disposiq } from "./disposiq"
 import type { IDisposable, IDisposablesContainer } from "./declarations"
 import { Disposable } from "./disposable"
 
@@ -48,4 +48,34 @@ Disposiq.prototype.embedTo = function <T extends object>(this: Disposiq, obj: T)
     this.dispose()
   }
   return obj as T & IDisposable
+}
+
+Disposiq.prototype.toSafe = function (this: Disposiq, errorCallback?: (e: unknown) => void): Disposiq {
+  const self = this
+  return new class extends Disposiq {
+    dispose(): void {
+      try {
+        self.dispose()
+      } catch (e) {
+        if (errorCallback) {
+          errorCallback(e)
+        }
+      }
+    }
+  }
+}
+
+AsyncDisposiq.prototype.toSafe = function (this: AsyncDisposiq, errorCallback?: (e: unknown) => void): AsyncDisposiq {
+  const self = this
+  return new class extends AsyncDisposiq {
+    async dispose(): Promise<void> {
+      try {
+        await self.dispose()
+      } catch (e) {
+        if (errorCallback) {
+          errorCallback(e)
+        }
+      }
+    }
+  }
 }

@@ -1,4 +1,4 @@
-import { Disposable, DisposableAction, DisposableStore } from "../src"
+import { AsyncDisposableAction, Disposable, DisposableAction, DisposableStore } from "../src"
 
 describe("disposeWith extension", () => {
   it("should disposeWith add a disposable to a store", () => {
@@ -121,5 +121,68 @@ describe("embedTo extension", () => {
 
     expect(disposable.disposed).toBe(true)
     expect(originalDispose).toHaveBeenCalled()
+  })
+})
+
+describe("toSafe extension", () => {
+  it("should return a safe disposable", () => {
+    const action = jest.fn()
+    const errorCallback = jest.fn()
+    const disposable = new DisposableAction(action)
+    const safeDisposable = disposable.toSafe(errorCallback)
+
+    expect(safeDisposable).not.toBe(disposable)
+    expect(typeof safeDisposable.dispose).toBe("function")
+
+    const result = safeDisposable.dispose()
+
+    expect(result).toBeUndefined()
+    expect(disposable.disposed).toBe(true)
+  })
+
+  it("should call error callback on error", () => {
+    const action = jest.fn(() => {
+      throw new Error("test error")
+    })
+    const errorCallback = jest.fn()
+    const disposable = new DisposableAction(action)
+    const safeDisposable = disposable.toSafe(errorCallback)
+
+    safeDisposable.dispose()
+
+    expect(errorCallback).toHaveBeenCalled()
+  })
+})
+
+describe("toSafeAsync extension", () => {
+  it("should return a safe async disposable", async () => {
+    const action = jest.fn()
+    const errorCallback = jest.fn()
+    const disposable = new AsyncDisposableAction(action)
+    const safeDisposable = disposable.toSafe(errorCallback)
+
+    expect(safeDisposable).not.toBe(disposable)
+    expect(typeof safeDisposable.dispose).toBe("function")
+
+    const result = safeDisposable.dispose()
+
+    expect(result).toBeInstanceOf(Promise)
+
+    await result
+
+    expect(disposable.disposed).toBe(true)
+  })
+
+  it("should call error callback on error", async () => {
+    const action = jest.fn(() => {
+      throw new Error("test error")
+    })
+    const errorCallback = jest.fn()
+    const disposable = new AsyncDisposableAction(action)
+    const safeDisposable = disposable.toSafe(errorCallback)
+
+    await safeDisposable.dispose()
+
+    expect(errorCallback).toHaveBeenCalled()
   })
 })

@@ -22,6 +22,10 @@ export abstract class Disposiq implements DisposableCompat {
  * AsyncDisposiq is a base class for disposables that can be disposed asynchronously.
  */
 export abstract class AsyncDisposiq extends Disposiq {
+  /**
+   * Dispose the object in async way. Should return the Promise. If the object has already been disposed, this should
+   * be a no-op
+   */
   abstract dispose(): Promise<void>
 
   /**
@@ -65,4 +69,27 @@ export interface Disposiq {
    * @return {T & IDisposable} - The `obj` object with the dispose method added.
    */
   embedTo<T extends object>(obj: T): T & IDisposable
+
+  /**
+   * Converts the object to a safe disposable object that catches errors during disposal.
+   * Optionally, an error callback can be supplied to handle any errors that occur.
+   *
+   * @param [errorCallback] An optional callback function that handles errors. The function receives the error
+   * as its parameter.
+   * @return {Disposiq} A safe version of the current instance ensuring error resilience.
+   */
+  toSafe(errorCallback?: (e: unknown) => void): Disposiq
+}
+
+
+export interface AsyncDisposiq {
+  /**
+   * Converts the current instance to a safe version, suppressing potential errors during execution.
+   * Optionally, an error callback can be supplied to handle any errors that occur.
+   *
+   * @param [errorCallback] An optional callback function that handles errors. The function receives the error
+   * as its parameter.
+   * @return {AsyncDisposiq} A safe version of the current instance ensuring error resilience.
+   */
+  toSafe(errorCallback?: (e: unknown) => void): AsyncDisposiq
 }
