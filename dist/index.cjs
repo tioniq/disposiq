@@ -1330,6 +1330,36 @@ Disposiq.prototype.embedTo = function(obj) {
   };
   return obj;
 };
+Disposiq.prototype.toSafe = function(errorCallback) {
+  const self = this;
+  return new class extends Disposiq {
+    dispose() {
+      try {
+        self.dispose();
+      } catch (e) {
+        if (errorCallback) {
+          errorCallback(e);
+        }
+      }
+    }
+  }();
+};
+AsyncDisposiq.prototype.toSafe = function(errorCallback) {
+  const self = this;
+  return new class extends AsyncDisposiq {
+    dispose() {
+      return __async(this, null, function* () {
+        try {
+          yield self.dispose();
+        } catch (e) {
+          if (errorCallback) {
+            errorCallback(e);
+          }
+        }
+      });
+    }
+  }();
+};
 
 // src/is.ts
 function isDisposable(value) {
