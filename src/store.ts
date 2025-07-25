@@ -24,17 +24,12 @@ export class DisposableStore
   /**
    * @internal
    */
-  private readonly _disposables: DisposableLike[]
+  private readonly _disposables: DisposableLike[] = []
 
   /**
    * @internal
    */
   private _disposed = false
-
-  constructor() {
-    super()
-    this._disposables = new Array<DisposableLike>()
-  }
 
   /**
    * Returns true if the object has been disposed.

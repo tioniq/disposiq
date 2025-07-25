@@ -1,10 +1,4 @@
-import { AsyncDisposiq } from "./disposiq"
-import type {
-  AsyncDisposableAwareCompat,
-  AsyncDisposableLike,
-  DisposableLike,
-} from "./declarations"
-import { ObjectDisposedException } from "./exception"
+import type { AsyncDisposableAwareCompat, AsyncDisposableLike, DisposableLike, } from "./declarations"
 import {
   disposeAllAsync,
   disposeAllSafelyAsync,
@@ -12,6 +6,8 @@ import {
   justDisposeAllAsync,
   justDisposeAsync,
 } from "./dispose-batch"
+import { AsyncDisposiq } from "./disposiq"
+import { ObjectDisposedException } from "./exception"
 
 /**
  * AsyncDisposableStore is a container for async disposables. It will dispose all added disposables when it is disposed.
@@ -20,8 +16,7 @@ import {
  */
 export class AsyncDisposableStore
   extends AsyncDisposiq
-  implements AsyncDisposableAwareCompat
-{
+  implements AsyncDisposableAwareCompat {
   /**
    * @internal
    */
@@ -59,7 +54,7 @@ export class AsyncDisposableStore
       | null
       | undefined
       | (AsyncDisposableLike | DisposableLike | null | undefined)[]
-    )[]
+      )[]
   ): void | Promise<void> {
     if (!disposables || disposables.length === 0) {
       return
@@ -68,10 +63,10 @@ export class AsyncDisposableStore
     const value = Array.isArray(first)
       ? (first as (AsyncDisposableLike | DisposableLike | null | undefined)[])
       : (disposables as (
-          | AsyncDisposableLike
-          | DisposableLike
-          | null
-          | undefined
+        | AsyncDisposableLike
+        | DisposableLike
+        | null
+        | undefined
         )[])
     if (this._disposed) {
       return justDisposeAllAsync(value)

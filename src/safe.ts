@@ -1,10 +1,7 @@
-import type {
-  AsyncDisposableAwareCompat,
-  DisposableAwareCompat,
-} from "./declarations"
+import type { AsyncDisposableAwareCompat, DisposableAwareCompat, } from "./declarations"
+import { AsyncDisposiq, Disposiq } from "./disposiq"
 import { ExceptionHandlerManager } from "./utils/exception-handler-manager"
 import { noop, noopAsync } from "./utils/noop"
-import { AsyncDisposiq, Disposiq } from "./disposiq"
 
 /**
  * A variable that manages exception handling for safe disposable objects.
@@ -23,8 +20,7 @@ export const safeDisposableExceptionHandlerManager: ExceptionHandlerManager =
  */
 export class SafeActionDisposable
   extends Disposiq
-  implements DisposableAwareCompat
-{
+  implements DisposableAwareCompat {
   /**
    * @internal
    */
@@ -65,8 +61,7 @@ export class SafeActionDisposable
  */
 export class SafeAsyncActionDisposable
   extends AsyncDisposiq
-  implements AsyncDisposableAwareCompat
-{
+  implements AsyncDisposableAwareCompat {
   /**
    * @internal
    */

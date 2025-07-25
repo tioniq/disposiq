@@ -210,21 +210,21 @@ This library is inspired by the
 
 ### Classes
 
-| Class                       | Short Description                                                         | Aliases                    |
-|-----------------------------|---------------------------------------------------------------------------|----------------------------|
-| `Disposiq`                  | Base class for all library disposables                                    | - `BaseDisposable`         |
-| `AsyncDisposiq`             | Base class for all library asynchronous disposables                       | - `BaseAsyncDisposable`    |
-| `DisposableAction`          | A container for a function to be called on dispose                        | -                          |
-| `AsyncDisposableAction`     | A container for an asynchronous function to be called on dispose          | -                          |
-| `DisposableStore`           | A container for disposables                                               | `CompositeDisposable`      |
-| `AsyncDisposableStore`      | A container for async disposables                                         | `CompositeAsyncDisposable` |
-| `DisposableMapStore`        | A container for disposables stored by a key                               | `DisposableDictionary`     |
-| `DisposableContainer`       | A container for a disposable object                                       | `SerialDisposable`         |
-| `BoolDisposable`            | A object that aware of its disposed state                                 | `BooleanDisposable`        |
-| `SafeActionDisposable`      | A container for a function that is safely called on dispose               | -                          |
-| `SafeAsyncActionDisposable` | A container for an asynchronous function that is safely called on dispose | -                          |
-| `AbortDisposable`           | A wrapper for AbortController to make it disposable                       | -                          |
-| `ObjectDisposedException`   | An exception thrown when an object is already disposed                    | -                          |
+| Class                       | Short Description                                                         | Aliases                     |
+|-----------------------------|---------------------------------------------------------------------------|-----------------------------|
+| `Disposiq`                  | Base class for all library disposables                                    | - `BaseDisposable`          |
+| `AsyncDisposiq`             | Base class for all library asynchronous disposables                       | - `BaseAsyncDisposable`     |
+| `DisposableAction`          | A container for a function to be called on dispose                        | -                           |
+| `AsyncDisposableAction`     | A container for an asynchronous function to be called on dispose          | -                           |
+| `DisposableStore`           | A container for disposables                                               | `CompositeDisposable`       |
+| `AsyncDisposableStore`      | A container for async disposables                                         | `CompositeAsyncDisposable`  |
+| `DisposableMapStore`        | A container for disposables stored by a key                               | `DisposableDictionary`      |
+| `DisposableContainer`       | A container for a disposable object                                       | `SerialDisposable`          |
+| `BoolDisposable`            | A object that aware of its disposed state                                 | `BooleanDisposable`         |
+| `SafeActionDisposable`      | A container for a function that is safely called on dispose               | `ActionSafeDisposable`      |
+| `SafeAsyncActionDisposable` | A container for an asynchronous function that is safely called on dispose | `AsyncActionSafeDisposable` |
+| `AbortDisposable`           | A wrapper for AbortController to make it disposable                       | -                           |
+| `ObjectDisposedException`   | An exception thrown when an object is already disposed                    | -                           |
 
 ### Functions
 
