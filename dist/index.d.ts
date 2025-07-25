@@ -315,12 +315,311 @@ declare class AsyncDisposableAction extends AsyncDisposiq implements AsyncDispos
 }
 
 /**
+ * Class of a disposable that can be checked for disposal status.
+ */
+declare class BoolDisposable extends Disposiq implements DisposableAwareCompat {
+    constructor(disposed?: boolean);
+    /**
+     * Returns true if the disposable is disposed
+     */
+    get disposed(): boolean;
+    dispose(): void;
+}
+
+/**
+ * Converts a cancellation token into a disposable object that can be used
+ * to manage and respond to cancellation requests.
+ *
+ * @param {CancellationTokenLike} token - The cancellation token to be wrapped
+ * into a disposable instance.
+ * @return {Disposiq & DisposableAware} A disposable object that represents
+ * the behavior associated with the provided cancellation token.
+ */
+declare function disposableFromCancellationToken(token: CancellationTokenLike): Disposiq & DisposableAware;
+/**
+ * Represents a disposable object that manages cancellation token.
+ * This class provides an abstraction for working with cancellation tokens
+ * and exposes a mechanism to track if it has been disposed.
+ * Implements the DisposableAware interface.
+ */
+declare class CancellationTokenDisposable extends Disposiq implements DisposableAwareCompat {
+    constructor(token: CancellationTokenLike);
+    get disposed(): boolean;
+    /**
+     * Throw an exception if the object has been disposed.
+     * @param message the message to include in the exception
+     */
+    throwIfDisposed(message?: string): void;
+    dispose(): void;
+}
+
+/**
+ * A container for a disposable object. It can be replaced with another disposable object.
+ * When disposed, it will dispose the current disposable object and all future disposable objects
+ * @example
+ * const container = new DisposableContainer()
+ * container.set(createDisposable(() => console.log("disposed")))
+ * container.dispose() // disposed
+ * container.set(createDisposable(() => console.log("disposed again"))) // disposed again
+ */
+declare class DisposableContainer extends Disposiq implements DisposableAwareCompat {
+    constructor(disposable?: CanBeDisposable | null | undefined);
+    /**
+     * Returns true if the container is disposed
+     */
+    get disposed(): boolean;
+    /**
+     * Returns the current disposable object
+     */
+    get disposable(): IDisposable | undefined;
+    /**
+     * Set the new disposable and dispose the old one
+     * @param disposable a new disposable to set
+     */
+    set(disposable: CanBeDisposable | null | undefined): void;
+    /**
+     * Replace the disposable with a new one. Does not dispose the old one
+     * @param disposable a new disposable to replace the old one
+     */
+    replace(disposable: CanBeDisposable | null | undefined): void;
+    /**
+     * Dispose only the current disposable object without affecting the container's state.
+     */
+    disposeCurrent(): void;
+    dispose(): void;
+}
+
+/**
+ * Create a disposable from a disposable like object. The object can be a function, an object with a dispose method,
+ * an AbortController, or an object with an internal Symbol.dispose/Symbol.asyncDispose method.
+ * @param disposableLike a disposable like object
+ * @returns a disposable object. If the input is already a disposable object, it will be returned as is.
+ * If the input is a function, it will be wrapped in a DisposableAction object.
+ * If the input has internal Symbol.dispose/Symbol.asyncDispose method, it will be wrapped in a DisposableAction object.
+ * If the input is an AbortController, it will be wrapped in an AbortDisposable object.
+ * If the input is invalid, an empty disposable object will be returned.
+ */
+declare function createDisposable(disposableLike: CanBeDisposable | null | undefined): IDisposable;
+/**
+ * Create a system-compatible disposable from a disposable like object. The object can be a function, an object with a dispose method,
+ * an AbortController, or an object with an internal Symbol.dispose/Symbol.asyncDispose method. This function is used to create
+ * a disposable object that is compatible with the system's internal disposable object
+ * @param disposableLike a disposable like object
+ * @returns a disposable object. If the input is already a disposable object with Symbol.dispose/Symbol.asyncDispose, it will be returned as is.
+ * If the input is a function, it will be wrapped in a DisposableAction object.
+ * If the input has internal Symbol.dispose/Symbol.asyncDispose method, it will be wrapped in a DisposableAction object.
+ * If the input is an AbortController, it will be wrapped in an AbortDisposable object.
+ * If the input is invalid, an empty disposable object will be returned.
+ */
+declare function createDisposableCompat(disposableLike: CanBeDisposable | null | undefined): DisposableCompat;
+/**
+ * Create a Disposiq-inherited object from a disposable like object. The object can be a function, an object with a
+ * dispose method, an AbortController, or an object with an internal Symbol.dispose/Symbol.asyncDispose method. This
+ * function is used to create a Disposiq instance that is compatible with all extensions of Disposiq
+ * @param disposableLike a disposable like object
+ * @returns a Disposiq object. If the input is already a Disposiq object, it will be returned as is.
+ */
+declare function createDisposiq(disposableLike: CanBeDisposable | null | undefined): Disposiq;
+
+/**
+ * Dispose a disposable object or call a dispose function
+ * @param disposable a disposable object or a dispose function. Can be null or undefined - no-op
+ */
+declare function justDispose(disposable: DisposableLike | null | undefined): void;
+/**
+ * Dispose a disposable object or call a dispose function
+ * @param disposable a disposable object or a dispose function. Can be null or undefined - no-op
+ * @param onError a callback to handle errors
+ */
+declare function justDisposeSafe(disposable: DisposableLike | null | undefined, onError?: (error: unknown) => void): void;
+/**
+ * Dispose an async disposable object or call an async dispose function
+ * @param disposable an async disposable object or an async dispose function. Can be null or undefined - no-op
+ * @returns a promise that resolves when the disposal is complete
+ */
+declare function justDisposeAsync(disposable: DisposableLike | AsyncDisposableLike | null | undefined): Promise<void>;
+/**
+ * Dispose all disposables in the array. Will check each item for null or undefined
+ * @param disposables an array of disposables
+ */
+declare function justDisposeAll(disposables: (DisposableLike | null | undefined)[]): void;
+/**
+ * Dispose all async disposables in the array. Will check each item for null or undefined
+ * @param disposables an array of disposables
+ * @returns a promise that resolves when all disposals are complete
+ */
+declare function justDisposeAllAsync(disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[]): Promise<void>;
+/**
+ * Dispose all disposables in the array safely. During the disposal process, the array is safe to modify
+ * @param disposables an array of disposables
+ */
+declare function disposeAll(disposables: (DisposableLike | null | undefined)[]): void;
+/**
+ * Dispose all async disposables in the array safely. During the disposal process, the array is safe to modify
+ * @param disposables an array of disposables
+ */
+declare function disposeAllAsync(disposables: (DisposableLike | AsyncDisposableLike | null | undefined)[]): Promise<void>;
+/**
+ * Dispose all disposables in the array unsafely. During the disposal process, the array is not safe to modify
+ * @param disposables an array of disposables
+ */
+declare function disposeAllUnsafe(disposables: (DisposableLike | null | undefined)[]): void;
+/**
+ * Dispose all async disposables in the array unsafely. During the disposal process, the array is not safe to modify
+ * @param disposables an array of disposables
+ */
+declare function disposeAllUnsafeAsync(disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[]): Promise<void>;
+/**
+ * Dispose all disposables in the array unsafely. During the disposal process, the array is not safe to modify
+ * @param disposables an array of disposables
+ * @param onErrorCallback a callback to handle errors
+ */
+declare function disposeAllSafely(disposables: (DisposableLike | null | undefined)[], onErrorCallback?: (error: unknown) => void): void;
+/**
+ * Dispose all disposables in the array unsafely. During the disposal process, the array is not safe to modify
+ * @param disposables an array of disposables
+ * @param onErrorCallback a callback to handle errors
+ */
+declare function disposeAllSafelyAsync(disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[], onErrorCallback?: (error: unknown) => void): Promise<void>;
+
+interface EventEmitterLike {
+    on<K extends string | symbol>(event: K, listener: (...args: unknown[]) => void): unknown;
+    off<K extends string | symbol>(event: K, listener: (...args: unknown[]) => void): unknown;
+    once?<K extends string | symbol>(event: K, listener: (...args: unknown[]) => void): unknown;
+}
+/**
+ * Create a disposable from an event emitter. The disposable will remove the listener from the emitter when disposed.
+ * @param emitter an event emitter
+ * @param event the event name
+ * @param listener the event listener
+ * @returns a disposable object
+ * @remarks All my trials to infer event name list and listener arguments failed. I had to use (string | symbol) for
+ * event name and any[] for listener args. I'm not sure if it's possible to infer them for now.
+ * If you can do it, please let me know and let's talk about it))
+ */
+declare function disposableFromEvent<K extends string | symbol>(emitter: EventEmitterLike, event: K, listener: (...args: unknown[]) => void): DisposableAwareCompat;
+/**
+ * Create a disposable from an event emitter. The disposable will remove the listener from the emitter when disposed.
+ * The listener will only be called once.
+ * @param emitter an event emitter
+ * @param event the event name
+ * @param listener the event listener
+ * @returns a disposable object
+ */
+declare function disposableFromEventOnce<K extends string | symbol>(emitter: EventEmitterLike, event: K, listener: (...args: unknown[]) => void): DisposableAwareCompat;
+
+/**
+ * A key-value store that stores disposable values. When the store is disposed, all the values will be disposed as well
+ */
+declare class DisposableMapStore<K> extends Disposiq implements DisposableAware {
+    /**
+     * Get the disposed state of the store
+     */
+    get disposed(): boolean;
+    /**
+     * Set a disposable value for the key. If the store contains a value for the key, the previous value will be disposed.
+     * If the store is disposed, the value will be disposed immediately
+     * @param key the key
+     * @param value the disposable value
+     */
+    set(key: K, value: CanBeDisposable): void;
+    /**
+     * Get the disposable value for the key
+     * @param key the key
+     * @returns the disposable value or undefined if the key is not found
+     */
+    get(key: K): IDisposable | undefined;
+    /**
+     * Delete the disposable value for the key
+     * @param key the key
+     * @returns true if the key was found and the value was deleted, false otherwise
+     */
+    delete(key: K): boolean;
+    /**
+     * Remove the disposable value for the key and return it. The disposable value will not be disposed
+     * @param key the key
+     * @returns the disposable value or undefined if the key is not found
+     */
+    extract(key: K): IDisposable | undefined;
+    dispose(): void;
+}
+
+type ExceptionHandler = (error: unknown) => void;
+/**
+ * Exception handler manager
+ */
+declare class ExceptionHandlerManager {
+    /**
+     * Create a new ExceptionHandlerManager with the default handler
+     * @param defaultHandler the default handler. If not provided, the default handler will be a no-op
+     */
+    constructor(defaultHandler?: ExceptionHandler | null);
+    /**
+     * Get the handler for the manager
+     */
+    get handler(): ExceptionHandler;
+    /**
+     * Set the handler for the manager
+     */
+    set handler(value: ExceptionHandler | undefined | null);
+    /**
+     * Reset the handler to the default handler
+     */
+    reset(): void;
+    /**
+     * Handle an exception
+     * @param error the exception to handle
+     */
+    handle(error: unknown): void;
+    /**
+     * Handle an exception safely
+     * @param error the exception to handle
+     */
+    handleSafe(error: Error): void;
+}
+
+/**
+ * A variable that manages exception handling for safe disposable objects.
+ *
+ * The `safeDisposableExceptionHandlerManager` is an instance of
+ * the `ExceptionHandlerManager` class. It is designed to handle the
+ * registration, management, and execution of exception handlers,
+ * ensuring robust error management in systems involving disposable
+ * resources.
+ */
+declare const safeDisposableExceptionHandlerManager: ExceptionHandlerManager;
+/**
+ * Represents a safe action that can be disposed. The action is invoked when the action is disposed.
+ */
+declare class SafeActionDisposable extends Disposiq implements DisposableAwareCompat {
+    constructor(action: () => void);
+    /**
+     * Returns true if the action has been disposed.
+     */
+    get disposed(): boolean;
+    dispose(): void;
+}
+/**
+ * Represents a safe async action that can be disposed. The action is invoked when the action is disposed.
+ */
+declare class SafeAsyncActionDisposable extends AsyncDisposiq implements AsyncDisposableAwareCompat {
+    constructor(action: () => Promise<void>);
+    /**
+     * Returns true if the action has been disposed.
+     */
+    get disposed(): boolean;
+    /**
+     * Dispose the action. If the action has already been disposed, this is a no-op.
+     */
+    dispose(): Promise<void>;
+}
+
+/**
  * DisposableStore is a container for disposables. It will dispose all added disposables when it is disposed.
  * The store has a disposeCurrent method that will dispose all disposables in the store without disposing the store itself.
  * The store can continue to be used after this method is called.
  */
 declare class DisposableStore extends Disposiq implements IDisposablesContainer, DisposableAwareCompat {
-    constructor();
     /**
      * Returns true if the object has been disposed.
      */
@@ -418,209 +717,6 @@ declare class DisposableStore extends Disposiq implements IDisposablesContainer,
 }
 
 /**
- * A container for a disposable object. It can be replaced with another disposable object.
- * When disposed, it will dispose the current disposable object and all future disposable objects
- * @example
- * const container = new DisposableContainer()
- * container.set(createDisposable(() => console.log("disposed")))
- * container.dispose() // disposed
- * container.set(createDisposable(() => console.log("disposed again"))) // disposed again
- */
-declare class DisposableContainer extends Disposiq implements DisposableAwareCompat {
-    constructor(disposable?: CanBeDisposable | null | undefined);
-    /**
-     * Returns true if the container is disposed
-     */
-    get disposed(): boolean;
-    /**
-     * Returns the current disposable object
-     */
-    get disposable(): IDisposable | undefined;
-    /**
-     * Set the new disposable and dispose the old one
-     * @param disposable a new disposable to set
-     */
-    set(disposable: CanBeDisposable | null | undefined): void;
-    /**
-     * Replace the disposable with a new one. Does not dispose the old one
-     * @param disposable a new disposable to replace the old one
-     */
-    replace(disposable: CanBeDisposable | null | undefined): void;
-    /**
-     * Dispose only the current disposable object without affecting the container's state.
-     */
-    disposeCurrent(): void;
-    dispose(): void;
-}
-
-/**
- * Class of a disposable that can be checked for disposal status.
- */
-declare class BoolDisposable extends Disposiq implements DisposableAwareCompat {
-    constructor(disposed?: boolean);
-    /**
-     * Returns true if the disposable is disposed
-     */
-    get disposed(): boolean;
-    dispose(): void;
-}
-
-/**
- * Dispose a disposable object or call a dispose function
- * @param disposable a disposable object or a dispose function. Can be null or undefined - no-op
- */
-declare function justDispose(disposable: DisposableLike | null | undefined): void;
-/**
- * Dispose a disposable object or call a dispose function
- * @param disposable a disposable object or a dispose function. Can be null or undefined - no-op
- * @param onError a callback to handle errors
- */
-declare function justDisposeSafe(disposable: DisposableLike | null | undefined, onError?: (error: unknown) => void): void;
-/**
- * Dispose an async disposable object or call an async dispose function
- * @param disposable an async disposable object or an async dispose function. Can be null or undefined - no-op
- * @returns a promise that resolves when the disposal is complete
- */
-declare function justDisposeAsync(disposable: DisposableLike | AsyncDisposableLike | null | undefined): Promise<void>;
-/**
- * Dispose all disposables in the array. Will check each item for null or undefined
- * @param disposables an array of disposables
- */
-declare function justDisposeAll(disposables: (DisposableLike | null | undefined)[]): void;
-/**
- * Dispose all async disposables in the array. Will check each item for null or undefined
- * @param disposables an array of disposables
- * @returns a promise that resolves when all disposals are complete
- */
-declare function justDisposeAllAsync(disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[]): Promise<void>;
-/**
- * Dispose all disposables in the array safely. During the disposal process, the array is safe to modify
- * @param disposables an array of disposables
- */
-declare function disposeAll(disposables: (DisposableLike | null | undefined)[]): void;
-/**
- * Dispose all async disposables in the array safely. During the disposal process, the array is safe to modify
- * @param disposables an array of disposables
- */
-declare function disposeAllAsync(disposables: (DisposableLike | AsyncDisposableLike | null | undefined)[]): Promise<void>;
-/**
- * Dispose all disposables in the array unsafely. During the disposal process, the array is not safe to modify
- * @param disposables an array of disposables
- */
-declare function disposeAllUnsafe(disposables: (DisposableLike | null | undefined)[]): void;
-/**
- * Dispose all async disposables in the array unsafely. During the disposal process, the array is not safe to modify
- * @param disposables an array of disposables
- */
-declare function disposeAllUnsafeAsync(disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[]): Promise<void>;
-/**
- * Dispose all disposables in the array unsafely. During the disposal process, the array is not safe to modify
- * @param disposables an array of disposables
- * @param onErrorCallback a callback to handle errors
- */
-declare function disposeAllSafely(disposables: (DisposableLike | null | undefined)[], onErrorCallback?: (error: unknown) => void): void;
-/**
- * Dispose all disposables in the array unsafely. During the disposal process, the array is not safe to modify
- * @param disposables an array of disposables
- * @param onErrorCallback a callback to handle errors
- */
-declare function disposeAllSafelyAsync(disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[], onErrorCallback?: (error: unknown) => void): Promise<void>;
-
-interface EventEmitterLike {
-    on<K extends string | symbol>(event: K, listener: (...args: unknown[]) => void): unknown;
-    off<K extends string | symbol>(event: K, listener: (...args: unknown[]) => void): unknown;
-    once?<K extends string | symbol>(event: K, listener: (...args: unknown[]) => void): unknown;
-}
-/**
- * Create a disposable from an event emitter. The disposable will remove the listener from the emitter when disposed.
- * @param emitter an event emitter
- * @param event the event name
- * @param listener the event listener
- * @returns a disposable object
- * @remarks All my trials to infer event name list and listener arguments failed. I had to use (string | symbol) for
- * event name and any[] for listener args. I'm not sure if it's possible to infer them for now.
- * If you can do it, please let me know and let's talk about it))
- */
-declare function disposableFromEvent<K extends string | symbol>(emitter: EventEmitterLike, event: K, listener: (...args: unknown[]) => void): DisposableAwareCompat;
-/**
- * Create a disposable from an event emitter. The disposable will remove the listener from the emitter when disposed.
- * The listener will only be called once.
- * @param emitter an event emitter
- * @param event the event name
- * @param listener the event listener
- * @returns a disposable object
- */
-declare function disposableFromEventOnce<K extends string | symbol>(emitter: EventEmitterLike, event: K, listener: (...args: unknown[]) => void): DisposableAwareCompat;
-
-/**
- * Create a disposable from a disposable like object. The object can be a function, an object with a dispose method,
- * an AbortController, or an object with an internal Symbol.dispose/Symbol.asyncDispose method.
- * @param disposableLike a disposable like object
- * @returns a disposable object. If the input is already a disposable object, it will be returned as is.
- * If the input is a function, it will be wrapped in a DisposableAction object.
- * If the input has internal Symbol.dispose/Symbol.asyncDispose method, it will be wrapped in a DisposableAction object.
- * If the input is an AbortController, it will be wrapped in an AbortDisposable object.
- * If the input is invalid, an empty disposable object will be returned.
- */
-declare function createDisposable(disposableLike: CanBeDisposable | null | undefined): IDisposable;
-/**
- * Create a system-compatible disposable from a disposable like object. The object can be a function, an object with a dispose method,
- * an AbortController, or an object with an internal Symbol.dispose/Symbol.asyncDispose method. This function is used to create
- * a disposable object that is compatible with the system's internal disposable object
- * @param disposableLike a disposable like object
- * @returns a disposable object. If the input is already a disposable object with Symbol.dispose/Symbol.asyncDispose, it will be returned as is.
- * If the input is a function, it will be wrapped in a DisposableAction object.
- * If the input has internal Symbol.dispose/Symbol.asyncDispose method, it will be wrapped in a DisposableAction object.
- * If the input is an AbortController, it will be wrapped in an AbortDisposable object.
- * If the input is invalid, an empty disposable object will be returned.
- */
-declare function createDisposableCompat(disposableLike: CanBeDisposable | null | undefined): DisposableCompat;
-/**
- * Create a Disposiq-inherited object from a disposable like object. The object can be a function, an object with a
- * dispose method, an AbortController, or an object with an internal Symbol.dispose/Symbol.asyncDispose method. This
- * function is used to create a Disposiq instance that is compatible with all extensions of Disposiq
- * @param disposableLike a disposable like object
- * @returns a Disposiq object. If the input is already a Disposiq object, it will be returned as is.
- */
-declare function createDisposiq(disposableLike: CanBeDisposable | null | undefined): Disposiq;
-
-/**
- * A key-value store that stores disposable values. When the store is disposed, all the values will be disposed as well
- */
-declare class DisposableMapStore<K> extends Disposiq implements DisposableAware {
-    /**
-     * Get the disposed state of the store
-     */
-    get disposed(): boolean;
-    /**
-     * Set a disposable value for the key. If the store contains a value for the key, the previous value will be disposed.
-     * If the store is disposed, the value will be disposed immediately
-     * @param key the key
-     * @param value the disposable value
-     */
-    set(key: K, value: CanBeDisposable): void;
-    /**
-     * Get the disposable value for the key
-     * @param key the key
-     * @returns the disposable value or undefined if the key is not found
-     */
-    get(key: K): IDisposable | undefined;
-    /**
-     * Delete the disposable value for the key
-     * @param key the key
-     * @returns true if the key was found and the value was deleted, false otherwise
-     */
-    delete(key: K): boolean;
-    /**
-     * Remove the disposable value for the key and return it. The disposable value will not be disposed
-     * @param key the key
-     * @returns the disposable value or undefined if the key is not found
-     */
-    extract(key: K): IDisposable | undefined;
-    dispose(): void;
-}
-
-/**
  * AsyncDisposableStore is a container for async disposables. It will dispose all added disposables when it is disposed.
  * The store has a disposeCurrent method that will dispose all disposables in the store without disposing the store itself.
  * The store can continue to be used after this method is called.
@@ -673,33 +769,6 @@ declare class AsyncDisposableStore extends AsyncDisposiq implements AsyncDisposa
      * @returns a disposable store containing the disposables
      */
     static from(disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[]): AsyncDisposableStore;
-}
-
-/**
- * Converts a cancellation token into a disposable object that can be used
- * to manage and respond to cancellation requests.
- *
- * @param {CancellationTokenLike} token - The cancellation token to be wrapped
- * into a disposable instance.
- * @return {Disposiq & DisposableAware} A disposable object that represents
- * the behavior associated with the provided cancellation token.
- */
-declare function disposableFromCancellationToken(token: CancellationTokenLike): Disposiq & DisposableAware;
-/**
- * Represents a disposable object that manages cancellation token.
- * This class provides an abstraction for working with cancellation tokens
- * and exposes a mechanism to track if it has been disposed.
- * Implements the DisposableAware interface.
- */
-declare class CancellationTokenDisposable extends Disposiq implements DisposableAwareCompat {
-    constructor(token: CancellationTokenLike);
-    get disposed(): boolean;
-    /**
-     * Throw an exception if the object has been disposed.
-     * @param message the message to include in the exception
-     */
-    throwIfDisposed(message?: string): void;
-    dispose(): void;
 }
 
 type EventListener<T extends Event = Event> = ((this: EventTarget, ev: T) => unknown) | {
@@ -766,76 +835,6 @@ declare function isSystemDisposable(value: unknown): value is Disposable;
  */
 declare function isSystemAsyncDisposable(value: unknown): value is AsyncDisposable;
 
-type ExceptionHandler = (error: unknown) => void;
-/**
- * Exception handler manager
- */
-declare class ExceptionHandlerManager {
-    /**
-     * Create a new ExceptionHandlerManager with the default handler
-     * @param defaultHandler the default handler. If not provided, the default handler will be a no-op
-     */
-    constructor(defaultHandler?: ExceptionHandler | null);
-    /**
-     * Get the handler for the manager
-     */
-    get handler(): ExceptionHandler;
-    /**
-     * Set the handler for the manager
-     */
-    set handler(value: ExceptionHandler | undefined | null);
-    /**
-     * Reset the handler to the default handler
-     */
-    reset(): void;
-    /**
-     * Handle an exception
-     * @param error the exception to handle
-     */
-    handle(error: unknown): void;
-    /**
-     * Handle an exception safely
-     * @param error the exception to handle
-     */
-    handleSafe(error: Error): void;
-}
-
-/**
- * A variable that manages exception handling for safe disposable objects.
- *
- * The `safeDisposableExceptionHandlerManager` is an instance of
- * the `ExceptionHandlerManager` class. It is designed to handle the
- * registration, management, and execution of exception handlers,
- * ensuring robust error management in systems involving disposable
- * resources.
- */
-declare const safeDisposableExceptionHandlerManager: ExceptionHandlerManager;
-/**
- * Represents a safe action that can be disposed. The action is invoked when the action is disposed.
- */
-declare class SafeActionDisposable extends Disposiq implements DisposableAwareCompat {
-    constructor(action: () => void);
-    /**
-     * Returns true if the action has been disposed.
-     */
-    get disposed(): boolean;
-    dispose(): void;
-}
-/**
- * Represents a safe async action that can be disposed. The action is invoked when the action is disposed.
- */
-declare class SafeAsyncActionDisposable extends AsyncDisposiq implements AsyncDisposableAwareCompat {
-    constructor(action: () => Promise<void>);
-    /**
-     * Returns true if the action has been disposed.
-     */
-    get disposed(): boolean;
-    /**
-     * Dispose the action. If the action has already been disposed, this is a no-op.
-     */
-    dispose(): Promise<void>;
-}
-
 /**
  * Executes a provided action function using a resource that implements the IDisposable interface.
  * Ensures that the resource is properly disposed of after the action completes or if an exception occurs.
@@ -873,4 +872,4 @@ declare class WeakRefDisposable<T extends IDisposable | IAsyncDisposable | Abort
     dispose(): void;
 }
 
-export { AbortDisposable, AsyncDisposableAction, type AsyncDisposableAware, type AsyncDisposableAwareCompat, type AsyncDisposableCompat, type AsyncDisposableLike, AsyncDisposableStore, type AsyncDisposeFunc, AsyncDisposiq, AsyncDisposiq as BaseAsyncDisposable, Disposiq as BaseDisposable, BoolDisposable, BoolDisposable as BooleanDisposable, type CanBeDisposable, CancellationTokenDisposable, type CancellationTokenLike, AsyncDisposableStore as CompositeAsyncDisposable, DisposableStore as CompositeDisposable, Disposable$1 as Disposable, DisposableAction, type DisposableAware, type DisposableAwareCompat, type DisposableCompat, DisposableContainer, DisposableMapStore as DisposableDictionary, type DisposableLike, DisposableMapStore, DisposableStore, type DisposeFunc, Disposiq, type IAsyncDisposable, type IDisposable, type IDisposablesContainer, ObjectDisposedException, SafeActionDisposable, SafeAsyncActionDisposable, DisposableContainer as SerialDisposable, WeakRefDisposable, addEventListener, disposableFromCancellationToken as createCancellationTokenDisposable, createDisposable, createDisposableCompat, createDisposiq, disposableFromCancellationToken, disposableFromEvent, disposableFromEventOnce, disposeAll, disposeAllAsync, disposeAll as disposeAllSafe, disposeAllSafely, disposeAllSafelyAsync, disposeAllUnsafe, disposeAllUnsafeAsync, emptyDisposable, isAsyncDisposableCompat, isDisposable, isDisposableCompat, isDisposableLike, isSystemAsyncDisposable, isSystemDisposable, justDispose, justDisposeAll, justDisposeAllAsync, justDisposeAsync, justDisposeSafe, disposableFromEvent as on, disposableFromEventOnce as once, safeDisposableExceptionHandlerManager, createDisposable as toDisposable, createDisposableCompat as toDisposableCompat, createDisposiq as toDisposiq, using };
+export { AbortDisposable, SafeActionDisposable as ActionSafeDisposable, SafeAsyncActionDisposable as AsyncActionSafeDisposable, AsyncDisposableAction, type AsyncDisposableAware, type AsyncDisposableAwareCompat, type AsyncDisposableCompat, type AsyncDisposableLike, AsyncDisposableStore, type AsyncDisposeFunc, AsyncDisposiq, AsyncDisposiq as BaseAsyncDisposable, Disposiq as BaseDisposable, BoolDisposable, BoolDisposable as BooleanDisposable, type CanBeDisposable, CancellationTokenDisposable, type CancellationTokenLike, AsyncDisposableStore as CompositeAsyncDisposable, DisposableStore as CompositeDisposable, Disposable$1 as Disposable, DisposableAction, type DisposableAware, type DisposableAwareCompat, type DisposableCompat, DisposableContainer, DisposableMapStore as DisposableDictionary, type DisposableLike, DisposableMapStore, DisposableStore, type DisposeFunc, Disposiq, type IAsyncDisposable, type IDisposable, type IDisposablesContainer, ObjectDisposedException, SafeActionDisposable, SafeAsyncActionDisposable, DisposableContainer as SerialDisposable, WeakRefDisposable, addEventListener, disposableFromCancellationToken as createCancellationTokenDisposable, createDisposable, createDisposableCompat, createDisposiq, disposableFromCancellationToken, disposableFromEvent, disposableFromEventOnce, disposeAll, disposeAllAsync, disposeAll as disposeAllSafe, disposeAllSafely, disposeAllSafelyAsync, disposeAllUnsafe, disposeAllUnsafeAsync, emptyDisposable, isAsyncDisposableCompat, isDisposable, isDisposableCompat, isDisposableLike, isSystemAsyncDisposable, isSystemDisposable, justDispose, justDisposeAll, justDisposeAllAsync, justDisposeAsync, justDisposeSafe, disposableFromEvent as on, disposableFromEventOnce as once, safeDisposableExceptionHandlerManager, createDisposable as toDisposable, createDisposableCompat as toDisposableCompat, createDisposiq as toDisposiq, using };

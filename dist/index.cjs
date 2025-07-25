@@ -41,6 +41,8 @@ var __async = (__this, __arguments, generator) => {
 var index_exports = {};
 __export(index_exports, {
   AbortDisposable: () => AbortDisposable,
+  ActionSafeDisposable: () => SafeActionDisposable,
+  AsyncActionSafeDisposable: () => SafeAsyncActionDisposable,
   AsyncDisposableAction: () => AsyncDisposableAction,
   AsyncDisposableStore: () => AsyncDisposableStore,
   AsyncDisposiq: () => AsyncDisposiq,
@@ -214,6 +216,27 @@ var AsyncDisposableAction = class extends AsyncDisposiq {
   }
 };
 
+// src/bool.ts
+var BoolDisposable = class extends Disposiq {
+  constructor(disposed = false) {
+    super();
+    /**
+     * @internal
+     */
+    this._disposed = false;
+    this._disposed = disposed;
+  }
+  /**
+   * Returns true if the disposable is disposed
+   */
+  get disposed() {
+    return this._disposed;
+  }
+  dispose() {
+    this._disposed = true;
+  }
+};
+
 // src/exception.ts
 var ObjectDisposedException = class extends Error {
   constructor(message) {
@@ -221,6 +244,203 @@ var ObjectDisposedException = class extends Error {
     this.name = "ObjectDisposedException";
   }
 };
+
+// src/cancellation.ts
+function disposableFromCancellationToken(token) {
+  return new CancellationTokenDisposable(token);
+}
+var customDisposeGetter = Object.freeze(() => false);
+var CancellationTokenDisposable = class extends Disposiq {
+  constructor(token) {
+    super();
+    if (token == null) {
+      throw new Error("Invalid token");
+    }
+    this._token = token;
+    const isCancelledType = typeof token.isCancelled;
+    if (isCancelledType === "function") {
+      this._disposedGetter = () => token.isCancelled();
+    } else if (isCancelledType === "boolean") {
+      this._disposedGetter = () => token.isCancelled;
+    } else if (typeof token.onCancel === "function") {
+      let cancelled = false;
+      token.onCancel(() => {
+        cancelled = true;
+      });
+      this._disposedGetter = () => cancelled;
+    } else {
+      this._disposedGetter = customDisposeGetter;
+    }
+  }
+  get disposed() {
+    return this._disposedGetter();
+  }
+  /**
+   * Throw an exception if the object has been disposed.
+   * @param message the message to include in the exception
+   */
+  throwIfDisposed(message) {
+    if (this.disposed) {
+      throw new ObjectDisposedException(message);
+    }
+  }
+  dispose() {
+    if (this._disposedGetter === customDisposeGetter) {
+      this._disposedGetter = () => true;
+    }
+    this._token.cancel();
+  }
+};
+
+// src/container.ts
+var DisposableContainer = class extends Disposiq {
+  constructor(disposable = void 0) {
+    super();
+    /**
+     * @internal
+     */
+    this._disposed = false;
+    this._disposable = disposable == void 0 ? void 0 : createDisposable(disposable);
+  }
+  /**
+   * Returns true if the container is disposed
+   */
+  get disposed() {
+    return this._disposed;
+  }
+  /**
+   * Returns the current disposable object
+   */
+  get disposable() {
+    return this._disposable;
+  }
+  /**
+   * Set the new disposable and dispose the old one
+   * @param disposable a new disposable to set
+   */
+  set(disposable) {
+    if (this._disposed) {
+      if (disposable == void 0) {
+        return;
+      }
+      createDisposable(disposable).dispose();
+      return;
+    }
+    const oldDisposable = this._disposable;
+    this._disposable = disposable == void 0 ? void 0 : createDisposable(disposable);
+    if (oldDisposable !== void 0) {
+      oldDisposable.dispose();
+    }
+  }
+  /**
+   * Replace the disposable with a new one. Does not dispose the old one
+   * @param disposable a new disposable to replace the old one
+   */
+  replace(disposable) {
+    if (this._disposed) {
+      if (disposable == void 0) {
+        return;
+      }
+      createDisposable(disposable).dispose();
+      return;
+    }
+    this._disposable = disposable == void 0 ? void 0 : createDisposable(disposable);
+  }
+  /**
+   * Dispose only the current disposable object without affecting the container's state.
+   */
+  disposeCurrent() {
+    const disposable = this._disposable;
+    if (disposable === void 0) {
+      return;
+    }
+    this._disposable = void 0;
+    disposable.dispose();
+  }
+  dispose() {
+    if (this._disposed) {
+      return;
+    }
+    this._disposed = true;
+    if (this._disposable === void 0) {
+      return;
+    }
+    const disposable = this._disposable;
+    this._disposable = void 0;
+    disposable.dispose();
+  }
+};
+
+// src/empty.ts
+var emptyPromise = Promise.resolve();
+var EmptyDisposable = class extends AsyncDisposiq {
+  dispose() {
+    return emptyPromise;
+  }
+  [Symbol.dispose]() {
+  }
+  [Symbol.asyncDispose]() {
+    return emptyPromise;
+  }
+};
+var emptyDisposableImpl = new EmptyDisposable();
+var emptyDisposable = Object.freeze(emptyDisposableImpl);
+
+// src/create.ts
+function createDisposable(disposableLike) {
+  if (!disposableLike) {
+    return emptyDisposable;
+  }
+  if (typeof disposableLike === "object" && "dispose" in disposableLike) {
+    return disposableLike;
+  }
+  return createDisposiqFrom(disposableLike);
+}
+function createDisposableCompat(disposableLike) {
+  return createDisposiqFrom(disposableLike);
+}
+function createDisposiq(disposableLike) {
+  return createDisposiqFrom(disposableLike);
+}
+function createDisposiqFrom(disposableLike) {
+  if (!disposableLike) {
+    return emptyDisposable;
+  }
+  if (disposableLike instanceof Disposiq) {
+    return disposableLike;
+  }
+  if (typeof disposableLike === "function") {
+    return new DisposableAction(disposableLike);
+  }
+  if (typeof disposableLike !== "object") {
+    return emptyDisposable;
+  }
+  if ("dispose" in disposableLike) {
+    return new DisposableAction(() => {
+      disposableLike.dispose();
+    });
+  }
+  if (Symbol.dispose in disposableLike) {
+    return new DisposableAction(() => {
+      disposableLike[Symbol.dispose]();
+    });
+  }
+  if (Symbol.asyncDispose in disposableLike) {
+    return new AsyncDisposableAction(() => __async(this, null, function* () {
+      yield disposableLike[Symbol.asyncDispose]();
+    }));
+  }
+  if ("unref" in disposableLike) {
+    return new DisposableAction(() => disposableLike.unref());
+  }
+  if (disposableLike instanceof AbortController) {
+    return new AbortDisposable(disposableLike);
+  }
+  if ("cancel" in disposableLike) {
+    return new CancellationTokenDisposable(disposableLike);
+  }
+  return emptyDisposable;
+}
 
 // src/utils/queue.ts
 var Node = class {
@@ -544,15 +764,231 @@ function disposeAllSafelyAsync(disposables, onErrorCallback) {
   });
 }
 
-// src/store.ts
-var DisposableStore = class _DisposableStore extends Disposiq {
+// src/event.ts
+function disposableFromEvent(emitter, event, listener) {
+  emitter.on(event, listener);
+  return new DisposableAction(() => {
+    emitter.off(event, listener);
+  });
+}
+function disposableFromEventOnce(emitter, event, listener) {
+  emitter.once(event, listener);
+  return new DisposableAction(() => {
+    emitter.off(event, listener);
+  });
+}
+
+// src/map-store.ts
+var DisposableMapStore = class extends Disposiq {
   constructor() {
+    super(...arguments);
+    /**
+     * @internal
+     */
+    this._map = /* @__PURE__ */ new Map();
+    /**
+     * @internal
+     */
+    this._disposed = false;
+  }
+  /**
+   * Get the disposed state of the store
+   */
+  get disposed() {
+    return this._disposed;
+  }
+  /**
+   * Set a disposable value for the key. If the store contains a value for the key, the previous value will be disposed.
+   * If the store is disposed, the value will be disposed immediately
+   * @param key the key
+   * @param value the disposable value
+   */
+  set(key, value) {
+    const disposable = createDisposable(value);
+    if (this._disposed) {
+      disposable.dispose();
+      return;
+    }
+    const prev = this._map.get(key);
+    this._map.set(key, disposable);
+    prev == null ? void 0 : prev.dispose();
+  }
+  /**
+   * Get the disposable value for the key
+   * @param key the key
+   * @returns the disposable value or undefined if the key is not found
+   */
+  get(key) {
+    if (this._disposed) {
+      return;
+    }
+    return this._map.get(key);
+  }
+  /**
+   * Delete the disposable value for the key
+   * @param key the key
+   * @returns true if the key was found and the value was deleted, false otherwise
+   */
+  delete(key) {
+    if (this._disposed) {
+      return false;
+    }
+    const disposable = this._map.get(key);
+    if (!disposable) {
+      return false;
+    }
+    this._map.delete(key);
+    disposable.dispose();
+    return true;
+  }
+  /**
+   * Remove the disposable value for the key and return it. The disposable value will not be disposed
+   * @param key the key
+   * @returns the disposable value or undefined if the key is not found
+   */
+  extract(key) {
+    if (this._disposed) {
+      return;
+    }
+    const disposable = this._map.get(key);
+    if (!disposable) {
+      return;
+    }
+    this._map.delete(key);
+    return disposable;
+  }
+  dispose() {
+    if (this._disposed) {
+      return;
+    }
+    this._disposed = true;
+    for (const value of this._map.values()) {
+      value.dispose();
+    }
+    this._map.clear();
+  }
+};
+
+// src/utils/exception-handler-manager.ts
+var ExceptionHandlerManager = class {
+  /**
+   * Create a new ExceptionHandlerManager with the default handler
+   * @param defaultHandler the default handler. If not provided, the default handler will be a no-op
+   */
+  constructor(defaultHandler) {
+    this._handler = this._defaultHandler = typeof defaultHandler === "function" ? defaultHandler : noop;
+  }
+  /**
+   * Get the handler for the manager
+   */
+  get handler() {
+    return this._handler;
+  }
+  /**
+   * Set the handler for the manager
+   */
+  set handler(value) {
+    this._handler = typeof value === "function" ? value : this._defaultHandler;
+  }
+  /**
+   * Reset the handler to the default handler
+   */
+  reset() {
+    this._handler = this._defaultHandler;
+  }
+  /**
+   * Handle an exception
+   * @param error the exception to handle
+   */
+  handle(error) {
+    this._handler(error);
+  }
+  /**
+   * Handle an exception safely
+   * @param error the exception to handle
+   */
+  handleSafe(error) {
+    try {
+      this.handle(error);
+    } catch (e) {
+    }
+  }
+};
+
+// src/safe.ts
+var safeDisposableExceptionHandlerManager = new ExceptionHandlerManager();
+var SafeActionDisposable = class extends Disposiq {
+  constructor(action) {
     super();
     /**
      * @internal
      */
     this._disposed = false;
-    this._disposables = new Array();
+    this._action = typeof action === "function" ? action : noop;
+  }
+  /**
+   * Returns true if the action has been disposed.
+   */
+  get disposed() {
+    return this._disposed;
+  }
+  dispose() {
+    if (this._disposed) {
+      return;
+    }
+    this._disposed = true;
+    try {
+      this._action();
+    } catch (e) {
+      safeDisposableExceptionHandlerManager.handle(e);
+    }
+  }
+};
+var SafeAsyncActionDisposable = class extends AsyncDisposiq {
+  constructor(action) {
+    super();
+    /**
+     * @internal
+     */
+    this._disposed = false;
+    this._action = typeof action === "function" ? action : noopAsync;
+  }
+  /**
+   * Returns true if the action has been disposed.
+   */
+  get disposed() {
+    return this._disposed;
+  }
+  /**
+   * Dispose the action. If the action has already been disposed, this is a no-op.
+   */
+  dispose() {
+    return __async(this, null, function* () {
+      if (this._disposed) {
+        return;
+      }
+      this._disposed = true;
+      try {
+        yield this._action();
+      } catch (e) {
+        safeDisposableExceptionHandlerManager.handle(e);
+      }
+    });
+  }
+};
+
+// src/store.ts
+var DisposableStore = class _DisposableStore extends Disposiq {
+  constructor() {
+    super(...arguments);
+    /**
+     * @internal
+     */
+    this._disposables = [];
+    /**
+     * @internal
+     */
+    this._disposed = false;
   }
   /**
    * Returns true if the object has been disposed.
@@ -755,329 +1191,6 @@ var DisposableStore = class _DisposableStore extends Disposiq {
     const store = new _DisposableStore();
     store.addAll(disposables);
     return store;
-  }
-};
-
-// src/container.ts
-var DisposableContainer = class extends Disposiq {
-  constructor(disposable = void 0) {
-    super();
-    /**
-     * @internal
-     */
-    this._disposed = false;
-    this._disposable = disposable == void 0 ? void 0 : createDisposable(disposable);
-  }
-  /**
-   * Returns true if the container is disposed
-   */
-  get disposed() {
-    return this._disposed;
-  }
-  /**
-   * Returns the current disposable object
-   */
-  get disposable() {
-    return this._disposable;
-  }
-  /**
-   * Set the new disposable and dispose the old one
-   * @param disposable a new disposable to set
-   */
-  set(disposable) {
-    if (this._disposed) {
-      if (disposable == void 0) {
-        return;
-      }
-      createDisposable(disposable).dispose();
-      return;
-    }
-    const oldDisposable = this._disposable;
-    this._disposable = disposable == void 0 ? void 0 : createDisposable(disposable);
-    if (oldDisposable !== void 0) {
-      oldDisposable.dispose();
-    }
-  }
-  /**
-   * Replace the disposable with a new one. Does not dispose the old one
-   * @param disposable a new disposable to replace the old one
-   */
-  replace(disposable) {
-    if (this._disposed) {
-      if (disposable == void 0) {
-        return;
-      }
-      createDisposable(disposable).dispose();
-      return;
-    }
-    this._disposable = disposable == void 0 ? void 0 : createDisposable(disposable);
-  }
-  /**
-   * Dispose only the current disposable object without affecting the container's state.
-   */
-  disposeCurrent() {
-    const disposable = this._disposable;
-    if (disposable === void 0) {
-      return;
-    }
-    this._disposable = void 0;
-    disposable.dispose();
-  }
-  dispose() {
-    if (this._disposed) {
-      return;
-    }
-    this._disposed = true;
-    if (this._disposable === void 0) {
-      return;
-    }
-    const disposable = this._disposable;
-    this._disposable = void 0;
-    disposable.dispose();
-  }
-};
-
-// src/bool.ts
-var BoolDisposable = class extends Disposiq {
-  constructor(disposed = false) {
-    super();
-    /**
-     * @internal
-     */
-    this._disposed = false;
-    this._disposed = disposed;
-  }
-  /**
-   * Returns true if the disposable is disposed
-   */
-  get disposed() {
-    return this._disposed;
-  }
-  dispose() {
-    this._disposed = true;
-  }
-};
-
-// src/event.ts
-function disposableFromEvent(emitter, event, listener) {
-  emitter.on(event, listener);
-  return new DisposableAction(() => {
-    emitter.off(event, listener);
-  });
-}
-function disposableFromEventOnce(emitter, event, listener) {
-  emitter.once(event, listener);
-  return new DisposableAction(() => {
-    emitter.off(event, listener);
-  });
-}
-
-// src/empty.ts
-var emptyPromise = Promise.resolve();
-var EmptyDisposable = class extends AsyncDisposiq {
-  dispose() {
-    return emptyPromise;
-  }
-  [Symbol.dispose]() {
-  }
-  [Symbol.asyncDispose]() {
-    return emptyPromise;
-  }
-};
-var emptyDisposableImpl = new EmptyDisposable();
-var emptyDisposable = Object.freeze(emptyDisposableImpl);
-
-// src/cancellation.ts
-function disposableFromCancellationToken(token) {
-  return new CancellationTokenDisposable(token);
-}
-var customDisposeGetter = Object.freeze(() => false);
-var CancellationTokenDisposable = class extends Disposiq {
-  constructor(token) {
-    super();
-    if (token == null) {
-      throw new Error("Invalid token");
-    }
-    this._token = token;
-    const isCancelledType = typeof token.isCancelled;
-    if (isCancelledType === "function") {
-      this._disposedGetter = () => token.isCancelled();
-    } else if (isCancelledType === "boolean") {
-      this._disposedGetter = () => token.isCancelled;
-    } else if (typeof token.onCancel === "function") {
-      let cancelled = false;
-      token.onCancel(() => {
-        cancelled = true;
-      });
-      this._disposedGetter = () => cancelled;
-    } else {
-      this._disposedGetter = customDisposeGetter;
-    }
-  }
-  get disposed() {
-    return this._disposedGetter();
-  }
-  /**
-   * Throw an exception if the object has been disposed.
-   * @param message the message to include in the exception
-   */
-  throwIfDisposed(message) {
-    if (this.disposed) {
-      throw new ObjectDisposedException(message);
-    }
-  }
-  dispose() {
-    if (this._disposedGetter === customDisposeGetter) {
-      this._disposedGetter = () => true;
-    }
-    this._token.cancel();
-  }
-};
-
-// src/create.ts
-function createDisposable(disposableLike) {
-  if (!disposableLike) {
-    return emptyDisposable;
-  }
-  if (typeof disposableLike === "object" && "dispose" in disposableLike) {
-    return disposableLike;
-  }
-  return createDisposiqFrom(disposableLike);
-}
-function createDisposableCompat(disposableLike) {
-  return createDisposiqFrom(disposableLike);
-}
-function createDisposiq(disposableLike) {
-  return createDisposiqFrom(disposableLike);
-}
-function createDisposiqFrom(disposableLike) {
-  if (!disposableLike) {
-    return emptyDisposable;
-  }
-  if (disposableLike instanceof Disposiq) {
-    return disposableLike;
-  }
-  if (typeof disposableLike === "function") {
-    return new DisposableAction(disposableLike);
-  }
-  if (typeof disposableLike !== "object") {
-    return emptyDisposable;
-  }
-  if ("dispose" in disposableLike) {
-    return new DisposableAction(() => {
-      disposableLike.dispose();
-    });
-  }
-  if (Symbol.dispose in disposableLike) {
-    return new DisposableAction(() => {
-      disposableLike[Symbol.dispose]();
-    });
-  }
-  if (Symbol.asyncDispose in disposableLike) {
-    return new AsyncDisposableAction(() => __async(this, null, function* () {
-      yield disposableLike[Symbol.asyncDispose]();
-    }));
-  }
-  if ("unref" in disposableLike) {
-    return new DisposableAction(() => disposableLike.unref());
-  }
-  if (disposableLike instanceof AbortController) {
-    return new AbortDisposable(disposableLike);
-  }
-  if ("cancel" in disposableLike) {
-    return new CancellationTokenDisposable(disposableLike);
-  }
-  return emptyDisposable;
-}
-
-// src/map-store.ts
-var DisposableMapStore = class extends Disposiq {
-  constructor() {
-    super(...arguments);
-    /**
-     * @internal
-     */
-    this._map = /* @__PURE__ */ new Map();
-    /**
-     * @internal
-     */
-    this._disposed = false;
-  }
-  /**
-   * Get the disposed state of the store
-   */
-  get disposed() {
-    return this._disposed;
-  }
-  /**
-   * Set a disposable value for the key. If the store contains a value for the key, the previous value will be disposed.
-   * If the store is disposed, the value will be disposed immediately
-   * @param key the key
-   * @param value the disposable value
-   */
-  set(key, value) {
-    const disposable = createDisposable(value);
-    if (this._disposed) {
-      disposable.dispose();
-      return;
-    }
-    const prev = this._map.get(key);
-    this._map.set(key, disposable);
-    prev == null ? void 0 : prev.dispose();
-  }
-  /**
-   * Get the disposable value for the key
-   * @param key the key
-   * @returns the disposable value or undefined if the key is not found
-   */
-  get(key) {
-    if (this._disposed) {
-      return;
-    }
-    return this._map.get(key);
-  }
-  /**
-   * Delete the disposable value for the key
-   * @param key the key
-   * @returns true if the key was found and the value was deleted, false otherwise
-   */
-  delete(key) {
-    if (this._disposed) {
-      return false;
-    }
-    const disposable = this._map.get(key);
-    if (!disposable) {
-      return false;
-    }
-    this._map.delete(key);
-    disposable.dispose();
-    return true;
-  }
-  /**
-   * Remove the disposable value for the key and return it. The disposable value will not be disposed
-   * @param key the key
-   * @returns the disposable value or undefined if the key is not found
-   */
-  extract(key) {
-    if (this._disposed) {
-      return;
-    }
-    const disposable = this._map.get(key);
-    if (!disposable) {
-      return;
-    }
-    this._map.delete(key);
-    return disposable;
-  }
-  dispose() {
-    if (this._disposed) {
-      return;
-    }
-    this._disposed = true;
-    for (const value of this._map.values()) {
-      value.dispose();
-    }
-    this._map.clear();
   }
 };
 
@@ -1389,114 +1502,6 @@ function isSystemAsyncDisposable(value) {
   typeof value[Symbol.asyncDispose] === "function";
 }
 
-// src/utils/exception-handler-manager.ts
-var ExceptionHandlerManager = class {
-  /**
-   * Create a new ExceptionHandlerManager with the default handler
-   * @param defaultHandler the default handler. If not provided, the default handler will be a no-op
-   */
-  constructor(defaultHandler) {
-    this._handler = this._defaultHandler = typeof defaultHandler === "function" ? defaultHandler : noop;
-  }
-  /**
-   * Get the handler for the manager
-   */
-  get handler() {
-    return this._handler;
-  }
-  /**
-   * Set the handler for the manager
-   */
-  set handler(value) {
-    this._handler = typeof value === "function" ? value : this._defaultHandler;
-  }
-  /**
-   * Reset the handler to the default handler
-   */
-  reset() {
-    this._handler = this._defaultHandler;
-  }
-  /**
-   * Handle an exception
-   * @param error the exception to handle
-   */
-  handle(error) {
-    this._handler(error);
-  }
-  /**
-   * Handle an exception safely
-   * @param error the exception to handle
-   */
-  handleSafe(error) {
-    try {
-      this.handle(error);
-    } catch (e) {
-    }
-  }
-};
-
-// src/safe.ts
-var safeDisposableExceptionHandlerManager = new ExceptionHandlerManager();
-var SafeActionDisposable = class extends Disposiq {
-  constructor(action) {
-    super();
-    /**
-     * @internal
-     */
-    this._disposed = false;
-    this._action = typeof action === "function" ? action : noop;
-  }
-  /**
-   * Returns true if the action has been disposed.
-   */
-  get disposed() {
-    return this._disposed;
-  }
-  dispose() {
-    if (this._disposed) {
-      return;
-    }
-    this._disposed = true;
-    try {
-      this._action();
-    } catch (e) {
-      safeDisposableExceptionHandlerManager.handle(e);
-    }
-  }
-};
-var SafeAsyncActionDisposable = class extends AsyncDisposiq {
-  constructor(action) {
-    super();
-    /**
-     * @internal
-     */
-    this._disposed = false;
-    this._action = typeof action === "function" ? action : noopAsync;
-  }
-  /**
-   * Returns true if the action has been disposed.
-   */
-  get disposed() {
-    return this._disposed;
-  }
-  /**
-   * Dispose the action. If the action has already been disposed, this is a no-op.
-   */
-  dispose() {
-    return __async(this, null, function* () {
-      if (this._disposed) {
-        return;
-      }
-      this._disposed = true;
-      try {
-        yield this._action();
-      } catch (e) {
-        safeDisposableExceptionHandlerManager.handle(e);
-      }
-    });
-  }
-};
-
 // src/using.ts
 function using(resource, action) {
   let result;
@@ -1549,6 +1554,8 @@ var WeakRefDisposable = class extends Disposiq {
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   AbortDisposable,
+  ActionSafeDisposable,
+  AsyncActionSafeDisposable,
   AsyncDisposableAction,
   AsyncDisposableStore,
   AsyncDisposiq,
