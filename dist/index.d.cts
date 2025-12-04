@@ -59,7 +59,9 @@ interface CancellationTokenLike {
 /**
  * A disposable object that is possible to dispose
  */
-type CanBeDisposable = DisposableLike | Disposable | AsyncDisposable | AbortController | CancellationTokenLike;
+type CanBeDisposable = DisposableLike | Disposable | AsyncDisposable | AbortController | CancellationTokenLike | {
+    unref(): void;
+};
 /**
  * A container interface for disposables collection. Implementation is {@link DisposableStore}.
  */
@@ -380,8 +382,9 @@ declare class DisposableContainer extends Disposiq implements DisposableAwareCom
     /**
      * Replace the disposable with a new one. Does not dispose the old one
      * @param disposable a new disposable to replace the old one
+     * @returns the old disposable object or undefined if the container is disposed.
      */
-    replace(disposable: CanBeDisposable | null | undefined): void;
+    replace(disposable: CanBeDisposable | null | undefined): IDisposable | undefined;
     /**
      * Dispose only the current disposable object without affecting the container's state.
      */
