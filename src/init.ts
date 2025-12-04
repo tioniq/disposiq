@@ -19,8 +19,8 @@ if (!("dispose" in Symbol)) {
  */
 if (!("asyncDispose" in Symbol)) {
   const asyncDisposeSymbol = (Symbol as ISymbolConstructor)(
-    "Symbol.asyncDispose",
-  )
+      "Symbol.asyncDispose",
+    )
   ;(Symbol as WSymbol).asyncDispose =
     asyncDisposeSymbol as SymbolConstructor["asyncDispose"]
 }

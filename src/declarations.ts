@@ -72,7 +72,15 @@ export interface CancellationTokenLike {
 /**
  * A disposable object that is possible to dispose
  */
-export type CanBeDisposable = DisposableLike | Disposable | AsyncDisposable | AbortController | CancellationTokenLike
+export type CanBeDisposable =
+  DisposableLike
+  | Disposable
+  | AsyncDisposable
+  | AbortController
+  | CancellationTokenLike
+  | {
+  unref(): void
+}
 
 /**
  * A container interface for disposables collection. Implementation is {@link DisposableStore}.

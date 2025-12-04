@@ -1,6 +1,6 @@
-import { AsyncDisposiq, Disposiq } from "./disposiq"
 import type { IDisposable, IDisposablesContainer } from "./declarations"
 import { Disposable } from "./disposable"
+import { AsyncDisposiq, Disposiq } from "./disposiq"
 
 Disposiq.prototype.disposeWith = function (
   this: Disposiq,

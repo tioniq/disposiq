@@ -1,17 +1,8 @@
-import type {
-  DisposableAwareCompat,
-  DisposableLike,
-  IDisposablesContainer,
-} from "./declarations"
+import { disposeAllSafe } from "./aliases"
+import type { DisposableAwareCompat, DisposableLike, IDisposablesContainer, } from "./declarations"
+import { disposeAllSafely, disposeAllUnsafe, justDispose, justDisposeAll, justDisposeSafe, } from "./dispose-batch"
 import { Disposiq } from "./disposiq"
 import { ObjectDisposedException } from "./exception"
-import {
-  disposeAllSafely,
-  disposeAllUnsafe,
-  justDispose,
-  justDisposeAll, justDisposeSafe,
-} from "./dispose-batch"
-import { disposeAllSafe } from "./aliases"
 
 /**
  * DisposableStore is a container for disposables. It will dispose all added disposables when it is disposed.

@@ -61,6 +61,7 @@ export class ExceptionHandlerManager {
   handleSafe(error: Error): void {
     try {
       this.handle(error)
-    } catch (e) {}
+    } catch (_e) {
+    }
   }
 }

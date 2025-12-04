@@ -1,10 +1,6 @@
-import type {
-  DisposableCompat,
-  DisposableLike,
-  IDisposable,
-} from "./declarations"
-import { DisposableStore } from "./store"
+import type { DisposableCompat, DisposableLike, IDisposable, } from "./declarations"
 import { Disposiq } from "./disposiq"
+import { DisposableStore } from "./store"
 
 /**
  * Disposable is a base class for disposables. It will dispose all added disposables when it is disposed.

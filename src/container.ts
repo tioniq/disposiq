@@ -71,17 +71,20 @@ export class DisposableContainer
   /**
    * Replace the disposable with a new one. Does not dispose the old one
    * @param disposable a new disposable to replace the old one
+   * @returns the old disposable object or undefined if the container is disposed.
    */
-  replace(disposable: CanBeDisposable | null | undefined): void {
+  replace(disposable: CanBeDisposable | null | undefined): IDisposable | undefined {
     if (this._disposed) {
       if (disposable == undefined) {
-        return
+        return undefined
       }
       toDisposable(disposable).dispose()
-      return
+      return undefined
     }
+    const oldDisposable = this._disposable
     this._disposable =
       disposable == undefined ? undefined : toDisposable(disposable)
+    return oldDisposable
   }
 
   /**

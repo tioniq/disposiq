@@ -1,13 +1,9 @@
-import type {
-  CanBeDisposable,
-  DisposableCompat,
-  IDisposable,
-} from "./declarations"
-import { emptyDisposable } from "./empty"
-import { AsyncDisposableAction, DisposableAction } from "./action"
 import { AbortDisposable } from "./abort"
-import { Disposiq } from "./disposiq"
+import { AsyncDisposableAction, DisposableAction } from "./action"
 import { CancellationTokenDisposable } from "./cancellation";
+import type { CanBeDisposable, DisposableCompat, IDisposable } from "./declarations"
+import { Disposiq } from "./disposiq"
+import { emptyDisposable } from "./empty"
 
 /**
  * Create a disposable from a disposable like object. The object can be a function, an object with a dispose method,
@@ -90,11 +86,9 @@ function createDisposiqFrom(disposableLike: CanBeDisposable): Disposiq {
     })
   }
   if ("unref" in disposableLike) {
-    // @ts-ignore
     return new DisposableAction(() => disposableLike.unref())
   }
   if (disposableLike instanceof AbortController) {
-    // @ts-ignore
     return new AbortDisposable(disposableLike)
   }
   if ("cancel" in disposableLike) {

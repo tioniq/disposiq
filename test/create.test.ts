@@ -41,7 +41,6 @@ describe("create", () => {
   it("should call unref", () => {
     const func = jest.fn()
     const disposable = createDisposable({
-      // @ts-ignore
       unref: func,
     })
     expect(func).toHaveBeenCalledTimes(0)
@@ -107,7 +106,6 @@ describe("create compat", () => {
   it("should call unref", () => {
     const func = jest.fn()
     const disposable = createDisposableCompat({
-      // @ts-ignore
       unref: func,
     })
     expect(func).toHaveBeenCalledTimes(0)
@@ -185,7 +183,6 @@ describe("create disposiq", () => {
   it("should call unref", () => {
     const func = jest.fn()
     const disposable = createDisposiq({
-      // @ts-ignore
       unref: func,
     })
     expect(disposable).toBeInstanceOf(Disposiq)

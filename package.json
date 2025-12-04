@@ -40,17 +40,17 @@
     "run:publish": "npm run run:publish:npm && npm run run:publish:jsr"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.1.2",
+    "@biomejs/biome": "^2.3.8",
     "@types/jest": "^30.0.0",
-    "@types/node": "^24.1.0",
-    "coverage-badges-cli": "^2.1.0",
+    "@types/node": "^24.10.1",
+    "coverage-badges-cli": "^2.2.0",
     "expose-gc": "^1.0.0",
-    "jest": "^30.0.5",
+    "jest": "^30.2.0",
     "jsr": "^0.13.5",
-    "ts-jest": "^29.4.0",
+    "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
-    "tsup": "^8.5.0",
-    "typescript": "^5.8.3"
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   },
   "keywords": [
     "disposable",

@@ -5,13 +5,13 @@ const emptyPromise = Promise.resolve()
 
 class EmptyDisposable
   extends AsyncDisposiq
-  implements DisposableCompat, AsyncDisposableCompat
-{
+  implements DisposableCompat, AsyncDisposableCompat {
   dispose(): Promise<void> {
     return emptyPromise
   }
 
-  override [Symbol.dispose](): void {}
+  override [Symbol.dispose](): void {
+  }
 
   override [Symbol.asyncDispose](): Promise<void> {
     return emptyPromise

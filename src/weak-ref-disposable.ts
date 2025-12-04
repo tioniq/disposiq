@@ -1,6 +1,6 @@
-import { Disposiq } from "./disposiq"
 import { toDisposable } from "./aliases"
 import type { IAsyncDisposable, IDisposable } from "./declarations"
+import { Disposiq } from "./disposiq"
 
 /**
  * Represents a disposable object that holds a weak reference to another object,

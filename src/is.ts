@@ -1,9 +1,4 @@
-import type {
-  AsyncDisposableCompat,
-  DisposableCompat,
-  DisposableLike,
-  IDisposable,
-} from "./declarations"
+import type { AsyncDisposableCompat, DisposableCompat, DisposableLike, IDisposable, } from "./declarations"
 
 /**
  * Check if the value is a disposable object. It means it has a `dispose` method.
@@ -12,8 +7,7 @@ export function isDisposable(value: unknown): value is IDisposable {
   return (
     typeof value === "object" &&
     value !== null &&
-    // @ts-ignore
-    typeof value.dispose === "function"
+    typeof (value as { dispose?: () => void }).dispose === "function"
   )
 }
 
@@ -25,8 +19,7 @@ export function isDisposableLike(value: unknown): value is DisposableLike {
     typeof value === "function" ||
     (typeof value === "object" &&
       value !== null &&
-      // @ts-ignore
-      typeof value.dispose === "function")
+      typeof (value as { dispose?: () => void }).dispose === "function")
   )
 }
 
@@ -37,10 +30,8 @@ export function isDisposableCompat(value: unknown): value is DisposableCompat {
   return (
     typeof value === "object" &&
     value !== null &&
-    // @ts-ignore
-    typeof value.dispose === "function" &&
-    // @ts-ignore
-    typeof value[Symbol.dispose] === "function"
+    typeof (value as { dispose?: () => void }).dispose === "function" &&
+    typeof (value as { [Symbol.dispose]?: () => void })[Symbol.dispose] === "function"
   )
 }
 
@@ -53,10 +44,8 @@ export function isAsyncDisposableCompat(
   return (
     typeof value === "object" &&
     value !== null &&
-    // @ts-ignore
-    typeof value.dispose === "function" &&
-    // @ts-ignore
-    typeof value[Symbol.asyncDispose] === "function"
+    typeof (value as { dispose?: () => void }).dispose === "function" &&
+    typeof (value as { [Symbol.asyncDispose]?: () => void })[Symbol.asyncDispose] === "function"
   )
 }
 
@@ -67,8 +56,7 @@ export function isSystemDisposable(value: unknown): value is Disposable {
   return (
     typeof value === "object" &&
     value !== null &&
-    // @ts-ignore
-    typeof value[Symbol.dispose] === "function"
+    typeof (value as { [Symbol.dispose]?: () => void })[Symbol.dispose] === "function"
   )
 }
 
@@ -81,7 +69,6 @@ export function isSystemAsyncDisposable(
   return (
     typeof value === "object" &&
     value !== null &&
-    // @ts-ignore
-    typeof value[Symbol.asyncDispose] === "function"
+    typeof (value as { [Symbol.asyncDispose]?: () => void })[Symbol.asyncDispose] === "function"
   )
 }
