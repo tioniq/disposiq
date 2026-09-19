@@ -1,5 +1,6 @@
 import type { AsyncDisposableAwareCompat, DisposableAwareCompat, } from "./declarations"
 import { AsyncDisposiq, Disposiq } from "./disposiq"
+import { invokeAsync, resolvedPromise } from "./utils/disposing"
 import { ExceptionHandlerManager } from "./utils/exception-handler-manager"
 import { noop, noopAsync } from "./utils/noop"
 
@@ -24,7 +25,7 @@ export class SafeActionDisposable
   /**
    * @internal
    */
-  private readonly _action: () => void
+  private _action: () => void
 
   /**
    * @internal
@@ -48,8 +49,10 @@ export class SafeActionDisposable
       return
     }
     this._disposed = true
+    const action = this._action
+    this._action = noop
     try {
-      this._action()
+      action()
     } catch (e) {
       safeDisposableExceptionHandlerManager.handle(e)
     }
@@ -65,12 +68,18 @@ export class SafeAsyncActionDisposable
   /**
    * @internal
    */
-  private readonly _action: () => Promise<void>
+  private _action: () => Promise<void>
 
   /**
    * @internal
    */
   private _disposed = false
+
+  /**
+   * The disposal in progress, shared by concurrent dispose calls
+   * @internal
+   */
+  private _disposing: Promise<void> | undefined
 
   constructor(action: () => Promise<void>) {
     super()
@@ -85,17 +94,26 @@ export class SafeAsyncActionDisposable
   }
 
   /**
-   * Dispose the action. If the action has already been disposed, this is a no-op.
+   * Dispose the action. If the action has already been disposed, this is a no-op. Calls made while the action is
+   * running return a promise that settles when it completes.
    */
-  async dispose(): Promise<void> {
+  dispose(): Promise<void> {
     if (this._disposed) {
-      return
+      return this._disposing ?? resolvedPromise
     }
     this._disposed = true
-    try {
-      await this._action()
-    } catch (e) {
-      safeDisposableExceptionHandlerManager.handle(e)
-    }
+    const action = this._action
+    this._action = noopAsync
+    const disposing = invokeAsync(action).then(
+      () => {
+        this._disposing = undefined
+      },
+      (e: unknown) => {
+        this._disposing = undefined
+        safeDisposableExceptionHandlerManager.handle(e)
+      },
+    )
+    this._disposing = disposing
+    return disposing
   }
 }

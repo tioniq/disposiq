@@ -366,3 +366,109 @@ describe("store", () => {
     expect(value.dispose).toHaveBeenCalled()
   })
 })
+
+describe("store disposal semantics", () => {
+  it("disposes the remaining items when one throws", () => {
+    const store = new DisposableStore()
+    const error = new Error("boom")
+    const after = jest.fn()
+    store.add(() => {
+      throw error
+    }, after)
+    expect(() => store.dispose()).toThrow(error)
+    expect(after).toHaveBeenCalledTimes(1)
+    expect(() => store.dispose()).not.toThrow()
+    expect(after).toHaveBeenCalledTimes(1)
+  })
+  it("aggregates multiple disposal errors", () => {
+    const store = new DisposableStore()
+    const e1 = new Error("1")
+    const e2 = new Error("2")
+    store.add(
+      () => {
+        throw e1
+      },
+      () => {
+        throw e2
+      },
+    )
+    let error: unknown
+    try {
+      store.dispose()
+    } catch (e) {
+      error = e
+    }
+    expect((error as Error).name).toBe("AggregateError")
+    expect((error as { errors: unknown[] }).errors).toEqual([e1, e2])
+  })
+  it("disposeCurrent disposes the remaining items when one throws", () => {
+    const store = new DisposableStore()
+    const after = jest.fn()
+    store.add(() => {
+      throw new Error("boom")
+    }, after)
+    expect(() => store.disposeCurrent()).toThrow("boom")
+    expect(after).toHaveBeenCalledTimes(1)
+    store.dispose()
+    expect(after).toHaveBeenCalledTimes(1)
+  })
+  it("adding several items to a disposed store disposes all of them", () => {
+    const store = new DisposableStore()
+    store.dispose()
+    const after = jest.fn()
+    expect(() =>
+      store.add(() => {
+        throw new Error("boom")
+      }, after),
+    ).toThrow("boom")
+    expect(after).toHaveBeenCalledTimes(1)
+  })
+  it("does not keep fired timeouts", () => {
+    jest.useFakeTimers()
+    try {
+      const store = new DisposableStore()
+      const callback = jest.fn()
+      for (let i = 0; i < 100; i++) {
+        store.addTimeout(callback, 10)
+      }
+      jest.advanceTimersByTime(10)
+      expect(callback).toHaveBeenCalledTimes(100)
+      const keep = jest.fn()
+      store.add(keep)
+      expect((store as unknown as { _disposables: unknown[] })._disposables).toEqual([keep])
+      store.dispose()
+      expect(keep).toHaveBeenCalledTimes(1)
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+  it("still clears a pending timeout on dispose", () => {
+    jest.useFakeTimers()
+    try {
+      const store = new DisposableStore()
+      const callback = jest.fn()
+      store.addTimeout(callback, 10)
+      store.dispose()
+      jest.advanceTimersByTime(10)
+      expect(callback).not.toHaveBeenCalled()
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+})
+
+describe("store timeouts after dispose", () => {
+  it("does not schedule a timeout on a disposed store", () => {
+    jest.useFakeTimers()
+    try {
+      const store = new DisposableStore()
+      store.dispose()
+      const callback = jest.fn()
+      store.addTimeout(callback, 10)
+      jest.advanceTimersByTime(10)
+      expect(callback).not.toHaveBeenCalled()
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+})

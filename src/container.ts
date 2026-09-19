@@ -49,7 +49,7 @@ export class DisposableContainer
   }
 
   /**
-   * Set the new disposable and dispose the old one
+   * Set the new disposable and dispose the old one. Setting the current disposable again does not dispose it
    * @param disposable a new disposable to set
    */
   set(disposable: CanBeDisposable | null | undefined): void {
@@ -63,7 +63,7 @@ export class DisposableContainer
     const oldDisposable = this._disposable
     this._disposable =
       disposable == undefined ? undefined : toDisposable(disposable)
-    if (oldDisposable !== undefined) {
+    if (oldDisposable !== undefined && oldDisposable !== this._disposable) {
       oldDisposable.dispose()
     }
   }

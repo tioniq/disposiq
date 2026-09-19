@@ -76,3 +76,28 @@ describe("safe", () => {
     expect(disposable.disposed).toBe(true)
   })
 })
+
+describe("safe async action disposal semantics", () => {
+  it("concurrent dispose calls wait for the same disposal", async () => {
+    let release: () => void
+    const gate = new Promise<void>((r) => {
+      release = r
+    })
+    const done = jest.fn()
+    const action = new SafeAsyncActionDisposable(async () => {
+      await gate
+      done()
+    })
+    const first = action.dispose()
+    let secondSettled = false
+    const second = action.dispose().then(() => {
+      secondSettled = true
+    })
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(secondSettled).toBe(false)
+    release()
+    await Promise.all([first, second])
+    expect(done).toHaveBeenCalledTimes(1)
+  })
+})

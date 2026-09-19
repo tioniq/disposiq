@@ -150,6 +150,21 @@ You can find a simple example [here](https://github.com/tioniq/disposiq/blob/mai
 Also, check out another project built with Disposiq: [Eventiq](https://www.npmjs.com/package/@tioniq/eventiq).
 It's an implementation of the Observer pattern using Disposiq. It's an interesting project worth exploring!
 
+## Disposal semantics
+
+The same rules hold for the sync and async classes:
+
+- Disposing more than once is safe; only the first call does the work.
+- `disposed` becomes `true` as soon as `dispose` (or `disposeSafely`) is called, before any async work has finished.
+  Anything added to a disposed store is disposed immediately.
+- Stores dispose their items in the order they were added.
+- Every item is disposed even if some of them throw. The error is rethrown afterwards; several errors are wrapped in
+  an `AggregateError`. The `disposeSafely` variants pass each error to the callback instead and never throw.
+- Async `dispose` calls made while a disposal is in progress return the same promise, so they wait for it to finish
+  (and reject if it fails). Calls made after it has finished resolve immediately.
+- After disposal the objects release what they hold (the stored items, the action callback), so a disposed object
+  that is still referenced does not keep them alive.
+
 ## Extensions
 
 The library is flexible and can be extended to custom functionality. All classes in the library extend the `Disposiq`

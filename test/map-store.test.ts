@@ -98,3 +98,29 @@ describe("map store", () => {
     store.delete("key")
   })
 })
+
+describe("map store disposal semantics", () => {
+  it("does not dispose a value that is set again for the same key", () => {
+    const store = new DisposableMapStore<string>()
+    const value = { dispose: jest.fn() }
+    store.set("a", value)
+    store.set("a", value)
+    expect(value.dispose).not.toHaveBeenCalled()
+    expect(store.get("a")).toBe(value)
+    store.dispose()
+    expect(value.dispose).toHaveBeenCalledTimes(1)
+  })
+  it("disposes the remaining values when one throws", () => {
+    const store = new DisposableMapStore<string>()
+    const after = { dispose: jest.fn() }
+    store.set("a", {
+      dispose: () => {
+        throw new Error("boom")
+      },
+    })
+    store.set("b", after)
+    expect(() => store.dispose()).toThrow("boom")
+    expect(after.dispose).toHaveBeenCalledTimes(1)
+    expect((store as unknown as { _map: Map<string, unknown> })._map.size).toBe(0)
+  })
+})

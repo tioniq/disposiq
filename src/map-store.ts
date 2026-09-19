@@ -1,5 +1,6 @@
 import { toDisposable } from "./aliases"
 import type { CanBeDisposable, DisposableAware, IDisposable, } from "./declarations"
+import { justDisposeAll } from "./dispose-batch"
 import { Disposiq } from "./disposiq"
 
 /**
@@ -24,7 +25,8 @@ export class DisposableMapStore<K> extends Disposiq implements DisposableAware {
   }
 
   /**
-   * Set a disposable value for the key. If the store contains a value for the key, the previous value will be disposed.
+   * Set a disposable value for the key. If the store contains a value for the key, the previous value will be disposed
+   * (unless it is the same value).
    * If the store is disposed, the value will be disposed immediately
    * @param key the key
    * @param value the disposable value
@@ -36,6 +38,9 @@ export class DisposableMapStore<K> extends Disposiq implements DisposableAware {
       return
     }
     const prev = this._map.get(key)
+    if (prev === disposable) {
+      return
+    }
     this._map.set(key, disposable)
     prev?.dispose()
   }
@@ -92,9 +97,8 @@ export class DisposableMapStore<K> extends Disposiq implements DisposableAware {
       return
     }
     this._disposed = true
-    for (const value of this._map.values()) {
-      value.dispose()
-    }
+    const values = Array.from(this._map.values())
     this._map.clear()
+    justDisposeAll(values)
   }
 }

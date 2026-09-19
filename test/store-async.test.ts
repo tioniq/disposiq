@@ -231,3 +231,116 @@ describe("async store", () => {
     await disposable.disposeSafely()
   })
 })
+
+describe("async store disposal semantics", () => {
+  function deferred() {
+    let resolve: () => void
+    const promise = new Promise<void>((r) => {
+      resolve = r
+    })
+    return { promise, resolve }
+  }
+
+  it("disposeSafely marks the store disposed synchronously", async () => {
+    const store = new AsyncDisposableStore()
+    const promise = store.disposeSafely()
+    expect(store.disposed).toBe(true)
+    await promise
+    const late = jest.fn()
+    await store.add(late)
+    expect(late).toHaveBeenCalledTimes(1)
+  })
+  it("disposeSafely does not dispose items twice", async () => {
+    const store = new AsyncDisposableStore()
+    const item = jest.fn()
+    store.add(item)
+    await store.disposeSafely()
+    await store.disposeSafely()
+    await store.dispose()
+    expect(item).toHaveBeenCalledTimes(1)
+  })
+  it("disposeSafely always returns a promise", async () => {
+    const store = new AsyncDisposableStore()
+    await store.dispose()
+    expect(store.disposeSafely()).toBeInstanceOf(Promise)
+  })
+  it("concurrent dispose calls wait for the same disposal", async () => {
+    const store = new AsyncDisposableStore()
+    const gate = deferred()
+    const done = jest.fn()
+    store.add(async () => {
+      await gate.promise
+      done()
+    })
+    const first = store.dispose()
+    const second = store.dispose()
+    const safe = store.disposeSafely()
+    let settled = false
+    second.then(() => {
+      settled = true
+    })
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(settled).toBe(false)
+    gate.resolve()
+    await Promise.all([first, second, safe])
+    expect(done).toHaveBeenCalledTimes(1)
+  })
+  it("disposes the remaining items when one rejects", async () => {
+    const store = new AsyncDisposableStore()
+    const error = new Error("boom")
+    const after = jest.fn()
+    store.add(
+      async () => {
+        throw error
+      },
+      after,
+    )
+    await expect(store.dispose()).rejects.toBe(error)
+    expect(after).toHaveBeenCalledTimes(1)
+    await expect(store.dispose()).resolves.toBeUndefined()
+  })
+  it("aggregates multiple disposal errors", async () => {
+    const store = new AsyncDisposableStore()
+    const e1 = new Error("1")
+    const e2 = new Error("2")
+    store.add(
+      () => {
+        throw e1
+      },
+      async () => {
+        throw e2
+      },
+    )
+    const error = await store.dispose().then(
+      (): unknown => undefined,
+      (e: unknown) => e,
+    )
+    expect((error as Error).name).toBe("AggregateError")
+    expect((error as { errors: unknown[] }).errors).toEqual([e1, e2])
+  })
+  it("disposeCurrent disposes the remaining items when one throws", async () => {
+    const store = new AsyncDisposableStore()
+    const after = jest.fn()
+    store.add(() => {
+      throw new Error("boom")
+    }, after)
+    await expect(store.disposeCurrent()).rejects.toThrow("boom")
+    expect(after).toHaveBeenCalledTimes(1)
+    expect(store.disposed).toBe(false)
+  })
+})
+
+describe("async store disposeSafely and dispose together", () => {
+  it("dispose during disposeSafely does not dispose items twice", async () => {
+    const store = new AsyncDisposableStore()
+    const item = jest.fn(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5))
+    })
+    store.add(item)
+    const safe = store.disposeSafely()
+    const plain = store.dispose()
+    await Promise.all([safe, plain])
+    expect(item).toHaveBeenCalledTimes(1)
+  })
+})

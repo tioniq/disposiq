@@ -8,6 +8,8 @@ import {
 } from "./dispose-batch"
 import { AsyncDisposiq } from "./disposiq"
 import { ObjectDisposedException } from "./exception"
+import { onSettled, resolvedPromise } from "./utils/disposing"
+import { noop } from "./utils/noop"
 
 /**
  * AsyncDisposableStore is a container for async disposables. It will dispose all added disposables when it is disposed.
@@ -28,7 +30,14 @@ export class AsyncDisposableStore
   private _disposed = false
 
   /**
-   * Returns true if the object has been disposed.
+   * The disposal in progress, shared by concurrent dispose/disposeSafely calls
+   * @internal
+   */
+  private _disposing: Promise<void> | undefined
+
+  /**
+   * Returns true if the object has been disposed. It becomes true as soon as dispose or disposeSafely is called,
+   * before the disposables have finished disposing.
    */
   get disposed(): boolean {
     return this._disposed
@@ -157,22 +166,45 @@ export class AsyncDisposableStore
   }
 
   /**
-   * Dispose all disposables in the store safely. The store becomes disposed.
+   * Dispose all disposables in the store safely. The store becomes disposed immediately. Errors are passed to the
+   * callback and never reject the returned promise. If a disposal is already in progress, the returned promise
+   * settles when it completes.
    * @param onErrorCallback an optional callback that is invoked if an error occurs during disposal
    */
   disposeSafely(onErrorCallback?: (e: unknown) => void): Promise<void> {
     if (this._disposed) {
-      return
-    }
-    return disposeAllSafelyAsync(this._disposables, onErrorCallback)
-  }
-
-  dispose(): Promise<void> {
-    if (this._disposed) {
-      return Promise.resolve()
+      const disposing = this._disposing
+      return disposing === undefined ? resolvedPromise : disposing.then(noop, noop)
     }
     this._disposed = true
-    return disposeAllUnsafeAsync(this._disposables)
+    return this._track(
+      disposeAllSafelyAsync(this._disposables, onErrorCallback),
+    )
+  }
+
+  /**
+   * Dispose the store and all disposables. The store becomes disposed immediately. Every disposable is disposed even
+   * if some of them reject; the returned promise then rejects with the error (several errors are wrapped in an
+   * AggregateError). Calls made while the disposal is in progress return the same promise, later calls resolve
+   * immediately.
+   */
+  dispose(): Promise<void> {
+    if (this._disposed) {
+      return this._disposing ?? resolvedPromise
+    }
+    this._disposed = true
+    return this._track(disposeAllUnsafeAsync(this._disposables))
+  }
+
+  /**
+   * @internal
+   */
+  private _track(promise: Promise<void>): Promise<void> {
+    const disposing = onSettled(promise, () => {
+      this._disposing = undefined
+    })
+    this._disposing = disposing
+    return disposing
   }
 
   /**

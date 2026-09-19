@@ -72,6 +72,20 @@ var AbortDisposable = class extends Disposiq {
   }
 };
 
+// src/utils/disposing.ts
+var resolvedPromise = Promise.resolve();
+function onSettled(promise, callback) {
+  return promise.then(callback, (e) => {
+    callback();
+    throw e;
+  });
+}
+function invokeAsync(action) {
+  return __async(this, null, function* () {
+    yield action();
+  });
+}
+
 // src/utils/noop.ts
 var noop = Object.freeze(() => {
 });
@@ -104,7 +118,9 @@ var DisposableAction = class extends Disposiq {
       return;
     }
     this._disposed = true;
-    this._action();
+    const action = this._action;
+    this._action = noop;
+    action();
   }
 };
 var AsyncDisposableAction = class extends AsyncDisposiq {
@@ -117,19 +133,29 @@ var AsyncDisposableAction = class extends AsyncDisposiq {
     this._action = typeof action === "function" ? action : noopAsync;
   }
   /**
-   * Returns true if the action has been disposed.
+   * Returns true if the action has been disposed. It becomes true as soon as dispose is called, before the action
+   * has completed.
    */
   get disposed() {
     return this._disposed;
   }
+  /**
+   * Dispose the action. The action is invoked once; calls made while it is running return the same promise (which
+   * rejects if the action fails), later calls resolve immediately.
+   */
   dispose() {
-    return __async(this, null, function* () {
-      if (this._disposed) {
-        return;
-      }
-      this._disposed = true;
-      yield this._action();
+    var _a;
+    if (this._disposed) {
+      return (_a = this._disposing) != null ? _a : resolvedPromise;
+    }
+    this._disposed = true;
+    const action = this._action;
+    this._action = noopAsync;
+    const disposing = onSettled(invokeAsync(action), () => {
+      this._disposing = void 0;
     });
+    this._disposing = disposing;
+    return disposing;
   }
 };
 
@@ -232,7 +258,7 @@ var DisposableContainer = class extends Disposiq {
     return this._disposable;
   }
   /**
-   * Set the new disposable and dispose the old one
+   * Set the new disposable and dispose the old one. Setting the current disposable again does not dispose it
    * @param disposable a new disposable to set
    */
   set(disposable) {
@@ -245,7 +271,7 @@ var DisposableContainer = class extends Disposiq {
     }
     const oldDisposable = this._disposable;
     this._disposable = disposable == void 0 ? void 0 : createDisposable(disposable);
-    if (oldDisposable !== void 0) {
+    if (oldDisposable !== void 0 && oldDisposable !== this._disposable) {
       oldDisposable.dispose();
     }
   }
@@ -362,6 +388,21 @@ function createDisposiqFrom(disposableLike) {
   return emptyDisposable;
 }
 
+// src/utils/errors.ts
+function throwCollected(errors) {
+  if (errors === void 0) {
+    return;
+  }
+  if (errors.length === 1) {
+    throw errors[0];
+  }
+  const aggregate = globalThis.AggregateError;
+  if (typeof aggregate === "function") {
+    throw new aggregate(errors, "Multiple errors occurred during disposal");
+  }
+  throw errors[0];
+}
+
 // src/utils/queue.ts
 var Node = class {
   constructor(value) {
@@ -469,6 +510,7 @@ var ObjectPool = class {
 // src/dispose-batch.ts
 var pool = new ObjectPool(10);
 var asyncPool = new ObjectPool(10);
+var maxPooledHolderLength = 1024;
 function justDispose(disposable) {
   if (!disposable) {
     return;
@@ -505,32 +547,60 @@ function justDisposeAsync(disposable) {
     }
   });
 }
-function justDisposeAll(disposables) {
-  for (let i = 0; i < disposables.length; ++i) {
+function disposeRange(disposables, length) {
+  let errors;
+  for (let i = 0; i < (length != null ? length : disposables.length); ++i) {
     const disposable = disposables[i];
     if (!disposable) {
       continue;
     }
-    if (typeof disposable === "function") {
-      disposable();
-    } else {
-      disposable.dispose();
+    try {
+      if (typeof disposable === "function") {
+        disposable();
+      } else {
+        disposable.dispose();
+      }
+    } catch (e) {
+      if (errors === void 0) {
+        errors = [e];
+      } else {
+        errors.push(e);
+      }
     }
   }
+  return errors;
 }
-function justDisposeAllAsync(disposables) {
+function disposeRangeAsync(disposables, length) {
   return __async(this, null, function* () {
-    for (let i = 0; i < disposables.length; ++i) {
+    let errors;
+    for (let i = 0; i < (length != null ? length : disposables.length); ++i) {
       const disposable = disposables[i];
       if (!disposable) {
         continue;
       }
-      if (typeof disposable === "function") {
-        yield disposable();
-      } else {
-        yield disposable.dispose();
+      try {
+        if (typeof disposable === "function") {
+          yield disposable();
+        } else {
+          yield disposable.dispose();
+        }
+      } catch (e) {
+        if (errors === void 0) {
+          errors = [e];
+        } else {
+          errors.push(e);
+        }
       }
     }
+    return errors;
+  });
+}
+function justDisposeAll(disposables) {
+  throwCollected(disposeRange(disposables));
+}
+function justDisposeAllAsync(disposables) {
+  return __async(this, null, function* () {
+    throwCollected(yield disposeRangeAsync(disposables));
   });
 }
 function disposeAll(disposables) {
@@ -550,25 +620,19 @@ function disposeAll(disposables) {
     holder[i] = disposables[i];
   }
   disposables.length = 0;
+  let errors;
   try {
-    for (let i = 0; i < size; ++i) {
-      const disposable = holder[i];
-      if (!disposable) {
-        continue;
-      }
-      if (typeof disposable === "function") {
-        disposable();
-      } else {
-        disposable.dispose();
-      }
-    }
+    errors = disposeRange(holder, size);
   } finally {
     holder.fill(void 0, 0, size);
-    if (pool.full) {
-      pool.size *= 2;
+    if (holder.length <= maxPooledHolderLength) {
+      if (pool.full) {
+        pool.size *= 2;
+      }
+      pool.throw(holder);
     }
-    pool.throw(holder);
   }
+  throwCollected(errors);
 }
 function disposeAllAsync(disposables) {
   return __async(this, null, function* () {
@@ -588,55 +652,39 @@ function disposeAllAsync(disposables) {
       holder[i] = disposables[i];
     }
     disposables.length = 0;
+    let errors;
     try {
-      for (let i = 0; i < size; ++i) {
-        const disposable = holder[i];
-        if (!disposable) {
-          continue;
-        }
-        if (typeof disposable === "function") {
-          yield disposable();
-        } else {
-          yield disposable.dispose();
-        }
-      }
+      errors = yield disposeRangeAsync(holder, size);
     } finally {
       holder.fill(void 0, 0, size);
-      if (asyncPool.full) {
-        asyncPool.size *= 2;
+      if (holder.length <= maxPooledHolderLength) {
+        if (asyncPool.full) {
+          asyncPool.size *= 2;
+        }
+        asyncPool.throw(holder);
       }
-      asyncPool.throw(holder);
     }
+    throwCollected(errors);
   });
 }
 function disposeAllUnsafe(disposables) {
-  for (let i = 0; i < disposables.length; ++i) {
-    const disposable = disposables[i];
-    if (!disposable) {
-      continue;
-    }
-    if (typeof disposable === "function") {
-      disposable();
-    } else {
-      disposable.dispose();
-    }
+  let errors;
+  try {
+    errors = disposeRange(disposables);
+  } finally {
+    disposables.length = 0;
   }
-  disposables.length = 0;
+  throwCollected(errors);
 }
 function disposeAllUnsafeAsync(disposables) {
   return __async(this, null, function* () {
-    for (let i = 0; i < disposables.length; ++i) {
-      const disposable = disposables[i];
-      if (!disposable) {
-        continue;
-      }
-      if (typeof disposable === "function") {
-        yield disposable();
-      } else {
-        yield disposable.dispose();
-      }
+    let errors;
+    try {
+      errors = yield disposeRangeAsync(disposables);
+    } finally {
+      disposables.length = 0;
     }
-    disposables.length = 0;
+    throwCollected(errors);
   });
 }
 function disposeAllSafely(disposables, onErrorCallback) {
@@ -718,7 +766,8 @@ var DisposableMapStore = class extends Disposiq {
     return this._disposed;
   }
   /**
-   * Set a disposable value for the key. If the store contains a value for the key, the previous value will be disposed.
+   * Set a disposable value for the key. If the store contains a value for the key, the previous value will be disposed
+   * (unless it is the same value).
    * If the store is disposed, the value will be disposed immediately
    * @param key the key
    * @param value the disposable value
@@ -730,6 +779,9 @@ var DisposableMapStore = class extends Disposiq {
       return;
     }
     const prev = this._map.get(key);
+    if (prev === disposable) {
+      return;
+    }
     this._map.set(key, disposable);
     prev == null ? void 0 : prev.dispose();
   }
@@ -782,10 +834,9 @@ var DisposableMapStore = class extends Disposiq {
       return;
     }
     this._disposed = true;
-    for (const value of this._map.values()) {
-      value.dispose();
-    }
+    const values = Array.from(this._map.values());
     this._map.clear();
+    justDisposeAll(values);
   }
 };
 
@@ -857,8 +908,10 @@ var SafeActionDisposable = class extends Disposiq {
       return;
     }
     this._disposed = true;
+    const action = this._action;
+    this._action = noop;
     try {
-      this._action();
+      action();
     } catch (e) {
       safeDisposableExceptionHandlerManager.handle(e);
     }
@@ -880,20 +933,28 @@ var SafeAsyncActionDisposable = class extends AsyncDisposiq {
     return this._disposed;
   }
   /**
-   * Dispose the action. If the action has already been disposed, this is a no-op.
+   * Dispose the action. If the action has already been disposed, this is a no-op. Calls made while the action is
+   * running return a promise that settles when it completes.
    */
   dispose() {
-    return __async(this, null, function* () {
-      if (this._disposed) {
-        return;
-      }
-      this._disposed = true;
-      try {
-        yield this._action();
-      } catch (e) {
+    var _a;
+    if (this._disposed) {
+      return (_a = this._disposing) != null ? _a : resolvedPromise;
+    }
+    this._disposed = true;
+    const action = this._action;
+    this._action = noopAsync;
+    const disposing = invokeAsync(action).then(
+      () => {
+        this._disposing = void 0;
+      },
+      (e) => {
+        this._disposing = void 0;
         safeDisposableExceptionHandlerManager.handle(e);
       }
-    });
+    );
+    this._disposing = disposing;
+    return disposing;
   }
 };
 
@@ -1020,8 +1081,15 @@ var DisposableStore = class _DisposableStore extends Disposiq {
    */
   addTimeout(callbackOrTimeout, timeout) {
     if (typeof callbackOrTimeout === "function") {
-      const handle = setTimeout(callbackOrTimeout, timeout);
-      this.addOne(() => clearTimeout(handle));
+      if (this._disposed) {
+        return;
+      }
+      const clear = () => clearTimeout(handle);
+      const handle = setTimeout(() => {
+        this.remove(clear);
+        callbackOrTimeout();
+      }, timeout);
+      this._disposables.push(clear);
       return;
     }
     this.addOne(() => clearTimeout(callbackOrTimeout));
@@ -1095,6 +1163,10 @@ var DisposableStore = class _DisposableStore extends Disposiq {
     this._disposed = true;
     disposeAllSafely(this._disposables, onErrorCallback);
   }
+  /**
+   * Dispose the store and all disposables in the order they were added. Every disposable is disposed even if some of
+   * them throw; the error is rethrown afterwards (several errors are wrapped in an AggregateError).
+   */
   dispose() {
     if (this._disposed) {
       return;
@@ -1128,7 +1200,8 @@ var AsyncDisposableStore = class _AsyncDisposableStore extends AsyncDisposiq {
     this._disposed = false;
   }
   /**
-   * Returns true if the object has been disposed.
+   * Returns true if the object has been disposed. It becomes true as soon as dispose or disposeSafely is called,
+   * before the disposables have finished disposing.
    */
   get disposed() {
     return this._disposed;
@@ -1221,21 +1294,44 @@ var AsyncDisposableStore = class _AsyncDisposableStore extends AsyncDisposiq {
     return disposeAllAsync(this._disposables);
   }
   /**
-   * Dispose all disposables in the store safely. The store becomes disposed.
+   * Dispose all disposables in the store safely. The store becomes disposed immediately. Errors are passed to the
+   * callback and never reject the returned promise. If a disposal is already in progress, the returned promise
+   * settles when it completes.
    * @param onErrorCallback an optional callback that is invoked if an error occurs during disposal
    */
   disposeSafely(onErrorCallback) {
     if (this._disposed) {
-      return;
-    }
-    return disposeAllSafelyAsync(this._disposables, onErrorCallback);
-  }
-  dispose() {
-    if (this._disposed) {
-      return Promise.resolve();
+      const disposing = this._disposing;
+      return disposing === void 0 ? resolvedPromise : disposing.then(noop, noop);
     }
     this._disposed = true;
-    return disposeAllUnsafeAsync(this._disposables);
+    return this._track(
+      disposeAllSafelyAsync(this._disposables, onErrorCallback)
+    );
+  }
+  /**
+   * Dispose the store and all disposables. The store becomes disposed immediately. Every disposable is disposed even
+   * if some of them reject; the returned promise then rejects with the error (several errors are wrapped in an
+   * AggregateError). Calls made while the disposal is in progress return the same promise, later calls resolve
+   * immediately.
+   */
+  dispose() {
+    var _a;
+    if (this._disposed) {
+      return (_a = this._disposing) != null ? _a : resolvedPromise;
+    }
+    this._disposed = true;
+    return this._track(disposeAllUnsafeAsync(this._disposables));
+  }
+  /**
+   * @internal
+   */
+  _track(promise) {
+    const disposing = onSettled(promise, () => {
+      this._disposing = void 0;
+    });
+    this._disposing = disposing;
+    return disposing;
   }
   static from(disposables, mapper) {
     if (typeof mapper === "function") {
@@ -1425,7 +1521,8 @@ function using(resource, action) {
     });
   }
   if (result instanceof Promise) {
-    return result.then((r) => runDispose(resource, () => r)).catch(
+    return result.then(
+      (r) => runDispose(resource, () => r),
       (e) => runDispose(resource, () => {
         throw e;
       })

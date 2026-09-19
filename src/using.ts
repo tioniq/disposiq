@@ -42,13 +42,14 @@ export function using<T extends IDisposable | IAsyncDisposable, R>(
     })
   }
   if (result instanceof Promise) {
-    return result
-      .then((r) => runDispose(resource, () => r))
-      .catch((e) =>
+    // a single then with both handlers, so a failing dispose is not followed by a second dispose
+    return result.then(
+      (r) => runDispose(resource, () => r),
+      (e) =>
         runDispose(resource, () => {
           throw e
         }),
-      )
+    )
   }
   return runDispose(resource, () => result)
 }

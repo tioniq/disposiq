@@ -115,3 +115,16 @@ describe("container", () => {
     container.dispose()
   })
 })
+
+describe("container disposal semantics", () => {
+  it("does not dispose the current disposable when it is set again", () => {
+    const container = new DisposableContainer()
+    const value = { dispose: jest.fn() }
+    container.set(value)
+    container.set(value)
+    expect(value.dispose).not.toHaveBeenCalled()
+    expect(container.disposable).toBe(value)
+    container.dispose()
+    expect(value.dispose).toHaveBeenCalledTimes(1)
+  })
+})

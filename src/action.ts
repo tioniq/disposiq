@@ -3,6 +3,7 @@ import type {
   DisposableAwareCompat,
   DisposeFunc,
 } from "./declarations"
+import { invokeAsync, onSettled, resolvedPromise } from "./utils/disposing"
 import { noop, noopAsync } from "./utils/noop"
 import { AsyncDisposiq, Disposiq } from "./disposiq"
 
@@ -23,7 +24,7 @@ export class DisposableAction
   /**
    * @internal
    */
-  private readonly _action: DisposeFunc
+  private _action: DisposeFunc
 
   /**
    * @internal
@@ -53,7 +54,10 @@ export class DisposableAction
       return
     }
     this._disposed = true
-    this._action()
+    const action = this._action
+    // release the closure, it may hold on to large objects
+    this._action = noop
+    action()
   }
 }
 
@@ -74,12 +78,18 @@ export class AsyncDisposableAction
   /**
    * @internal
    */
-  private readonly _action: () => Promise<void> | void
+  private _action: () => Promise<void> | void
 
   /**
    * @internal
    */
   private _disposed = false
+
+  /**
+   * The disposal in progress, shared by concurrent dispose calls
+   * @internal
+   */
+  private _disposing: Promise<void> | undefined
 
   constructor(action: () => Promise<void> | void) {
     super()
@@ -87,17 +97,29 @@ export class AsyncDisposableAction
   }
 
   /**
-   * Returns true if the action has been disposed.
+   * Returns true if the action has been disposed. It becomes true as soon as dispose is called, before the action
+   * has completed.
    */
   get disposed(): boolean {
     return this._disposed
   }
 
-  async dispose(): Promise<void> {
+  /**
+   * Dispose the action. The action is invoked once; calls made while it is running return the same promise (which
+   * rejects if the action fails), later calls resolve immediately.
+   */
+  dispose(): Promise<void> {
     if (this._disposed) {
-      return
+      return this._disposing ?? resolvedPromise
     }
     this._disposed = true
-    await this._action()
+    const action = this._action
+    // release the closure, it may hold on to large objects
+    this._action = noopAsync
+    const disposing = onSettled(invokeAsync(action), () => {
+      this._disposing = undefined
+    })
+    this._disposing = disposing
+    return disposing
   }
 }

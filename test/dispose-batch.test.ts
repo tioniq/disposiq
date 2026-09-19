@@ -7,6 +7,8 @@ import {
   disposeAllUnsafe,
   disposeAllUnsafeAsync,
   justDispose,
+  justDisposeAll,
+  justDisposeAllAsync,
   justDisposeAsync,
   justDisposeSafe,
 } from "../src"
@@ -284,5 +286,74 @@ describe("dispose-other", () => {
     expect(disposableFunc2).toHaveBeenCalledTimes(
       iCount2 * 19 + 1 + Math.floor((iCount2 * (iCount2 - 1)) / 2),
     )
+  })
+})
+
+describe("batch disposal errors", () => {
+  const throwing = (message: string) => () => {
+    throw new Error(message)
+  }
+  it.each([
+    ["justDisposeAll", (items: DisposableLike[]) => justDisposeAll(items)],
+    ["disposeAll", (items: DisposableLike[]) => disposeAll(items)],
+    ["disposeAllUnsafe", (items: DisposableLike[]) => disposeAllUnsafe(items)],
+  ])("%s disposes every item and clears the array", (name, run) => {
+    const after = jest.fn()
+    const items: DisposableLike[] = [throwing("boom"), after]
+    expect(() => run(items)).toThrow("boom")
+    expect(after).toHaveBeenCalledTimes(1)
+    if (name !== "justDisposeAll") {
+      expect(items.length).toBe(0)
+    }
+  })
+  it.each([
+    ["justDisposeAllAsync", (items: AsyncDisposableLike[]) => justDisposeAllAsync(items)],
+    ["disposeAllAsync", (items: AsyncDisposableLike[]) => disposeAllAsync(items)],
+    ["disposeAllUnsafeAsync", (items: AsyncDisposableLike[]) => disposeAllUnsafeAsync(items)],
+  ])("%s disposes every item and clears the array", async (name, run) => {
+    const after = jest.fn()
+    const items: AsyncDisposableLike[] = [
+      async () => {
+        throw new Error("boom")
+      },
+      after,
+    ]
+    await expect(run(items)).rejects.toThrow("boom")
+    expect(after).toHaveBeenCalledTimes(1)
+    if (name !== "justDisposeAllAsync") {
+      expect(items.length).toBe(0)
+    }
+  })
+})
+
+describe("batch disposal of large arrays", () => {
+  it("disposes arrays larger than the pooled buffer", async () => {
+    const fn = jest.fn()
+    disposeAll(new Array(2000).fill(fn))
+    await disposeAllAsync(new Array(2000).fill(fn))
+    expect(fn).toHaveBeenCalledTimes(4000)
+  })
+})
+
+describe("batch disposal errors without AggregateError", () => {
+  it("throws the first error", () => {
+    const g = globalThis as { AggregateError?: unknown }
+    const saved = g.AggregateError
+    g.AggregateError = undefined
+    try {
+      const e1 = new Error("1")
+      expect(() =>
+        disposeAllUnsafe([
+          () => {
+            throw e1
+          },
+          () => {
+            throw new Error("2")
+          },
+        ]),
+      ).toThrow(e1)
+    } finally {
+      g.AggregateError = saved
+    }
   })
 })

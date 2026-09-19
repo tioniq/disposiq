@@ -310,9 +310,14 @@ declare class DisposableAction extends Disposiq implements DisposableAwareCompat
 declare class AsyncDisposableAction extends AsyncDisposiq implements AsyncDisposableAwareCompat {
     constructor(action: () => Promise<void> | void);
     /**
-     * Returns true if the action has been disposed.
+     * Returns true if the action has been disposed. It becomes true as soon as dispose is called, before the action
+     * has completed.
      */
     get disposed(): boolean;
+    /**
+     * Dispose the action. The action is invoked once; calls made while it is running return the same promise (which
+     * rejects if the action fails), later calls resolve immediately.
+     */
     dispose(): Promise<void>;
 }
 
@@ -375,7 +380,7 @@ declare class DisposableContainer extends Disposiq implements DisposableAwareCom
      */
     get disposable(): IDisposable | undefined;
     /**
-     * Set the new disposable and dispose the old one
+     * Set the new disposable and dispose the old one. Setting the current disposable again does not dispose it
      * @param disposable a new disposable to set
      */
     set(disposable: CanBeDisposable | null | undefined): void;
@@ -442,33 +447,43 @@ declare function justDisposeSafe(disposable: DisposableLike | null | undefined, 
  */
 declare function justDisposeAsync(disposable: DisposableLike | AsyncDisposableLike | null | undefined): Promise<void>;
 /**
- * Dispose all disposables in the array. Will check each item for null or undefined
+ * Dispose all disposables in the array. Will check each item for null or undefined. Every item is disposed even if
+ * some of them throw; then the error is rethrown (several errors are wrapped in an AggregateError)
  * @param disposables an array of disposables
  */
 declare function justDisposeAll(disposables: (DisposableLike | null | undefined)[]): void;
 /**
- * Dispose all async disposables in the array. Will check each item for null or undefined
+ * Dispose all async disposables in the array. Will check each item for null or undefined. Every item is disposed even
+ * if some of them reject; then the promise rejects (several errors are wrapped in an AggregateError)
  * @param disposables an array of disposables
  * @returns a promise that resolves when all disposals are complete
  */
 declare function justDisposeAllAsync(disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[]): Promise<void>;
 /**
- * Dispose all disposables in the array safely. During the disposal process, the array is safe to modify
+ * Dispose all disposables in the array safely. During the disposal process, the array is safe to modify.
+ * Every item is disposed even if some of them throw; then the error is rethrown (several errors are wrapped in an
+ * AggregateError)
  * @param disposables an array of disposables
  */
 declare function disposeAll(disposables: (DisposableLike | null | undefined)[]): void;
 /**
- * Dispose all async disposables in the array safely. During the disposal process, the array is safe to modify
+ * Dispose all async disposables in the array safely. During the disposal process, the array is safe to modify.
+ * Every item is disposed even if some of them reject; then the promise rejects (several errors are wrapped in an
+ * AggregateError)
  * @param disposables an array of disposables
  */
 declare function disposeAllAsync(disposables: (DisposableLike | AsyncDisposableLike | null | undefined)[]): Promise<void>;
 /**
- * Dispose all disposables in the array unsafely. During the disposal process, the array is not safe to modify
+ * Dispose all disposables in the array unsafely. During the disposal process, the array is not safe to modify.
+ * Every item is disposed even if some of them throw; the array is cleared, then the error is rethrown (several errors
+ * are wrapped in an AggregateError)
  * @param disposables an array of disposables
  */
 declare function disposeAllUnsafe(disposables: (DisposableLike | null | undefined)[]): void;
 /**
- * Dispose all async disposables in the array unsafely. During the disposal process, the array is not safe to modify
+ * Dispose all async disposables in the array unsafely. During the disposal process, the array is not safe to modify.
+ * Every item is disposed even if some of them reject; the array is cleared, then the promise rejects (several errors
+ * are wrapped in an AggregateError)
  * @param disposables an array of disposables
  */
 declare function disposeAllUnsafeAsync(disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[]): Promise<void>;
@@ -520,7 +535,8 @@ declare class DisposableMapStore<K> extends Disposiq implements DisposableAware 
      */
     get disposed(): boolean;
     /**
-     * Set a disposable value for the key. If the store contains a value for the key, the previous value will be disposed.
+     * Set a disposable value for the key. If the store contains a value for the key, the previous value will be disposed
+     * (unless it is the same value).
      * If the store is disposed, the value will be disposed immediately
      * @param key the key
      * @param value the disposable value
@@ -612,7 +628,8 @@ declare class SafeAsyncActionDisposable extends AsyncDisposiq implements AsyncDi
      */
     get disposed(): boolean;
     /**
-     * Dispose the action. If the action has already been disposed, this is a no-op.
+     * Dispose the action. If the action has already been disposed, this is a no-op. Calls made while the action is
+     * running return a promise that settles when it completes.
      */
     dispose(): Promise<void>;
 }
@@ -703,6 +720,10 @@ declare class DisposableStore extends Disposiq implements IDisposablesContainer,
      * passed to the onErrorCallback.
      */
     disposeSafely(onErrorCallback?: (e: unknown) => void): void;
+    /**
+     * Dispose the store and all disposables in the order they were added. Every disposable is disposed even if some of
+     * them throw; the error is rethrown afterwards (several errors are wrapped in an AggregateError).
+     */
     dispose(): void;
     /**
      * Create a disposable store from an array of values. The values are mapped to disposables using the provided
@@ -726,7 +747,8 @@ declare class DisposableStore extends Disposiq implements IDisposablesContainer,
  */
 declare class AsyncDisposableStore extends AsyncDisposiq implements AsyncDisposableAwareCompat {
     /**
-     * Returns true if the object has been disposed.
+     * Returns true if the object has been disposed. It becomes true as soon as dispose or disposeSafely is called,
+     * before the disposables have finished disposing.
      */
     get disposed(): boolean;
     add(...disposables: (AsyncDisposableLike | DisposableLike | null | undefined)[]): void;
@@ -754,10 +776,18 @@ declare class AsyncDisposableStore extends AsyncDisposiq implements AsyncDisposa
      */
     disposeCurrent(): Promise<void>;
     /**
-     * Dispose all disposables in the store safely. The store becomes disposed.
+     * Dispose all disposables in the store safely. The store becomes disposed immediately. Errors are passed to the
+     * callback and never reject the returned promise. If a disposal is already in progress, the returned promise
+     * settles when it completes.
      * @param onErrorCallback an optional callback that is invoked if an error occurs during disposal
      */
     disposeSafely(onErrorCallback?: (e: unknown) => void): Promise<void>;
+    /**
+     * Dispose the store and all disposables. The store becomes disposed immediately. Every disposable is disposed even
+     * if some of them reject; the returned promise then rejects with the error (several errors are wrapped in an
+     * AggregateError). Calls made while the disposal is in progress return the same promise, later calls resolve
+     * immediately.
+     */
     dispose(): Promise<void>;
     /**
      * Create an async disposable store from an array of values. The values are mapped to disposables using the provided

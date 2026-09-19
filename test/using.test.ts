@@ -105,3 +105,26 @@ describe("using func", () => {
     expect(disposedFully).toBe(true)
   })
 })
+
+describe("using func disposal semantics", () => {
+  it("disposes once when an async action succeeds and dispose throws", async () => {
+    const error = new Error("dispose failed")
+    const resource = {
+      dispose: jest.fn(() => {
+        throw error
+      }),
+    }
+    await expect(using(resource, async () => 1)).rejects.toBe(error)
+    expect(resource.dispose).toHaveBeenCalledTimes(1)
+  })
+  it("disposes once when an async action succeeds and async dispose rejects", async () => {
+    const error = new Error("dispose failed")
+    const resource = {
+      dispose: jest.fn(async () => {
+        throw error
+      }),
+    }
+    await expect(using(resource, async () => 1)).rejects.toBe(error)
+    expect(resource.dispose).toHaveBeenCalledTimes(1)
+  })
+})

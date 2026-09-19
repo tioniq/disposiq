@@ -167,8 +167,16 @@ export class DisposableStore
     timeout?: number | undefined,
   ): void {
     if (typeof callbackOrTimeout === "function") {
-      const handle = setTimeout(callbackOrTimeout, timeout)
-      this.addOne(() => clearTimeout(handle))
+      if (this._disposed) {
+        return
+      }
+      const clear = () => clearTimeout(handle)
+      const handle = setTimeout(() => {
+        // a fired timeout no longer needs clearing, so it must not stay in the store
+        this.remove(clear)
+        callbackOrTimeout()
+      }, timeout)
+      this._disposables.push(clear)
       return
     }
     this.addOne(() => clearTimeout(callbackOrTimeout))
@@ -272,6 +280,10 @@ export class DisposableStore
     disposeAllSafely(this._disposables, onErrorCallback)
   }
 
+  /**
+   * Dispose the store and all disposables in the order they were added. Every disposable is disposed even if some of
+   * them throw; the error is rethrown afterwards (several errors are wrapped in an AggregateError).
+   */
   dispose(): void {
     if (this._disposed) {
       return
