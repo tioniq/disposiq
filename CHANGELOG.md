@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-09-20
+
+### Fixed
+
+- `AsyncDisposableStore.disposeSafely` did not mark the store as disposed: `disposed` stayed `false`, items added
+  afterwards were kept instead of disposed, and a `dispose()` call made while it was running disposed the same items a
+  second time. It also returned `undefined` instead of a
+  promise when the store was already disposed
+- `AsyncDisposableStore.dispose`, `AsyncDisposableAction.dispose` and `SafeAsyncActionDisposable.dispose`: a second call
+  made while the first disposal was still running resolved immediately. It now returns the in-progress promise, so it
+  waits for the disposal to finish
+- `using` with an async action disposed the resource a second time when the action succeeded and `dispose` threw
+- `DisposableStore.addTimeout(callback, ms)` kept an entry in the store for every timeout, even after it had fired, so a
+  long-lived store grew without bound
+- `DisposableAction`, `AsyncDisposableAction`, `SafeActionDisposable` and `SafeAsyncActionDisposable` kept their callback
+  (and everything it captured) after being disposed
+- `disposeAllUnsafe`, `disposeAllUnsafeAsync` and `DisposableMapStore.dispose` did not clear their items when one of them
+  threw, so the disposed items stayed referenced
+- `disposeAll` / `disposeAllAsync` (and `disposeCurrent`) no longer keep a very large internal buffer pooled after
+  disposing a large store
+
+### Changed
+
+- **Behaviour change:** when a disposable throws during disposal, the remaining ones are still disposed. Before, the
+  first error stopped the disposal and the rest were never disposed (the store was already marked disposed, so they
+  leaked). A single error is rethrown as is; several errors are wrapped in an `AggregateError`. Affects
+  `DisposableStore` and `AsyncDisposableStore` (`dispose`, `disposeCurrent`, `add*` on a disposed store),
+  `DisposableMapStore.dispose`, `Disposable.dispose`, and `disposeAll`, `disposeAllAsync`, `disposeAllUnsafe`,
+  `disposeAllUnsafeAsync`, `justDisposeAll`, `justDisposeAllAsync`
+- **Behaviour change:** setting the value that is already stored no longer disposes it: `DisposableContainer.set(x)`
+  when `x` is the current disposable, and `DisposableMapStore.set(key, x)` when `x` is already stored under `key`.
+  Before, the stored value was disposed while it stayed in the container
+- **Behaviour change:** an `AsyncDisposableAction` whose disposal fails now rejects every call made while it was running,
+  not only the first one
+- Documented the disposal semantics in the README
+
 ## [1.3.6] - 2025-12-04
 
 ### Changed
