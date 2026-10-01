@@ -1,4 +1,4 @@
-import { DisposableStore, type IDisposable } from "../src"
+import { DisposableStore, type IDisposable, TimeoutDisposable } from "../src"
 
 describe("store", () => {
   beforeEach(() => {
@@ -470,5 +470,179 @@ describe("store timeouts after dispose", () => {
     } finally {
       jest.useRealTimers()
     }
+  })
+})
+
+describe("store order", () => {
+  it("disposes in the order of addition by default", () => {
+    const store = new DisposableStore()
+    const log: string[] = []
+    store.add(() => log.push("a"), () => log.push("b"))
+    store.addOne(() => log.push("c"))
+    expect(store.order).toBe("fifo")
+    store.dispose()
+    expect(log).toEqual(["a", "b", "c"])
+  })
+  it("disposes in reverse order with lifo", () => {
+    const store = new DisposableStore({ order: "lifo" })
+    const log: string[] = []
+    store.add(() => log.push("a"), () => log.push("b"))
+    store.addOne(() => log.push("c"))
+    expect(store.order).toBe("lifo")
+    store.dispose()
+    expect(log).toEqual(["c", "b", "a"])
+  })
+  it("applies lifo to disposeCurrent and keeps the store usable", () => {
+    const store = new DisposableStore({ order: "lifo" })
+    const log: string[] = []
+    store.add(() => log.push("a"), () => log.push("b"))
+    store.disposeCurrent()
+    expect(log).toEqual(["b", "a"])
+    expect(store.disposed).toBe(false)
+    store.add(() => log.push("c"), () => log.push("d"))
+    store.dispose()
+    expect(log).toEqual(["b", "a", "d", "c"])
+  })
+  it("applies lifo to disposeSafely and still disposes past an error", () => {
+    const store = new DisposableStore({ order: "lifo" })
+    const log: string[] = []
+    const errors: unknown[] = []
+    store.add(
+      () => log.push("a"),
+      () => {
+        throw new Error("b")
+      },
+      () => log.push("c"),
+    )
+    store.disposeSafely((e) => errors.push(e))
+    expect(log).toEqual(["c", "a"])
+    expect(errors.map((e) => (e as Error).message)).toEqual(["b"])
+  })
+  it("rethrows the errors of a lifo dispose after disposing everything", () => {
+    const store = new DisposableStore({ order: "lifo" })
+    const log: string[] = []
+    store.add(
+      () => {
+        throw new Error("a")
+      },
+      () => log.push("b"),
+      () => {
+        throw new Error("c")
+      },
+    )
+    let thrown: unknown
+    try {
+      store.dispose()
+    } catch (e) {
+      thrown = e
+    }
+    expect(log).toEqual(["b"])
+    expect((thrown as { errors: Error[] }).errors.map((e) => e.message)).toEqual(["c", "a"])
+  })
+  it("disposes in reverse order at the end of a 'using' scope", () => {
+    const log: string[] = []
+    {
+      using store = new DisposableStore({ order: "lifo" })
+      store.add(() => log.push("a"), () => log.push("b"))
+    }
+    expect(log).toEqual(["b", "a"])
+  })
+})
+
+describe("store disposeCurrentSafely", () => {
+  it("passes errors to the callback and keeps the store usable", () => {
+    const store = new DisposableStore()
+    const after = jest.fn()
+    const errors: unknown[] = []
+    store.add(() => {
+      throw new Error("first")
+    }, after)
+    store.disposeCurrentSafely((e) => errors.push(e))
+    expect(after).toHaveBeenCalledTimes(1)
+    expect(errors.map((e) => (e as Error).message)).toEqual(["first"])
+    expect(store.disposed).toBe(false)
+    const next = jest.fn()
+    store.add(next)
+    store.dispose()
+    expect(next).toHaveBeenCalledTimes(1)
+    expect(after).toHaveBeenCalledTimes(1)
+  })
+  it("does not throw without a callback", () => {
+    const store = new DisposableStore()
+    store.add(() => {
+      throw new Error("ignored")
+    })
+    expect(() => store.disposeCurrentSafely()).not.toThrow()
+  })
+  it("keeps an item added during the disposal for the next round", () => {
+    const store = new DisposableStore()
+    const late = jest.fn()
+    store.add(() => store.add(late))
+    store.disposeCurrentSafely()
+    expect(late).not.toHaveBeenCalled()
+    store.dispose()
+    expect(late).toHaveBeenCalledTimes(1)
+  })
+  it("does nothing on a disposed store", () => {
+    const store = new DisposableStore()
+    store.dispose()
+    expect(() => store.disposeCurrentSafely()).not.toThrow()
+  })
+})
+
+describe("store timers", () => {
+  beforeEach(() => {
+    jest.useFakeTimers()
+  })
+  afterEach(() => {
+    jest.useRealTimers()
+  })
+  it("returns the timeout, which can be cleared on its own", () => {
+    const store = new DisposableStore()
+    const callback = jest.fn()
+    const timeout = store.addTimeout(callback, 10)
+    expect(timeout).toBeInstanceOf(TimeoutDisposable)
+    timeout.dispose()
+    jest.advanceTimersByTime(10)
+    expect(callback).not.toHaveBeenCalled()
+    expect((store as unknown as { _disposables: unknown[] })._disposables).toEqual([])
+  })
+  it("returns the interval, which can be cleared on its own", () => {
+    const store = new DisposableStore()
+    const callback = jest.fn()
+    const interval = store.addInterval(callback, 10)
+    jest.advanceTimersByTime(20)
+    interval.dispose()
+    jest.advanceTimersByTime(20)
+    expect(callback).toHaveBeenCalledTimes(2)
+    expect((store as unknown as { _disposables: unknown[] })._disposables).toEqual([])
+  })
+  it("clears the returned timers when the store is disposed", () => {
+    const store = new DisposableStore()
+    const timeout = store.addTimeout(jest.fn(), 10)
+    const interval = store.addInterval(jest.fn(), 10)
+    store.dispose()
+    expect(timeout.disposed).toBe(true)
+    expect(interval.disposed).toBe(true)
+  })
+  it("returns disposed timers from a disposed store", () => {
+    const store = new DisposableStore()
+    store.dispose()
+    const callback = jest.fn()
+    const timeout = store.addTimeout(callback, 10)
+    const interval = store.addInterval(callback, 10)
+    jest.advanceTimersByTime(20)
+    expect(callback).not.toHaveBeenCalled()
+    expect(timeout.disposed).toBe(true)
+    expect(interval.disposed).toBe(true)
+  })
+  it("passes the unref option to the timers", () => {
+    jest.useRealTimers()
+    const store = new DisposableStore()
+    const timeout = store.addTimeout(jest.fn(), 10_000, { unref: true })
+    const interval = store.addInterval(jest.fn(), 10_000, { unref: true })
+    expect((timeout as unknown as { _handle: NodeJS.Timeout })._handle.hasRef()).toBe(false)
+    expect((interval as unknown as { _handle: NodeJS.Timeout })._handle.hasRef()).toBe(false)
+    store.dispose()
   })
 })

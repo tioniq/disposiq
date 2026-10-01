@@ -144,3 +144,23 @@ class Subscription extends Disposable {
     super.throwIfDisposed(message)
   }
 }
+
+describe("disposable order", () => {
+  class Owner extends Disposable {}
+
+  it("disposes in the order of registration by default", () => {
+    const owner = new Owner()
+    const log: string[] = []
+    owner.addDisposables(() => log.push("a"), () => log.push("b"))
+    owner.dispose()
+    expect(log).toEqual(["a", "b"])
+  })
+  it("disposes in reverse order with lifo", () => {
+    const owner = new Owner({ order: "lifo" })
+    const log: string[] = []
+    owner.addDisposables(() => log.push("a"), () => log.push("b"))
+    owner.addDisposable(() => log.push("c"))
+    owner.dispose()
+    expect(log).toEqual(["c", "b", "a"])
+  })
+})

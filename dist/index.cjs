@@ -43,13 +43,17 @@ __export(index_exports, {
   AbortDisposable: () => AbortDisposable,
   ActionSafeDisposable: () => SafeActionDisposable,
   AsyncActionSafeDisposable: () => SafeAsyncActionDisposable,
+  AsyncDisposable: () => AsyncDisposable,
   AsyncDisposableAction: () => AsyncDisposableAction,
+  AsyncDisposableContainer: () => AsyncDisposableContainer,
+  AsyncDisposableMapStore: () => AsyncDisposableMapStore,
   AsyncDisposableStore: () => AsyncDisposableStore,
   AsyncDisposiq: () => AsyncDisposiq,
   BaseAsyncDisposable: () => AsyncDisposiq,
   BaseDisposable: () => Disposiq,
   BoolDisposable: () => BoolDisposable,
   BooleanDisposable: () => BoolDisposable,
+  CancellationToken: () => CancellationToken,
   CancellationTokenDisposable: () => CancellationTokenDisposable,
   CompositeAsyncDisposable: () => AsyncDisposableStore,
   CompositeDisposable: () => DisposableStore,
@@ -60,10 +64,13 @@ __export(index_exports, {
   DisposableMapStore: () => DisposableMapStore,
   DisposableStore: () => DisposableStore,
   Disposiq: () => Disposiq,
+  IntervalDisposable: () => IntervalDisposable,
   ObjectDisposedException: () => ObjectDisposedException,
+  OperationCancelledException: () => OperationCancelledException,
   SafeActionDisposable: () => SafeActionDisposable,
   SafeAsyncActionDisposable: () => SafeAsyncActionDisposable,
   SerialDisposable: () => DisposableContainer,
+  TimeoutDisposable: () => TimeoutDisposable,
   WeakRefDisposable: () => WeakRefDisposable,
   addEventListener: () => addEventListener,
   createCancellationTokenDisposable: () => disposableFromCancellationToken,
@@ -92,9 +99,12 @@ __export(index_exports, {
   justDisposeAllAsync: () => justDisposeAllAsync,
   justDisposeAsync: () => justDisposeAsync,
   justDisposeSafe: () => justDisposeSafe,
+  mergeTokens: () => mergeTokens,
   on: () => disposableFromEvent,
+  onCancel: () => onCancel,
   once: () => disposableFromEventOnce,
   safeDisposableExceptionHandlerManager: () => safeDisposableExceptionHandlerManager,
+  timeoutToken: () => timeoutToken,
   toDisposable: () => createDisposable,
   toDisposableCompat: () => createDisposableCompat,
   toDisposiq: () => createDisposiq,
@@ -263,6 +273,21 @@ var BoolDisposable = class extends Disposiq {
   }
 };
 
+// src/empty.ts
+var emptyPromise = Promise.resolve();
+var EmptyDisposable = class extends AsyncDisposiq {
+  dispose() {
+    return emptyPromise;
+  }
+  [Symbol.dispose]() {
+  }
+  [Symbol.asyncDispose]() {
+    return emptyPromise;
+  }
+};
+var emptyDisposableImpl = new EmptyDisposable();
+var emptyDisposable = Object.freeze(emptyDisposableImpl);
+
 // src/exception.ts
 var ObjectDisposedException = class extends Error {
   constructor(message) {
@@ -270,6 +295,267 @@ var ObjectDisposedException = class extends Error {
     this.name = "ObjectDisposedException";
   }
 };
+var OperationCancelledException = class extends Error {
+  constructor(message) {
+    super(message || "Operation cancelled");
+    this.name = "OperationCancelledException";
+  }
+};
+
+// src/is.ts
+function isDisposable(value) {
+  return typeof value === "object" && value !== null && typeof value.dispose === "function";
+}
+function isDisposableLike(value) {
+  return typeof value === "function" || typeof value === "object" && value !== null && typeof value.dispose === "function";
+}
+function isDisposableCompat(value) {
+  return typeof value === "object" && value !== null && typeof value.dispose === "function" && typeof value[Symbol.dispose] === "function";
+}
+function isAsyncDisposableCompat(value) {
+  return typeof value === "object" && value !== null && typeof value.dispose === "function" && typeof value[Symbol.asyncDispose] === "function";
+}
+function isSystemDisposable(value) {
+  return typeof value === "object" && value !== null && typeof value[Symbol.dispose] === "function";
+}
+function isSystemAsyncDisposable(value) {
+  return typeof value === "object" && value !== null && typeof value[Symbol.asyncDispose] === "function";
+}
+
+// src/utils/exception-handler-manager.ts
+var ExceptionHandlerManager = class {
+  /**
+   * Create a new ExceptionHandlerManager with the default handler
+   * @param defaultHandler the default handler. If not provided, the default handler will be a no-op
+   */
+  constructor(defaultHandler) {
+    this._handler = this._defaultHandler = typeof defaultHandler === "function" ? defaultHandler : noop;
+  }
+  /**
+   * Get the handler for the manager
+   */
+  get handler() {
+    return this._handler;
+  }
+  /**
+   * Set the handler for the manager
+   */
+  set handler(value) {
+    this._handler = typeof value === "function" ? value : this._defaultHandler;
+  }
+  /**
+   * Reset the handler to the default handler
+   */
+  reset() {
+    this._handler = this._defaultHandler;
+  }
+  /**
+   * Handle an exception
+   * @param error the exception to handle
+   */
+  handle(error) {
+    this._handler(error);
+  }
+  /**
+   * Handle an exception safely
+   * @param error the exception to handle
+   */
+  handleSafe(error) {
+    try {
+      this.handle(error);
+    } catch (_e) {
+    }
+  }
+};
+
+// src/safe.ts
+var safeDisposableExceptionHandlerManager = new ExceptionHandlerManager();
+var SafeActionDisposable = class extends Disposiq {
+  constructor(action) {
+    super();
+    /**
+     * @internal
+     */
+    this._disposed = false;
+    this._action = typeof action === "function" ? action : noop;
+  }
+  /**
+   * Returns true if the action has been disposed.
+   */
+  get disposed() {
+    return this._disposed;
+  }
+  dispose() {
+    if (this._disposed) {
+      return;
+    }
+    this._disposed = true;
+    const action = this._action;
+    this._action = noop;
+    try {
+      action();
+    } catch (e) {
+      safeDisposableExceptionHandlerManager.handle(e);
+    }
+  }
+};
+var SafeAsyncActionDisposable = class extends AsyncDisposiq {
+  constructor(action) {
+    super();
+    /**
+     * @internal
+     */
+    this._disposed = false;
+    this._action = typeof action === "function" ? action : noopAsync;
+  }
+  /**
+   * Returns true if the action has been disposed.
+   */
+  get disposed() {
+    return this._disposed;
+  }
+  /**
+   * Dispose the action. If the action has already been disposed, this is a no-op. Calls made while the action is
+   * running return a promise that settles when it completes.
+   */
+  dispose() {
+    var _a;
+    if (this._disposed) {
+      return (_a = this._disposing) != null ? _a : resolvedPromise;
+    }
+    this._disposed = true;
+    const action = this._action;
+    this._action = noopAsync;
+    const disposing = invokeAsync(action).then(
+      () => {
+        this._disposing = void 0;
+      },
+      (e) => {
+        this._disposing = void 0;
+        safeDisposableExceptionHandlerManager.handle(e);
+      }
+    );
+    this._disposing = disposing;
+    return disposing;
+  }
+};
+
+// src/timer.ts
+function callHandle(handle, method) {
+  const fn = handle[method];
+  if (typeof fn === "function") {
+    fn.call(handle);
+  }
+}
+var TimeoutDisposable = class extends Disposiq {
+  constructor(callback, ms, options) {
+    super();
+    /**
+     * @internal
+     */
+    this._disposed = false;
+    /**
+     * @internal
+     */
+    this._fired = false;
+    this._handle = setTimeout(() => {
+      this._fired = true;
+      this._disposed = true;
+      callback();
+    }, ms);
+    if (options == null ? void 0 : options.unref) {
+      callHandle(this._handle, "unref");
+    }
+  }
+  /**
+   * Returns true once the timeout has fired or has been disposed
+   */
+  get disposed() {
+    return this._disposed;
+  }
+  /**
+   * Returns true if the callback has been called
+   */
+  get fired() {
+    return this._fired;
+  }
+  /**
+   * Let the process exit while the timeout is pending (where the platform supports it)
+   */
+  unref() {
+    callHandle(this._handle, "unref");
+    return this;
+  }
+  /**
+   * Keep the process alive while the timeout is pending (the default)
+   */
+  ref() {
+    callHandle(this._handle, "ref");
+    return this;
+  }
+  dispose() {
+    if (this._disposed) {
+      return;
+    }
+    this._disposed = true;
+    clearTimeout(this._handle);
+  }
+};
+var IntervalDisposable = class extends Disposiq {
+  constructor(callback, ms, options) {
+    super();
+    /**
+     * @internal
+     */
+    this._disposed = false;
+    this._handle = setInterval(callback, ms);
+    if (options == null ? void 0 : options.unref) {
+      callHandle(this._handle, "unref");
+    }
+  }
+  /**
+   * Returns true if the interval has been disposed
+   */
+  get disposed() {
+    return this._disposed;
+  }
+  /**
+   * Let the process exit while the interval is running (where the platform supports it)
+   */
+  unref() {
+    callHandle(this._handle, "unref");
+    return this;
+  }
+  /**
+   * Keep the process alive while the interval is running (the default)
+   */
+  ref() {
+    callHandle(this._handle, "ref");
+    return this;
+  }
+  dispose() {
+    if (this._disposed) {
+      return;
+    }
+    this._disposed = true;
+    clearInterval(this._handle);
+  }
+};
+
+// src/utils/errors.ts
+function throwCollected(errors) {
+  if (errors === void 0) {
+    return;
+  }
+  if (errors.length === 1) {
+    throw errors[0];
+  }
+  const aggregate = globalThis.AggregateError;
+  if (typeof aggregate === "function") {
+    throw new aggregate(errors, "Multiple errors occurred during disposal");
+  }
+  throw errors[0];
+}
 
 // src/cancellation.ts
 function disposableFromCancellationToken(token) {
@@ -285,7 +571,7 @@ var CancellationTokenDisposable = class extends Disposiq {
     this._token = token;
     const isCancelledType = typeof token.isCancelled;
     if (isCancelledType === "function") {
-      this._disposedGetter = () => token.isCancelled();
+      this._disposedGetter = () => token.isCancelled.call(token);
     } else if (isCancelledType === "boolean") {
       this._disposedGetter = () => token.isCancelled;
     } else if (typeof token.onCancel === "function") {
@@ -317,6 +603,198 @@ var CancellationTokenDisposable = class extends Disposiq {
     this._token.cancel();
   }
 };
+var CancellationToken = class _CancellationToken extends Disposiq {
+  constructor() {
+    super(...arguments);
+    /**
+     * @internal
+     */
+    this._cancelled = false;
+    /**
+     * @internal
+     */
+    this._callbacks = [];
+  }
+  /**
+   * Create a token that is cancelled after the given time. Disposing the token clears the timer without cancelling
+   * it. An error thrown by a callback when the timer fires goes to {@link safeDisposableExceptionHandlerManager}.
+   * @param ms the time in milliseconds
+   * @param options timer options
+   */
+  static timeout(ms, options) {
+    const token = new _CancellationToken();
+    const timeout = new TimeoutDisposable(() => {
+      try {
+        token.cancel();
+      } catch (e) {
+        safeDisposableExceptionHandlerManager.handle(e);
+      }
+    }, ms, options);
+    token._detach = () => timeout.dispose();
+    return token;
+  }
+  /**
+   * Create a token that is cancelled when any of the given tokens is cancelled, or by its own `cancel()`. It is
+   * created cancelled if one of them is already cancelled. Disposing it unsubscribes it from the given tokens without
+   * cancelling it. Tokens without an `onCancel` method are only checked once, when the token is created.
+   * @param tokens the tokens to follow; null and undefined are skipped
+   */
+  static merge(...tokens) {
+    const token = new _CancellationToken();
+    for (let i = 0; i < tokens.length; i++) {
+      if (tokens[i] && isTokenCancelled(tokens[i])) {
+        token._cancelled = true;
+        return token;
+      }
+    }
+    const subscriptions = [];
+    let following = true;
+    const unsubscribe = () => {
+      following = false;
+      const current = subscriptions.splice(0);
+      for (let i = 0; i < current.length; i++) {
+        current[i]();
+      }
+    };
+    token._detach = unsubscribe;
+    const cancel = () => {
+      if (following) {
+        token.cancel();
+      }
+    };
+    for (let i = 0; i < tokens.length && !token._cancelled; i++) {
+      const parent = tokens[i];
+      if (!parent || typeof parent.onCancel !== "function") {
+        continue;
+      }
+      const subscription = parent.onCancel(cancel);
+      if (isDisposable(subscription)) {
+        subscriptions.push(() => subscription.dispose());
+      } else if (typeof parent.removeCallback === "function") {
+        subscriptions.push(() => parent.removeCallback(cancel));
+      }
+    }
+    if (token._cancelled) {
+      unsubscribe();
+    }
+    return token;
+  }
+  /**
+   * Returns true if the token has been cancelled
+   */
+  isCancelled() {
+    return this._cancelled;
+  }
+  /**
+   * Throw an {@link OperationCancelledException} if the token has been cancelled
+   * @param message the message to include in the exception
+   */
+  throwIfCancelled(message) {
+    if (this._cancelled) {
+      throw new OperationCancelledException(message);
+    }
+  }
+  /**
+   * Register a callback to call when the token is cancelled. On a cancelled token the callback is called at once.
+   * @param callback the callback
+   * @returns a disposable that unregisters the callback
+   */
+  onCancel(callback) {
+    if (this._cancelled) {
+      callback();
+      return emptyDisposable;
+    }
+    this._callbacks.push(callback);
+    return new DisposableAction(() => {
+      this.removeCallback(callback);
+    });
+  }
+  /**
+   * Unregister a callback registered with `onCancel`
+   * @param callback the callback
+   */
+  removeCallback(callback) {
+    const index = this._callbacks.indexOf(callback);
+    if (index !== -1) {
+      this._callbacks.splice(index, 1);
+    }
+  }
+  /**
+   * Cancel the token and call the registered callbacks in the order they were registered. Every callback is called
+   * even if some of them throw; the error is rethrown afterwards (several errors are wrapped in an AggregateError).
+   * Cancelling more than once is a no-op.
+   */
+  cancel() {
+    if (this._cancelled) {
+      return;
+    }
+    this._cancelled = true;
+    this._release();
+    const callbacks = this._callbacks;
+    this._callbacks = [];
+    let errors;
+    for (let i = 0; i < callbacks.length; i++) {
+      try {
+        callbacks[i]();
+      } catch (e) {
+        if (errors === void 0) {
+          errors = [e];
+        } else {
+          errors.push(e);
+        }
+      }
+    }
+    throwCollected(errors);
+  }
+  /**
+   * Detach the token from its timer or parent tokens without cancelling it. The token keeps its state and its
+   * callbacks, and `cancel()` still works.
+   */
+  dispose() {
+    this._release();
+  }
+  /**
+   * @internal
+   */
+  _release() {
+    const detach = this._detach;
+    if (detach === void 0) {
+      return;
+    }
+    this._detach = void 0;
+    detach();
+  }
+};
+function isTokenCancelled(token) {
+  const isCancelled = token.isCancelled;
+  if (typeof isCancelled === "function") {
+    return isCancelled.call(token);
+  }
+  return isCancelled === true;
+}
+function timeoutToken(ms, options) {
+  return CancellationToken.timeout(ms, options);
+}
+function mergeTokens(...tokens) {
+  return CancellationToken.merge(...tokens);
+}
+function onCancel(token, callback) {
+  let active = true;
+  const listener = () => {
+    if (active) {
+      callback();
+    }
+  };
+  const subscription = token.onCancel(listener);
+  return new DisposableAction(() => {
+    active = false;
+    if (isDisposable(subscription)) {
+      subscription.dispose();
+    } else if (typeof token.removeCallback === "function") {
+      token.removeCallback(listener);
+    }
+  });
+}
 
 // src/container.ts
 var DisposableContainer = class extends Disposiq {
@@ -400,21 +878,6 @@ var DisposableContainer = class extends Disposiq {
   }
 };
 
-// src/empty.ts
-var emptyPromise = Promise.resolve();
-var EmptyDisposable = class extends AsyncDisposiq {
-  dispose() {
-    return emptyPromise;
-  }
-  [Symbol.dispose]() {
-  }
-  [Symbol.asyncDispose]() {
-    return emptyPromise;
-  }
-};
-var emptyDisposableImpl = new EmptyDisposable();
-var emptyDisposable = Object.freeze(emptyDisposableImpl);
-
 // src/create.ts
 function createDisposable(disposableLike) {
   if (!disposableLike) {
@@ -469,21 +932,6 @@ function createDisposiqFrom(disposableLike) {
     return new CancellationTokenDisposable(disposableLike);
   }
   return emptyDisposable;
-}
-
-// src/utils/errors.ts
-function throwCollected(errors) {
-  if (errors === void 0) {
-    return;
-  }
-  if (errors.length === 1) {
-    throw errors[0];
-  }
-  const aggregate = globalThis.AggregateError;
-  if (typeof aggregate === "function") {
-    throw new aggregate(errors, "Multiple errors occurred during disposal");
-  }
-  throw errors[0];
 }
 
 // src/utils/queue.ts
@@ -786,7 +1234,7 @@ function disposeAllSafely(disposables, onErrorCallback) {
         disposable.dispose();
       }
     } catch (e) {
-      onErrorCallback == null ? void 0 : onErrorCallback(e);
+      reportError(onErrorCallback, e);
     }
   }
   disposables.length = 0;
@@ -808,11 +1256,21 @@ function disposeAllSafelyAsync(disposables, onErrorCallback) {
           yield disposable.dispose();
         }
       } catch (e) {
-        onErrorCallback == null ? void 0 : onErrorCallback(e);
+        reportError(onErrorCallback, e);
       }
     }
     disposables.length = 0;
   });
+}
+function reportError(onErrorCallback, error) {
+  if (!onErrorCallback) {
+    return;
+  }
+  try {
+    onErrorCallback(error);
+  } catch (e) {
+    safeDisposableExceptionHandlerManager.handle(e);
+  }
 }
 
 // src/event.ts
@@ -823,9 +1281,19 @@ function disposableFromEvent(emitter, event, listener) {
   });
 }
 function disposableFromEventOnce(emitter, event, listener) {
-  emitter.once(event, listener);
+  if (typeof emitter.once === "function") {
+    emitter.once(event, listener);
+    return new DisposableAction(() => {
+      emitter.off(event, listener);
+    });
+  }
+  const wrapper = ((...args) => {
+    emitter.off(event, wrapper);
+    return listener(...args);
+  });
+  emitter.on(event, wrapper);
   return new DisposableAction(() => {
-    emitter.off(event, listener);
+    emitter.off(event, wrapper);
   });
 }
 
@@ -847,6 +1315,12 @@ var DisposableMapStore = class extends Disposiq {
    */
   get disposed() {
     return this._disposed;
+  }
+  /**
+   * The number of values in the store
+   */
+  get size() {
+    return this._map.size;
   }
   /**
    * Set a disposable value for the key. If the store contains a value for the key, the previous value will be disposed
@@ -878,6 +1352,34 @@ var DisposableMapStore = class extends Disposiq {
       return;
     }
     return this._map.get(key);
+  }
+  /**
+   * Check whether the store has a value for the key
+   * @param key the key
+   */
+  has(key) {
+    return this._map.has(key);
+  }
+  /**
+   * The keys of the store, in insertion order
+   */
+  keys() {
+    return this._map.keys();
+  }
+  /**
+   * The values of the store, in insertion order
+   */
+  values() {
+    return this._map.values();
+  }
+  /**
+   * The key-value pairs of the store, in insertion order
+   */
+  entries() {
+    return this._map.entries();
+  }
+  [Symbol.iterator]() {
+    return this._map.entries();
   }
   /**
    * Delete the disposable value for the key
@@ -923,128 +1425,53 @@ var DisposableMapStore = class extends Disposiq {
   }
 };
 
-// src/utils/exception-handler-manager.ts
-var ExceptionHandlerManager = class {
-  /**
-   * Create a new ExceptionHandlerManager with the default handler
-   * @param defaultHandler the default handler. If not provided, the default handler will be a no-op
-   */
-  constructor(defaultHandler) {
-    this._handler = this._defaultHandler = typeof defaultHandler === "function" ? defaultHandler : noop;
-  }
-  /**
-   * Get the handler for the manager
-   */
-  get handler() {
-    return this._handler;
-  }
-  /**
-   * Set the handler for the manager
-   */
-  set handler(value) {
-    this._handler = typeof value === "function" ? value : this._defaultHandler;
-  }
-  /**
-   * Reset the handler to the default handler
-   */
-  reset() {
-    this._handler = this._defaultHandler;
-  }
-  /**
-   * Handle an exception
-   * @param error the exception to handle
-   */
-  handle(error) {
-    this._handler(error);
-  }
-  /**
-   * Handle an exception safely
-   * @param error the exception to handle
-   */
-  handleSafe(error) {
-    try {
-      this.handle(error);
-    } catch (_e) {
-    }
-  }
-};
-
-// src/safe.ts
-var safeDisposableExceptionHandlerManager = new ExceptionHandlerManager();
-var SafeActionDisposable = class extends Disposiq {
-  constructor(action) {
-    super();
-    /**
-     * @internal
-     */
-    this._disposed = false;
-    this._action = typeof action === "function" ? action : noop;
-  }
-  /**
-   * Returns true if the action has been disposed.
-   */
-  get disposed() {
-    return this._disposed;
+// src/utils/owned-timers.ts
+var OwnedTimeout = class extends TimeoutDisposable {
+  constructor(owner, callback, ms, options) {
+    super(() => {
+      owner.remove(this);
+      callback();
+    }, ms, options);
+    this._owner = owner;
   }
   dispose() {
-    if (this._disposed) {
-      return;
-    }
-    this._disposed = true;
-    const action = this._action;
-    this._action = noop;
-    try {
-      action();
-    } catch (e) {
-      safeDisposableExceptionHandlerManager.handle(e);
-    }
+    super.dispose();
+    this._owner.remove(this);
   }
 };
-var SafeAsyncActionDisposable = class extends AsyncDisposiq {
-  constructor(action) {
-    super();
-    /**
-     * @internal
-     */
-    this._disposed = false;
-    this._action = typeof action === "function" ? action : noopAsync;
+var OwnedInterval = class extends IntervalDisposable {
+  constructor(owner, callback, ms, options) {
+    super(callback, ms, options);
+    this._owner = owner;
   }
-  /**
-   * Returns true if the action has been disposed.
-   */
-  get disposed() {
-    return this._disposed;
-  }
-  /**
-   * Dispose the action. If the action has already been disposed, this is a no-op. Calls made while the action is
-   * running return a promise that settles when it completes.
-   */
   dispose() {
-    var _a;
-    if (this._disposed) {
-      return (_a = this._disposing) != null ? _a : resolvedPromise;
-    }
-    this._disposed = true;
-    const action = this._action;
-    this._action = noopAsync;
-    const disposing = invokeAsync(action).then(
-      () => {
-        this._disposing = void 0;
-      },
-      (e) => {
-        this._disposing = void 0;
-        safeDisposableExceptionHandlerManager.handle(e);
-      }
-    );
-    this._disposing = disposing;
-    return disposing;
+    super.dispose();
+    this._owner.remove(this);
   }
 };
+function createOwnedTimeout(owner, push, callback, ms, options) {
+  const timeout = new OwnedTimeout(owner, callback, ms, options);
+  if (owner.disposed) {
+    timeout.dispose();
+    return timeout;
+  }
+  push(timeout);
+  return timeout;
+}
+function createOwnedInterval(owner, push, callback, ms, options) {
+  const interval = new OwnedInterval(owner, callback, ms, options);
+  if (owner.disposed) {
+    interval.dispose();
+    return interval;
+  }
+  push(interval);
+  return interval;
+}
 
 // src/store.ts
 var DisposableStore = class _DisposableStore extends Disposiq {
-  constructor() {
-    super(...arguments);
+  constructor(options) {
+    super();
     /**
      * @internal
      */
@@ -1053,6 +1480,7 @@ var DisposableStore = class _DisposableStore extends Disposiq {
      * @internal
      */
     this._disposed = false;
+    this.order = (options == null ? void 0 : options.order) === "lifo" ? "lifo" : "fifo";
   }
   /**
    * Returns true if the object has been disposed.
@@ -1162,31 +1590,22 @@ var DisposableStore = class _DisposableStore extends Disposiq {
   /**
    * @internal
    */
-  addTimeout(callbackOrTimeout, timeout) {
+  addTimeout(callbackOrTimeout, timeout, options) {
     if (typeof callbackOrTimeout === "function") {
-      if (this._disposed) {
-        return;
-      }
-      const clear = () => clearTimeout(handle);
-      const handle = setTimeout(() => {
-        this.remove(clear);
-        callbackOrTimeout();
-      }, timeout);
-      this._disposables.push(clear);
-      return;
+      return createOwnedTimeout(this, (t) => this._disposables.push(t), callbackOrTimeout, timeout, options);
     }
     this.addOne(() => clearTimeout(callbackOrTimeout));
+    return void 0;
   }
   /**
    * @internal
    */
-  addInterval(callbackOrInterval, interval) {
+  addInterval(callbackOrInterval, interval, options) {
     if (typeof callbackOrInterval === "function") {
-      const handle = setInterval(callbackOrInterval, interval);
-      this.addOne(() => clearInterval(handle));
-      return;
+      return createOwnedInterval(this, (t) => this._disposables.push(t), callbackOrInterval, interval, options);
     }
     this.addOne(() => clearInterval(callbackOrInterval));
+    return void 0;
   }
   /**
    * Throw an exception if the object has been disposed.
@@ -1233,7 +1652,18 @@ var DisposableStore = class _DisposableStore extends Disposiq {
     if (this._disposed) {
       return;
     }
-    disposeAll(this._disposables);
+    disposeAll(this._ordered());
+  }
+  /**
+   * Dispose all disposables in the store like {@link disposeCurrent}, passing each error to the callback instead of
+   * throwing. The store does not become disposed.
+   * @param onErrorCallback an optional callback that is invoked if an error occurs during disposal
+   */
+  disposeCurrentSafely(onErrorCallback) {
+    if (this._disposed) {
+      return;
+    }
+    disposeAllSafely(this._ordered().splice(0), onErrorCallback);
   }
   /**
    * Dispose the store and all disposables safely. If an error occurs during disposal, the error is caught and
@@ -1244,10 +1674,10 @@ var DisposableStore = class _DisposableStore extends Disposiq {
       return;
     }
     this._disposed = true;
-    disposeAllSafely(this._disposables, onErrorCallback);
+    disposeAllSafely(this._ordered(), onErrorCallback);
   }
   /**
-   * Dispose the store and all disposables in the order they were added. Every disposable is disposed even if some of
+   * Dispose the store and all disposables in the store's {@link order}. Every disposable is disposed even if some of
    * them throw; the error is rethrown afterwards (several errors are wrapped in an AggregateError).
    */
   dispose() {
@@ -1255,7 +1685,14 @@ var DisposableStore = class _DisposableStore extends Disposiq {
       return;
     }
     this._disposed = true;
-    disposeAllUnsafe(this._disposables);
+    disposeAllUnsafe(this._ordered());
+  }
+  /**
+   * The items, arranged in the order they are disposed in
+   * @internal
+   */
+  _ordered() {
+    return this.order === "lifo" ? this._disposables.reverse() : this._disposables;
   }
   static from(disposables, mapper) {
     if (typeof mapper === "function") {
@@ -1271,8 +1708,8 @@ var DisposableStore = class _DisposableStore extends Disposiq {
 
 // src/store-async.ts
 var AsyncDisposableStore = class _AsyncDisposableStore extends AsyncDisposiq {
-  constructor() {
-    super(...arguments);
+  constructor(options) {
+    super();
     /**
      * @internal
      */
@@ -1281,6 +1718,8 @@ var AsyncDisposableStore = class _AsyncDisposableStore extends AsyncDisposiq {
      * @internal
      */
     this._disposed = false;
+    this.order = (options == null ? void 0 : options.order) === "lifo" ? "lifo" : "fifo";
+    this.serial = (options == null ? void 0 : options.serial) === true;
   }
   /**
    * Returns true if the object has been disposed. It becomes true as soon as dispose or disposeSafely is called,
@@ -1368,13 +1807,57 @@ var AsyncDisposableStore = class _AsyncDisposableStore extends AsyncDisposiq {
     }
   }
   /**
-   * Dispose all disposables in the store. The store does not become disposed.
+   * Add a timeout to the store. The store clears it when disposed, and it leaves the store once it has fired. If the
+   * store has already been disposed, the callback is never called.
+   * @param callback a callback to call when the timeout expires
+   * @param timeout the number of milliseconds to wait before calling the callback
+   * @param options timer options
+   * @returns the timeout; disposing it clears the timeout
+   */
+  addTimeout(callback, timeout, options) {
+    return createOwnedTimeout(this, (t) => this._disposables.push(t), callback, timeout, options);
+  }
+  /**
+   * Add an interval to the store. The store clears it when disposed. If the store has already been disposed, the
+   * interval is cleared at once.
+   * @param callback a callback to call when the interval expires
+   * @param interval the number of milliseconds to wait between calls to the callback
+   * @param options timer options
+   * @returns the interval; disposing it clears the interval
+   */
+  addInterval(callback, interval, options) {
+    return createOwnedInterval(this, (t) => this._disposables.push(t), callback, interval, options);
+  }
+  /**
+   * Dispose all disposables in the store. The store does not become disposed. Every disposable is disposed even if
+   * some of them reject; the returned promise then rejects with the error (several errors are wrapped in an
+   * AggregateError). On a serial store the round starts after the previous one has finished, and on a disposed
+   * serial store the returned promise settles when the disposal has finished.
    */
   disposeCurrent() {
     if (this._disposed) {
-      return Promise.resolve();
+      return this.serial ? this._whenDisposed() : Promise.resolve();
     }
-    return disposeAllAsync(this._disposables);
+    if (!this.serial) {
+      return disposeAllAsync(this._ordered());
+    }
+    const items = this._ordered().splice(0);
+    return this._enqueueRound(() => disposeAllUnsafeAsync(items));
+  }
+  /**
+   * Dispose all disposables in the store like {@link disposeCurrent}, passing each error to the callback instead of
+   * rejecting. The store does not become disposed.
+   * @param onErrorCallback an optional callback that is invoked if an error occurs during disposal
+   */
+  disposeCurrentSafely(onErrorCallback) {
+    if (this._disposed) {
+      return this.serial ? this._whenDisposed() : resolvedPromise;
+    }
+    const items = this._ordered().splice(0);
+    if (!this.serial) {
+      return disposeAllSafelyAsync(items, onErrorCallback);
+    }
+    return this._enqueueRound(() => disposeAllSafelyAsync(items, onErrorCallback));
   }
   /**
    * Dispose all disposables in the store safely. The store becomes disposed immediately. Errors are passed to the
@@ -1384,19 +1867,19 @@ var AsyncDisposableStore = class _AsyncDisposableStore extends AsyncDisposiq {
    */
   disposeSafely(onErrorCallback) {
     if (this._disposed) {
-      const disposing = this._disposing;
-      return disposing === void 0 ? resolvedPromise : disposing.then(noop, noop);
+      return this._whenDisposed();
     }
     this._disposed = true;
+    const items = this._ordered();
     return this._track(
-      disposeAllSafelyAsync(this._disposables, onErrorCallback)
+      this._afterRound(() => disposeAllSafelyAsync(items, onErrorCallback))
     );
   }
   /**
-   * Dispose the store and all disposables. The store becomes disposed immediately. Every disposable is disposed even
-   * if some of them reject; the returned promise then rejects with the error (several errors are wrapped in an
-   * AggregateError). Calls made while the disposal is in progress return the same promise, later calls resolve
-   * immediately.
+   * Dispose the store and all disposables in the store's {@link order}. The store becomes disposed immediately. Every
+   * disposable is disposed even if some of them reject; the returned promise then rejects with the error (several
+   * errors are wrapped in an AggregateError). Calls made while the disposal is in progress return the same promise,
+   * later calls resolve immediately. On a serial store the disposal starts after a `disposeCurrent` in progress.
    */
   dispose() {
     var _a;
@@ -1404,7 +1887,45 @@ var AsyncDisposableStore = class _AsyncDisposableStore extends AsyncDisposiq {
       return (_a = this._disposing) != null ? _a : resolvedPromise;
     }
     this._disposed = true;
-    return this._track(disposeAllUnsafeAsync(this._disposables));
+    const items = this._ordered();
+    return this._track(this._afterRound(() => disposeAllUnsafeAsync(items)));
+  }
+  /**
+   * The items, arranged in the order they are disposed in
+   * @internal
+   */
+  _ordered() {
+    return this.order === "lifo" ? this._disposables.reverse() : this._disposables;
+  }
+  /**
+   * Settles when the disposal has finished; never rejects
+   * @internal
+   */
+  _whenDisposed() {
+    const disposing = this._disposing;
+    return disposing === void 0 ? resolvedPromise : disposing.then(noop, noop);
+  }
+  /**
+   * Run the action once the latest disposeCurrent round has finished (at once if there is none)
+   * @internal
+   */
+  _afterRound(action) {
+    const previous = this._round;
+    return previous === void 0 ? action() : previous.then(action);
+  }
+  /**
+   * @internal
+   */
+  _enqueueRound(action) {
+    const round = this._afterRound(action);
+    const settled = round.then(noop, noop);
+    this._round = settled;
+    settled.then(() => {
+      if (this._round === settled) {
+        this._round = void 0;
+      }
+    });
+    return round;
   }
   /**
    * @internal
@@ -1428,14 +1949,127 @@ var AsyncDisposableStore = class _AsyncDisposableStore extends AsyncDisposiq {
   }
 };
 
-// src/disposable.ts
-var Disposable = class extends Disposiq {
-  constructor() {
-    super(...arguments);
+// src/container-async.ts
+var AsyncDisposableContainer = class extends AsyncDisposiq {
+  constructor(disposable = void 0) {
+    super();
+    /**
+     * Disposals of replaced values that are still in progress; they never reject
+     * @internal
+     */
+    this._releasing = /* @__PURE__ */ new Set();
     /**
      * @internal
      */
-    this._store = new DisposableStore();
+    this._disposed = false;
+    this._disposable = disposable == void 0 ? void 0 : disposable;
+  }
+  /**
+   * Returns true if the container is disposed. It becomes true as soon as dispose is called, before the current value
+   * has finished disposing.
+   */
+  get disposed() {
+    return this._disposed;
+  }
+  /**
+   * Returns the current disposable object
+   */
+  get disposable() {
+    return this._disposable;
+  }
+  /**
+   * Set the new disposable and dispose the old one. Setting the current disposable again does not dispose it. If the
+   * container is disposed, the new disposable is disposed instead.
+   * @param disposable a new disposable to set
+   * @returns a promise that settles when the old (or rejected) disposable has been disposed, and rejects if that fails
+   */
+  set(disposable) {
+    const value = disposable == void 0 ? void 0 : disposable;
+    if (this._disposed) {
+      return value === void 0 ? resolvedPromise : this._release(value);
+    }
+    const prev = this._disposable;
+    this._disposable = value;
+    return prev === void 0 || prev === value ? resolvedPromise : this._release(prev);
+  }
+  /**
+   * Replace the disposable with a new one. Does not dispose the old one. If the container is disposed, the new
+   * disposable is disposed, and an error of that disposal goes to {@link safeDisposableExceptionHandlerManager}
+   * @param disposable a new disposable to replace the old one
+   * @returns the old disposable object or undefined if the container is disposed
+   */
+  replace(disposable) {
+    const value = disposable == void 0 ? void 0 : disposable;
+    if (this._disposed) {
+      if (value !== void 0) {
+        this._release(value).then(
+          void 0,
+          (e) => safeDisposableExceptionHandlerManager.handle(e)
+        );
+      }
+      return void 0;
+    }
+    const prev = this._disposable;
+    this._disposable = value;
+    return prev;
+  }
+  /**
+   * Dispose only the current disposable object, leaving the container empty and usable
+   * @returns a promise that settles when the disposable has been disposed, and rejects if that fails
+   */
+  disposeCurrent() {
+    const disposable = this._disposable;
+    if (disposable === void 0) {
+      return resolvedPromise;
+    }
+    this._disposable = void 0;
+    return this._release(disposable);
+  }
+  /**
+   * Dispose the container and the current disposable, after the disposals of replaced values that are already in
+   * progress. The returned promise rejects if disposing the current disposable fails. Calls made while the disposal is
+   * in progress return the same promise, later calls resolve immediately.
+   */
+  dispose() {
+    var _a;
+    if (this._disposed) {
+      return (_a = this._disposing) != null ? _a : resolvedPromise;
+    }
+    this._disposed = true;
+    const disposable = this._disposable;
+    this._disposable = void 0;
+    const running = Array.from(this._releasing);
+    const disposing = onSettled(
+      Promise.all(running).then(() => justDisposeAsync(disposable)),
+      () => {
+        this._disposing = void 0;
+      }
+    );
+    this._disposing = disposing;
+    return disposing;
+  }
+  /**
+   * @internal
+   */
+  _release(value) {
+    const release = justDisposeAsync(value);
+    const settled = release.then(noop, noop);
+    this._releasing.add(settled);
+    settled.then(() => {
+      this._releasing.delete(settled);
+    });
+    return release;
+  }
+};
+
+// src/disposable.ts
+var Disposable = class extends Disposiq {
+  /**
+   * @param options the order in which the registered disposables are disposed; `fifo` by default
+   */
+  constructor(options) {
+    super();
+    this._store = new DisposableStore(options);
   }
   /**
    * Returns true if the object has been disposed.
@@ -1491,6 +2125,114 @@ var Disposable = class extends Disposiq {
   }
   dispose() {
     this._store.dispose();
+  }
+};
+
+// src/disposable-async.ts
+var AsyncDisposable = class extends AsyncDisposiq {
+  constructor(options) {
+    super();
+    this._store = new AsyncDisposableStore({ order: options == null ? void 0 : options.order });
+    this._onError = options == null ? void 0 : options.onError;
+  }
+  /**
+   * Returns true if the object has been disposed. It becomes true as soon as dispose is called, before the registered
+   * disposables have finished disposing.
+   */
+  get disposed() {
+    return this._store.disposed;
+  }
+  /**
+   * Register a disposable object. The object will be disposed when the current object is disposed. If the current
+   * object has already been disposed, the disposable is disposed at once.
+   * @param t a disposable object
+   * @protected inherited classes should use this method to register disposables
+   * @returns the disposable object
+   */
+  register(t) {
+    this._settleLate(this._store.addOne(t));
+    return t;
+  }
+  /**
+   * Wait for the disposable and register it. If the current object is disposed in the meantime, the disposable is
+   * disposed as soon as it arrives, and the returned promise still resolves with it.
+   * @param promiseOrAction a disposable, a promise of one, or a function that returns either
+   * @returns the disposable object
+   */
+  registerAsync(promiseOrAction) {
+    return __async(this, null, function* () {
+      const disposable = typeof promiseOrAction === "function" ? yield promiseOrAction() : yield promiseOrAction;
+      return this.register(disposable);
+    });
+  }
+  /**
+   * Throw an exception if the object has been disposed.
+   * @param message the message to include in the exception
+   */
+  throwIfDisposed(message) {
+    this._store.throwIfDisposed(message);
+  }
+  /**
+   * Start a timeout that is cleared when the object is disposed. It is released once it has fired.
+   * @param callback a callback to call when the timeout expires
+   * @param timeout the number of milliseconds to wait before calling the callback
+   * @param options timer options
+   * @returns the timeout; disposing it clears the timeout
+   */
+  addTimeout(callback, timeout, options) {
+    return this._store.addTimeout(callback, timeout, options);
+  }
+  /**
+   * Start an interval that is cleared when the object is disposed.
+   * @param callback a callback to call when the interval expires
+   * @param interval the number of milliseconds to wait between calls to the callback
+   * @param options timer options
+   * @returns the interval; disposing it clears the interval
+   */
+  addInterval(callback, interval, options) {
+    return this._store.addInterval(callback, interval, options);
+  }
+  /**
+   * Add a disposable, or a function (sync or async) to call on dispose. If the object has already been disposed, it is
+   * disposed at once.
+   * @param disposable a disposable to add
+   */
+  addDisposable(disposable) {
+    this._settleLate(this._store.addOne(disposable));
+  }
+  /**
+   * Add disposables. If the object has already been disposed, they are disposed at once.
+   * @param disposables disposables to add
+   */
+  addDisposables(...disposables) {
+    this._settleLate(this._store.addAll(disposables));
+  }
+  /**
+   * Dispose everything registered, one after another. Every disposable is disposed even if some of them reject; the
+   * errors go to the `onError` option, or reject the returned promise without it (several errors are wrapped in an
+   * AggregateError). Calls made while the disposal is in progress return a promise that settles with it.
+   */
+  dispose() {
+    const onError = this._onError;
+    return onError === void 0 ? this._store.dispose() : this._store.disposeSafely(onError);
+  }
+  /**
+   * Nobody awaits the disposal of something registered after the object was disposed, so its error goes to the
+   * `onError` option, or to {@link safeDisposableExceptionHandlerManager} without it
+   * @internal
+   */
+  _settleLate(disposal) {
+    if (!(disposal instanceof Promise)) {
+      return;
+    }
+    disposal.then(void 0, (e) => {
+      const onError = this._onError;
+      if (onError === void 0) {
+        safeDisposableExceptionHandlerManager.handle(e);
+      } else {
+        onError(e);
+      }
+    });
   }
 };
 
@@ -1573,25 +2315,155 @@ AsyncDisposiq.prototype.toSafe = function(errorCallback) {
   }();
 };
 
-// src/is.ts
-function isDisposable(value) {
-  return typeof value === "object" && value !== null && typeof value.dispose === "function";
-}
-function isDisposableLike(value) {
-  return typeof value === "function" || typeof value === "object" && value !== null && typeof value.dispose === "function";
-}
-function isDisposableCompat(value) {
-  return typeof value === "object" && value !== null && typeof value.dispose === "function" && typeof value[Symbol.dispose] === "function";
-}
-function isAsyncDisposableCompat(value) {
-  return typeof value === "object" && value !== null && typeof value.dispose === "function" && typeof value[Symbol.asyncDispose] === "function";
-}
-function isSystemDisposable(value) {
-  return typeof value === "object" && value !== null && typeof value[Symbol.dispose] === "function";
-}
-function isSystemAsyncDisposable(value) {
-  return typeof value === "object" && value !== null && typeof value[Symbol.asyncDispose] === "function";
-}
+// src/map-store-async.ts
+var AsyncDisposableMapStore = class extends AsyncDisposiq {
+  constructor() {
+    super(...arguments);
+    /**
+     * @internal
+     */
+    this._map = /* @__PURE__ */ new Map();
+    /**
+     * Disposals of replaced or deleted values that are still in progress; they never reject
+     * @internal
+     */
+    this._releasing = /* @__PURE__ */ new Set();
+    /**
+     * @internal
+     */
+    this._disposed = false;
+  }
+  /**
+   * Returns true if the store has been disposed. It becomes true as soon as dispose is called, before the values have
+   * finished disposing.
+   */
+  get disposed() {
+    return this._disposed;
+  }
+  /**
+   * The number of values in the store
+   */
+  get size() {
+    return this._map.size;
+  }
+  /**
+   * Get the value for the key
+   * @param key the key
+   * @returns the value or undefined if the key is not found
+   */
+  get(key) {
+    return this._map.get(key);
+  }
+  /**
+   * Check whether the store has a value for the key
+   * @param key the key
+   */
+  has(key) {
+    return this._map.has(key);
+  }
+  /**
+   * The keys of the store, in insertion order
+   */
+  keys() {
+    return this._map.keys();
+  }
+  /**
+   * The values of the store, in insertion order
+   */
+  values() {
+    return this._map.values();
+  }
+  /**
+   * The key-value pairs of the store, in insertion order
+   */
+  entries() {
+    return this._map.entries();
+  }
+  [Symbol.iterator]() {
+    return this._map.entries();
+  }
+  /**
+   * Set the value for the key. The value it replaces (unless it is the same value) is disposed. If the store is
+   * disposed, the value is disposed instead.
+   * @param key the key
+   * @param value the value
+   * @returns a promise that settles when the replaced (or rejected) value has been disposed, and rejects if that fails
+   */
+  set(key, value) {
+    if (this._disposed) {
+      return this._release(value);
+    }
+    const prev = this._map.get(key);
+    this._map.set(key, value);
+    return prev === void 0 || prev === value ? resolvedPromise : this._release(prev);
+  }
+  /**
+   * Delete the value for the key and dispose it
+   * @param key the key
+   * @returns a promise that resolves with true once the value has been disposed, or with false if the key is not
+   * found; it rejects if the disposal fails
+   */
+  delete(key) {
+    return __async(this, null, function* () {
+      const value = this._map.get(key);
+      if (value === void 0) {
+        return false;
+      }
+      this._map.delete(key);
+      yield this._release(value);
+      return true;
+    });
+  }
+  /**
+   * Remove the value for the key and return it. The value is not disposed
+   * @param key the key
+   * @returns the value or undefined if the key is not found
+   */
+  extract(key) {
+    const value = this._map.get(key);
+    if (value === void 0) {
+      return void 0;
+    }
+    this._map.delete(key);
+    return value;
+  }
+  /**
+   * Dispose the store and every value, in insertion order, after the disposals of replaced or deleted values that are
+   * already in progress. Every value is disposed even if some of them reject; the returned promise then rejects with
+   * the error (several errors are wrapped in an AggregateError). Calls made while the disposal is in progress return
+   * the same promise, later calls resolve immediately.
+   */
+  dispose() {
+    var _a;
+    if (this._disposed) {
+      return (_a = this._disposing) != null ? _a : resolvedPromise;
+    }
+    this._disposed = true;
+    const values = Array.from(this._map.values());
+    this._map.clear();
+    const running = Array.from(this._releasing);
+    const disposing = onSettled(
+      Promise.all(running).then(() => justDisposeAllAsync(values)),
+      () => {
+        this._disposing = void 0;
+      }
+    );
+    this._disposing = disposing;
+    return disposing;
+  }
+  /**
+   * @internal
+   */
+  _release(value) {
+    const release = justDisposeAsync(value);
+    const settled = release.then(noop, noop);
+    this._releasing.add(settled);
+    settled.then(() => {
+      this._releasing.delete(settled);
+    });
+    return release;
+  }
+};
 
 // src/using.ts
 function using(resource, action) {
@@ -1648,13 +2520,17 @@ var WeakRefDisposable = class extends Disposiq {
   AbortDisposable,
   ActionSafeDisposable,
   AsyncActionSafeDisposable,
+  AsyncDisposable,
   AsyncDisposableAction,
+  AsyncDisposableContainer,
+  AsyncDisposableMapStore,
   AsyncDisposableStore,
   AsyncDisposiq,
   BaseAsyncDisposable,
   BaseDisposable,
   BoolDisposable,
   BooleanDisposable,
+  CancellationToken,
   CancellationTokenDisposable,
   CompositeAsyncDisposable,
   CompositeDisposable,
@@ -1665,10 +2541,13 @@ var WeakRefDisposable = class extends Disposiq {
   DisposableMapStore,
   DisposableStore,
   Disposiq,
+  IntervalDisposable,
   ObjectDisposedException,
+  OperationCancelledException,
   SafeActionDisposable,
   SafeAsyncActionDisposable,
   SerialDisposable,
+  TimeoutDisposable,
   WeakRefDisposable,
   addEventListener,
   createCancellationTokenDisposable,
@@ -1697,9 +2576,12 @@ var WeakRefDisposable = class extends Disposiq {
   justDisposeAllAsync,
   justDisposeAsync,
   justDisposeSafe,
+  mergeTokens,
   on,
+  onCancel,
   once,
   safeDisposableExceptionHandlerManager,
+  timeoutToken,
   toDisposable,
   toDisposableCompat,
   toDisposiq,

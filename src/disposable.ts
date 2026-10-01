@@ -1,6 +1,11 @@
 import type { DisposableCompat, DisposableLike, IDisposable, } from "./declarations"
 import { Disposiq } from "./disposiq"
-import { DisposableStore } from "./store"
+import { DisposableStore, type DisposableStoreOptions } from "./store"
+
+/**
+ * Options of a {@link Disposable}
+ */
+export type DisposableOptions = DisposableStoreOptions
 
 /**
  * Disposable is a base class for disposables. It will dispose all added disposables when it is disposed.
@@ -9,7 +14,15 @@ export abstract class Disposable extends Disposiq implements DisposableCompat {
   /**
    * @internal
    */
-  private readonly _store = new DisposableStore()
+  private readonly _store: DisposableStore
+
+  /**
+   * @param options the order in which the registered disposables are disposed; `fifo` by default
+   */
+  constructor(options?: DisposableOptions) {
+    super()
+    this._store = new DisposableStore(options)
+  }
 
   /**
    * Returns true if the object has been disposed.

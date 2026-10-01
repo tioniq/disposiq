@@ -1,8 +1,25 @@
 import { disposeAllSafe } from "./aliases"
-import type { DisposableAwareCompat, DisposableLike, IDisposablesContainer, } from "./declarations"
+import type {
+  DisposableAwareCompat,
+  DisposableLike,
+  DisposalOrder,
+  IDisposablesContainer,
+} from "./declarations"
 import { disposeAllSafely, disposeAllUnsafe, justDispose, justDisposeAll, justDisposeSafe, } from "./dispose-batch"
 import { Disposiq } from "./disposiq"
 import { ObjectDisposedException } from "./exception"
+import type { IntervalDisposable, TimeoutDisposable, TimerOptions } from "./timer"
+import { createOwnedInterval, createOwnedTimeout } from "./utils/owned-timers"
+
+/**
+ * Options of a disposable store
+ */
+export interface DisposableStoreOptions {
+  /**
+   * The order in which the store disposes its items. Defaults to `fifo`, the order they were added.
+   */
+  order?: DisposalOrder
+}
 
 /**
  * DisposableStore is a container for disposables. It will dispose all added disposables when it is disposed.
@@ -21,6 +38,16 @@ export class DisposableStore
    * @internal
    */
   private _disposed = false
+
+  /**
+   * The order in which the store disposes its items
+   */
+  readonly order: DisposalOrder
+
+  constructor(options?: DisposableStoreOptions) {
+    super()
+    this.order = options?.order === "lifo" ? "lifo" : "fifo"
+  }
 
   /**
    * Returns true if the object has been disposed.
@@ -147,11 +174,14 @@ export class DisposableStore
   }
 
   /**
-   * Add a timeout to the store. If the store has already been disposed, the timeout will be cleared.
+   * Add a timeout to the store. The store clears it when disposed, and it leaves the store once it has fired. If the
+   * store has already been disposed, the callback is never called.
    * @param callback a callback to call when the timeout expires
    * @param timeout the number of milliseconds to wait before calling the callback
+   * @param options timer options
+   * @returns the timeout; disposing it clears the timeout
    */
-  addTimeout(callback: () => void, timeout: number): void
+  addTimeout(callback: () => void, timeout: number, options?: TimerOptions): TimeoutDisposable
 
   /**
    * Add a timeout to the store. If the store has already been disposed, the timeout will be cleared.
@@ -165,29 +195,23 @@ export class DisposableStore
   addTimeout(
     callbackOrTimeout: (() => void) | ReturnType<typeof setTimeout> | number,
     timeout?: number | undefined,
-  ): void {
+    options?: TimerOptions,
+  ): TimeoutDisposable | undefined {
     if (typeof callbackOrTimeout === "function") {
-      if (this._disposed) {
-        return
-      }
-      const clear = () => clearTimeout(handle)
-      const handle = setTimeout(() => {
-        // a fired timeout no longer needs clearing, so it must not stay in the store
-        this.remove(clear)
-        callbackOrTimeout()
-      }, timeout)
-      this._disposables.push(clear)
-      return
+      return createOwnedTimeout(this, (t) => this._disposables.push(t), callbackOrTimeout, timeout, options)
     }
     this.addOne(() => clearTimeout(callbackOrTimeout))
+    return undefined
   }
 
   /**
    * Add an interval to the store. If the store has already been disposed, the interval will be cleared.
    * @param callback a callback to call when the interval expires
    * @param interval the number of milliseconds to wait between calls to the callback
+   * @param options timer options
+   * @returns the interval; disposing it clears the interval
    */
-  addInterval(callback: () => void, interval: number): void
+  addInterval(callback: () => void, interval: number, options?: TimerOptions): IntervalDisposable
 
   /**
    * Add an interval to the store. If the store has already been disposed, the interval will be cleared.
@@ -201,13 +225,13 @@ export class DisposableStore
   addInterval(
     callbackOrInterval: (() => void) | ReturnType<typeof setInterval> | number,
     interval?: number | undefined,
-  ): void {
+    options?: TimerOptions,
+  ): IntervalDisposable | undefined {
     if (typeof callbackOrInterval === "function") {
-      const handle = setInterval(callbackOrInterval, interval)
-      this.addOne(() => clearInterval(handle))
-      return
+      return createOwnedInterval(this, (t) => this._disposables.push(t), callbackOrInterval, interval, options)
     }
     this.addOne(() => clearInterval(callbackOrInterval))
+    return undefined
   }
 
   /**
@@ -265,7 +289,19 @@ export class DisposableStore
     if (this._disposed) {
       return
     }
-    disposeAllSafe(this._disposables)
+    disposeAllSafe(this._ordered())
+  }
+
+  /**
+   * Dispose all disposables in the store like {@link disposeCurrent}, passing each error to the callback instead of
+   * throwing. The store does not become disposed.
+   * @param onErrorCallback an optional callback that is invoked if an error occurs during disposal
+   */
+  disposeCurrentSafely(onErrorCallback?: (e: unknown) => void): void {
+    if (this._disposed) {
+      return
+    }
+    disposeAllSafely(this._ordered().splice(0), onErrorCallback)
   }
 
   /**
@@ -277,11 +313,11 @@ export class DisposableStore
       return
     }
     this._disposed = true
-    disposeAllSafely(this._disposables, onErrorCallback)
+    disposeAllSafely(this._ordered(), onErrorCallback)
   }
 
   /**
-   * Dispose the store and all disposables in the order they were added. Every disposable is disposed even if some of
+   * Dispose the store and all disposables in the store's {@link order}. Every disposable is disposed even if some of
    * them throw; the error is rethrown afterwards (several errors are wrapped in an AggregateError).
    */
   dispose(): void {
@@ -289,7 +325,15 @@ export class DisposableStore
       return
     }
     this._disposed = true
-    disposeAllUnsafe(this._disposables)
+    disposeAllUnsafe(this._ordered())
+  }
+
+  /**
+   * The items, arranged in the order they are disposed in
+   * @internal
+   */
+  private _ordered(): DisposableLike[] {
+    return this.order === "lifo" ? this._disposables.reverse() : this._disposables
   }
 
   /**

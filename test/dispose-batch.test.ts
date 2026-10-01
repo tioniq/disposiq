@@ -1,5 +1,7 @@
 import {
   type AsyncDisposableLike,
+  AsyncDisposableStore,
+  DisposableStore,
   disposeAll,
   disposeAllAsync,
   disposeAllSafely,
@@ -11,6 +13,7 @@ import {
   justDisposeAllAsync,
   justDisposeAsync,
   justDisposeSafe,
+  safeDisposableExceptionHandlerManager,
 } from "../src"
 import type { DisposableLike, IDisposable } from "../src"
 
@@ -355,5 +358,68 @@ describe("batch disposal errors without AggregateError", () => {
     } finally {
       g.AggregateError = saved
     }
+  })
+})
+
+describe("safe batch disposal with a throwing error callback", () => {
+  afterEach(() => safeDisposableExceptionHandlerManager.reset())
+
+  it("disposeAllSafely disposes the remaining items", () => {
+    const handled: unknown[] = []
+    safeDisposableExceptionHandlerManager.handler = (e) => handled.push(e)
+    const last = jest.fn()
+    const disposables: DisposableLike[] = [
+      () => {
+        throw new Error("dispose failed")
+      },
+      last,
+    ]
+    disposeAllSafely(disposables, () => {
+      throw new Error("callback failed")
+    })
+    expect(last).toHaveBeenCalledTimes(1)
+    expect(disposables.length).toBe(0)
+    expect(handled.map((e) => (e as Error).message)).toEqual(["callback failed"])
+  })
+
+  it("disposeAllSafelyAsync disposes the remaining items and resolves", async () => {
+    const handled: unknown[] = []
+    safeDisposableExceptionHandlerManager.handler = (e) => handled.push(e)
+    const last = jest.fn()
+    const disposables: AsyncDisposableLike[] = [
+      async () => {
+        throw new Error("dispose failed")
+      },
+      last,
+    ]
+    await expect(
+      disposeAllSafelyAsync(disposables, () => {
+        throw new Error("callback failed")
+      }),
+    ).resolves.toBeUndefined()
+    expect(last).toHaveBeenCalledTimes(1)
+    expect(disposables.length).toBe(0)
+    expect(handled.map((e) => (e as Error).message)).toEqual(["callback failed"])
+  })
+
+  it("stores dispose every item when the callback throws", async () => {
+    safeDisposableExceptionHandlerManager.handler = () => {}
+    const throwing = () => {
+      throw new Error("callback failed")
+    }
+    const failing = () => {
+      throw new Error("dispose failed")
+    }
+    const syncLast = jest.fn()
+    const store = new DisposableStore()
+    store.addAll([failing, syncLast])
+    expect(() => store.disposeSafely(throwing)).not.toThrow()
+    expect(syncLast).toHaveBeenCalledTimes(1)
+
+    const asyncLast = jest.fn()
+    const asyncStore = new AsyncDisposableStore()
+    asyncStore.addAll([failing, asyncLast])
+    await expect(asyncStore.disposeSafely(throwing)).resolves.toBeUndefined()
+    expect(asyncLast).toHaveBeenCalledTimes(1)
   })
 })

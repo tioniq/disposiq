@@ -32,6 +32,11 @@ export type AsyncDisposeFunc = () => Promise<void>
  */
 export type AsyncDisposableLike = IAsyncDisposable | AsyncDisposeFunc
 
+/**
+ * The order in which a container disposes its items: `fifo` in the order they were added, `lifo` in reverse
+ * (like the 'using' keyword and `DisposableStack`).
+ */
+export type DisposalOrder = "fifo" | "lifo"
 
 /**
  * Represents an interface that provides a mechanism to signal and handle cancellation requests.

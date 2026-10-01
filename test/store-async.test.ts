@@ -1,4 +1,4 @@
-import { AsyncDisposableStore, type IDisposable } from "../src"
+import { AsyncDisposableStore, type IDisposable, TimeoutDisposable } from "../src"
 
 describe("async store", () => {
   it("should be disposed", async () => {
@@ -342,5 +342,257 @@ describe("async store disposeSafely and dispose together", () => {
     const plain = store.dispose()
     await Promise.all([safe, plain])
     expect(item).toHaveBeenCalledTimes(1)
+  })
+})
+
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+function step(log: string[], name: string, ms = 0) {
+  return async () => {
+    log.push(`start ${name}`)
+    if (ms > 0) {
+      await delay(ms)
+    }
+    log.push(`end ${name}`)
+  }
+}
+
+describe("async store order", () => {
+  it("disposes in the order of addition by default, each awaited", async () => {
+    const store = new AsyncDisposableStore()
+    const log: string[] = []
+    store.add(step(log, "a", 5), step(log, "b"))
+    expect(store.order).toBe("fifo")
+    expect(store.serial).toBe(false)
+    await store.dispose()
+    expect(log).toEqual(["start a", "end a", "start b", "end b"])
+  })
+  it("disposes in reverse order with lifo, each awaited", async () => {
+    const store = new AsyncDisposableStore({ order: "lifo" })
+    const log: string[] = []
+    store.addOne(step(log, "port"))
+    store.addOne(step(log, "forward", 5))
+    store.addOne({ dispose: () => log.push("client") })
+    await store.dispose()
+    expect(log).toEqual(["client", "start forward", "end forward", "start port", "end port"])
+  })
+  it("applies lifo to disposeCurrent and disposeSafely", async () => {
+    const store = new AsyncDisposableStore({ order: "lifo" })
+    const log: string[] = []
+    store.add(() => log.push("1"), () => log.push("2"))
+    await store.disposeCurrent()
+    expect(store.disposed).toBe(false)
+    store.add(() => log.push("3"), () => log.push("4"))
+    await store.disposeSafely()
+    expect(log).toEqual(["2", "1", "4", "3"])
+  })
+  it("disposes in reverse order at the end of an 'await using' scope", async () => {
+    const log: string[] = []
+    {
+      await using store = new AsyncDisposableStore({ order: "lifo" })
+      store.add(step(log, "a"), step(log, "b"))
+    }
+    expect(log).toEqual(["start b", "end b", "start a", "end a"])
+  })
+})
+
+describe("async store disposeCurrentSafely", () => {
+  it("passes errors to the callback, never rejects and keeps the store usable", async () => {
+    const store = new AsyncDisposableStore()
+    const errors: unknown[] = []
+    const after = jest.fn()
+    store.add(async () => {
+      throw new Error("round 1")
+    }, after)
+    await expect(store.disposeCurrentSafely((e) => errors.push(e))).resolves.toBeUndefined()
+    expect(after).toHaveBeenCalledTimes(1)
+    expect(store.disposed).toBe(false)
+    store.add(() => {
+      throw new Error("round 2")
+    })
+    await store.disposeSafely((e) => errors.push(e))
+    expect(errors.map((e) => (e as Error).message)).toEqual(["round 1", "round 2"])
+  })
+  it("keeps an item added during the disposal for the next round", async () => {
+    const store = new AsyncDisposableStore()
+    const late = jest.fn()
+    store.add(async () => {
+      store.add(late)
+    })
+    await store.disposeCurrentSafely()
+    expect(late).not.toHaveBeenCalled()
+    await store.dispose()
+    expect(late).toHaveBeenCalledTimes(1)
+  })
+  it("resolves on a disposed store", async () => {
+    const store = new AsyncDisposableStore()
+    await store.dispose()
+    await expect(store.disposeCurrentSafely()).resolves.toBeUndefined()
+  })
+})
+
+describe("async store without serial", () => {
+  it("does not make a second disposeCurrent wait for the first", async () => {
+    const store = new AsyncDisposableStore()
+    const log: string[] = []
+    store.add(step(log, "slow", 20))
+    const first = store.disposeCurrent()
+    await store.disposeCurrent()
+    log.push("second resolved")
+    await first
+    expect(log).toEqual(["start slow", "second resolved", "end slow"])
+  })
+})
+
+describe("async store serial", () => {
+  it("resolves a second disposeCurrent only after the first round has finished", async () => {
+    const store = new AsyncDisposableStore({ serial: true })
+    const log: string[] = []
+    store.add(step(log, "session 1", 20))
+    const first = store.disposeCurrent().then(() => log.push("first resolved"))
+    store.add(step(log, "session 2"))
+    const second = store.disposeCurrent().then(() => log.push("second resolved"))
+    await Promise.all([first, second])
+    expect(log).toEqual([
+      "start session 1",
+      "end session 1",
+      "first resolved",
+      "start session 2",
+      "end session 2",
+      "second resolved",
+    ])
+  })
+  it("makes an empty disposeCurrent wait for the round in progress", async () => {
+    const store = new AsyncDisposableStore({ serial: true })
+    const log: string[] = []
+    store.add(step(log, "teardown", 20))
+    void store.disposeCurrent()
+    await store.disposeCurrent()
+    expect(log).toEqual(["start teardown", "end teardown"])
+  })
+  it("makes dispose wait for a disposeCurrent in progress before disposing the rest", async () => {
+    const store = new AsyncDisposableStore({ serial: true, order: "lifo" })
+    const log: string[] = []
+    store.add(step(log, "session", 20))
+    void store.disposeCurrent()
+    store.add(step(log, "device"), step(log, "slot"))
+    await store.dispose()
+    expect(log).toEqual(["start session", "end session", "start slot", "end slot", "start device", "end device"])
+  })
+  it("makes disposeSafely wait for a disposeCurrent in progress", async () => {
+    const store = new AsyncDisposableStore({ serial: true })
+    const log: string[] = []
+    store.add(step(log, "session", 20))
+    void store.disposeCurrent()
+    store.add(step(log, "device"))
+    await store.disposeSafely()
+    expect(log).toEqual(["start session", "end session", "start device", "end device"])
+  })
+  it("rejects a round with its own errors only, and the next round still runs", async () => {
+    const store = new AsyncDisposableStore({ serial: true })
+    const after = jest.fn()
+    store.add(() => {
+      throw new Error("round 1")
+    })
+    const first = store.disposeCurrent()
+    store.add(after)
+    const second = store.disposeCurrent()
+    await expect(first).rejects.toThrow("round 1")
+    await expect(second).resolves.toBeUndefined()
+    expect(after).toHaveBeenCalledTimes(1)
+  })
+  it("runs a safe round after a failed one", async () => {
+    const store = new AsyncDisposableStore({ serial: true })
+    const errors: unknown[] = []
+    store.add(() => {
+      throw new Error("a")
+    })
+    const first = store.disposeCurrent().then((): undefined => undefined, (e: Error) => e.message)
+    store.add(() => {
+      throw new Error("b")
+    })
+    await store.disposeCurrentSafely((e) => errors.push(e))
+    await expect(first).resolves.toBe("a")
+    expect(errors.map((e) => (e as Error).message)).toEqual(["b"])
+  })
+  it("shares one disposal between concurrent dispose calls, and disposeCurrent afterwards waits for it", async () => {
+    const store = new AsyncDisposableStore({ serial: true })
+    const log: string[] = []
+    store.add(step(log, "only", 10))
+    const a = store.dispose()
+    const b = store.dispose()
+    expect(a).toBe(b)
+    await store.disposeCurrent()
+    expect(log).toEqual(["start only", "end only"])
+    await a
+  })
+  it("settles disposeCurrent on a disposed store without rejecting when the disposal fails", async () => {
+    const store = new AsyncDisposableStore({ serial: true })
+    store.add(async () => {
+      await delay(5)
+      throw new Error("failed")
+    })
+    const disposing = store.dispose().then((): undefined => undefined, (e: Error) => e.message)
+    await expect(store.disposeCurrent()).resolves.toBeUndefined()
+    await expect(store.disposeCurrentSafely()).resolves.toBeUndefined()
+    await expect(disposing).resolves.toBe("failed")
+  })
+  it("disposes an item added during the disposal at once", async () => {
+    const store = new AsyncDisposableStore({ serial: true })
+    const log: string[] = []
+    store.add(async () => {
+      await store.addOne(step(log, "late", 5))
+      log.push("first")
+    })
+    await store.dispose()
+    expect(log).toEqual(["start late", "end late", "first"])
+  })
+})
+
+describe("async store timers", () => {
+  beforeEach(() => {
+    jest.useFakeTimers()
+  })
+  afterEach(() => {
+    jest.useRealTimers()
+  })
+  it("leaves the store once a timeout has fired, and clears a pending one on dispose", async () => {
+    const store = new AsyncDisposableStore()
+    const fired = jest.fn()
+    store.addTimeout(fired, 1)
+    const pending = store.addTimeout(fired, 10_000)
+    expect(pending).toBeInstanceOf(TimeoutDisposable)
+    jest.advanceTimersByTime(1)
+    expect(fired).toHaveBeenCalledTimes(1)
+    expect((store as unknown as { _disposables: unknown[] })._disposables).toEqual([pending])
+    await store.dispose()
+    expect(pending.disposed).toBe(true)
+    jest.advanceTimersByTime(10_000)
+    expect(fired).toHaveBeenCalledTimes(1)
+  })
+  it("runs an interval until the store is disposed", async () => {
+    const store = new AsyncDisposableStore()
+    const callback = jest.fn()
+    const interval = store.addInterval(callback, 10)
+    jest.advanceTimersByTime(30)
+    await store.dispose()
+    jest.advanceTimersByTime(30)
+    expect(callback).toHaveBeenCalledTimes(3)
+    expect(interval.disposed).toBe(true)
+  })
+  it("removes a timer disposed on its own from the store", () => {
+    const store = new AsyncDisposableStore()
+    store.addTimeout(jest.fn(), 10).dispose()
+    store.addInterval(jest.fn(), 10).dispose()
+    expect((store as unknown as { _disposables: unknown[] })._disposables).toEqual([])
+  })
+  it("returns disposed timers from a disposed store", async () => {
+    const store = new AsyncDisposableStore()
+    await store.dispose()
+    const callback = jest.fn()
+    expect(store.addTimeout(callback, 1).disposed).toBe(true)
+    expect(store.addInterval(callback, 1).disposed).toBe(true)
+    jest.advanceTimersByTime(5)
+    expect(callback).not.toHaveBeenCalled()
   })
 })

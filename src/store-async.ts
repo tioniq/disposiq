@@ -1,4 +1,9 @@
-import type { AsyncDisposableAwareCompat, AsyncDisposableLike, DisposableLike, } from "./declarations"
+import type {
+  AsyncDisposableAwareCompat,
+  AsyncDisposableLike,
+  DisposableLike,
+  DisposalOrder,
+} from "./declarations"
 import {
   disposeAllAsync,
   disposeAllSafelyAsync,
@@ -8,8 +13,24 @@ import {
 } from "./dispose-batch"
 import { AsyncDisposiq } from "./disposiq"
 import { ObjectDisposedException } from "./exception"
+import type { DisposableStoreOptions } from "./store"
+import type { IntervalDisposable, TimeoutDisposable, TimerOptions } from "./timer"
 import { onSettled, resolvedPromise } from "./utils/disposing"
 import { noop } from "./utils/noop"
+import { createOwnedInterval, createOwnedTimeout } from "./utils/owned-timers"
+
+/**
+ * Options of an async disposable store
+ */
+export interface AsyncDisposableStoreOptions extends DisposableStoreOptions {
+  /**
+   * When true, disposals never overlap: each `disposeCurrent` starts after the previous one has finished (and its
+   * promise settles after that), and `dispose` waits for a `disposeCurrent` in progress. Defaults to false.
+   * An item must not await a `disposeCurrent` or `dispose` of its own serial store while it is being disposed: that
+   * call waits for the disposal the item is part of.
+   */
+  serial?: boolean
+}
 
 /**
  * AsyncDisposableStore is a container for async disposables. It will dispose all added disposables when it is disposed.
@@ -34,6 +55,28 @@ export class AsyncDisposableStore
    * @internal
    */
   private _disposing: Promise<void> | undefined
+
+  /**
+   * The latest disposeCurrent round of a serial store, settled when that round has finished; never rejects
+   * @internal
+   */
+  private _round: Promise<void> | undefined
+
+  /**
+   * The order in which the store disposes its items
+   */
+  readonly order: DisposalOrder
+
+  /**
+   * Whether disposals wait for the ones started before them, see {@link AsyncDisposableStoreOptions.serial}
+   */
+  readonly serial: boolean
+
+  constructor(options?: AsyncDisposableStoreOptions) {
+    super()
+    this.order = options?.order === "lifo" ? "lifo" : "fifo"
+    this.serial = options?.serial === true
+  }
 
   /**
    * Returns true if the object has been disposed. It becomes true as soon as dispose or disposeSafely is called,
@@ -156,13 +199,60 @@ export class AsyncDisposableStore
   }
 
   /**
-   * Dispose all disposables in the store. The store does not become disposed.
+   * Add a timeout to the store. The store clears it when disposed, and it leaves the store once it has fired. If the
+   * store has already been disposed, the callback is never called.
+   * @param callback a callback to call when the timeout expires
+   * @param timeout the number of milliseconds to wait before calling the callback
+   * @param options timer options
+   * @returns the timeout; disposing it clears the timeout
+   */
+  addTimeout(callback: () => void, timeout: number, options?: TimerOptions): TimeoutDisposable {
+    return createOwnedTimeout(this, (t) => this._disposables.push(t), callback, timeout, options)
+  }
+
+  /**
+   * Add an interval to the store. The store clears it when disposed. If the store has already been disposed, the
+   * interval is cleared at once.
+   * @param callback a callback to call when the interval expires
+   * @param interval the number of milliseconds to wait between calls to the callback
+   * @param options timer options
+   * @returns the interval; disposing it clears the interval
+   */
+  addInterval(callback: () => void, interval: number, options?: TimerOptions): IntervalDisposable {
+    return createOwnedInterval(this, (t) => this._disposables.push(t), callback, interval, options)
+  }
+
+  /**
+   * Dispose all disposables in the store. The store does not become disposed. Every disposable is disposed even if
+   * some of them reject; the returned promise then rejects with the error (several errors are wrapped in an
+   * AggregateError). On a serial store the round starts after the previous one has finished, and on a disposed
+   * serial store the returned promise settles when the disposal has finished.
    */
   disposeCurrent(): Promise<void> {
     if (this._disposed) {
-      return Promise.resolve()
+      return this.serial ? this._whenDisposed() : Promise.resolve()
     }
-    return disposeAllAsync(this._disposables)
+    if (!this.serial) {
+      return disposeAllAsync(this._ordered())
+    }
+    const items = this._ordered().splice(0)
+    return this._enqueueRound(() => disposeAllUnsafeAsync(items))
+  }
+
+  /**
+   * Dispose all disposables in the store like {@link disposeCurrent}, passing each error to the callback instead of
+   * rejecting. The store does not become disposed.
+   * @param onErrorCallback an optional callback that is invoked if an error occurs during disposal
+   */
+  disposeCurrentSafely(onErrorCallback?: (e: unknown) => void): Promise<void> {
+    if (this._disposed) {
+      return this.serial ? this._whenDisposed() : resolvedPromise
+    }
+    const items = this._ordered().splice(0)
+    if (!this.serial) {
+      return disposeAllSafelyAsync(items, onErrorCallback)
+    }
+    return this._enqueueRound(() => disposeAllSafelyAsync(items, onErrorCallback))
   }
 
   /**
@@ -173,27 +263,69 @@ export class AsyncDisposableStore
    */
   disposeSafely(onErrorCallback?: (e: unknown) => void): Promise<void> {
     if (this._disposed) {
-      const disposing = this._disposing
-      return disposing === undefined ? resolvedPromise : disposing.then(noop, noop)
+      return this._whenDisposed()
     }
     this._disposed = true
+    const items = this._ordered()
     return this._track(
-      disposeAllSafelyAsync(this._disposables, onErrorCallback),
+      this._afterRound(() => disposeAllSafelyAsync(items, onErrorCallback)),
     )
   }
 
   /**
-   * Dispose the store and all disposables. The store becomes disposed immediately. Every disposable is disposed even
-   * if some of them reject; the returned promise then rejects with the error (several errors are wrapped in an
-   * AggregateError). Calls made while the disposal is in progress return the same promise, later calls resolve
-   * immediately.
+   * Dispose the store and all disposables in the store's {@link order}. The store becomes disposed immediately. Every
+   * disposable is disposed even if some of them reject; the returned promise then rejects with the error (several
+   * errors are wrapped in an AggregateError). Calls made while the disposal is in progress return the same promise,
+   * later calls resolve immediately. On a serial store the disposal starts after a `disposeCurrent` in progress.
    */
   dispose(): Promise<void> {
     if (this._disposed) {
       return this._disposing ?? resolvedPromise
     }
     this._disposed = true
-    return this._track(disposeAllUnsafeAsync(this._disposables))
+    const items = this._ordered()
+    return this._track(this._afterRound(() => disposeAllUnsafeAsync(items)))
+  }
+
+  /**
+   * The items, arranged in the order they are disposed in
+   * @internal
+   */
+  private _ordered(): (AsyncDisposableLike | DisposableLike)[] {
+    return this.order === "lifo" ? this._disposables.reverse() : this._disposables
+  }
+
+  /**
+   * Settles when the disposal has finished; never rejects
+   * @internal
+   */
+  private _whenDisposed(): Promise<void> {
+    const disposing = this._disposing
+    return disposing === undefined ? resolvedPromise : disposing.then(noop, noop)
+  }
+
+  /**
+   * Run the action once the latest disposeCurrent round has finished (at once if there is none)
+   * @internal
+   */
+  private _afterRound(action: () => Promise<void>): Promise<void> {
+    const previous = this._round
+    return previous === undefined ? action() : previous.then(action)
+  }
+
+  /**
+   * @internal
+   */
+  private _enqueueRound(action: () => Promise<void>): Promise<void> {
+    const round = this._afterRound(action)
+    const settled = round.then(noop, noop)
+    this._round = settled
+    settled.then(() => {
+      if (this._round === settled) {
+        this._round = undefined
+      }
+    })
+    return round
   }
 
   /**

@@ -1,4 +1,5 @@
 import type { AsyncDisposableLike, DisposableLike } from "./declarations"
+import { safeDisposableExceptionHandlerManager } from "./safe"
 import { throwCollected } from "./utils/errors"
 import { ObjectPool } from "./utils/object-pool"
 
@@ -270,7 +271,8 @@ export async function disposeAllUnsafeAsync(
 }
 
 /**
- * Dispose all disposables in the array unsafely. During the disposal process, the array is not safe to modify
+ * Dispose all disposables in the array safely: an error is passed to onErrorCallback and the remaining items are still
+ * disposed. During the disposal process, the array is not safe to modify
  * @param disposables an array of disposables
  * @param onErrorCallback a callback to handle errors
  */
@@ -293,14 +295,15 @@ export function disposeAllSafely(
         disposable.dispose()
       }
     } catch (e) {
-      onErrorCallback?.(e)
+      reportError(onErrorCallback, e)
     }
   }
   disposables.length = 0
 }
 
 /**
- * Dispose all disposables in the array unsafely. During the disposal process, the array is not safe to modify
+ * Dispose all disposables in the array safely: an error is passed to onErrorCallback and the remaining items are still
+ * disposed. During the disposal process, the array is not safe to modify
  * @param disposables an array of disposables
  * @param onErrorCallback a callback to handle errors
  */
@@ -323,8 +326,20 @@ export async function disposeAllSafelyAsync(
         await disposable.dispose()
       }
     } catch (e) {
-      onErrorCallback?.(e)
+      reportError(onErrorCallback, e)
     }
   }
   disposables.length = 0
+}
+
+// A throwing error callback must not stop the batch; its own error goes to the safe handler
+function reportError(onErrorCallback: ((error: unknown) => void) | undefined, error: unknown): void {
+  if (!onErrorCallback) {
+    return
+  }
+  try {
+    onErrorCallback(error)
+  } catch (e) {
+    safeDisposableExceptionHandlerManager.handle(e)
+  }
 }

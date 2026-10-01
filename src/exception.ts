@@ -7,3 +7,13 @@ export class ObjectDisposedException extends Error {
     this.name = "ObjectDisposedException"
   }
 }
+
+/**
+ * Exception class for scenarios where an exception needs to be thrown when an operation has been cancelled
+ */
+export class OperationCancelledException extends Error {
+  constructor(message?: string | undefined) {
+    super(message || "Operation cancelled")
+    this.name = "OperationCancelledException"
+  }
+}

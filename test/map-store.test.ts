@@ -124,3 +124,59 @@ describe("map store disposal semantics", () => {
     expect((store as unknown as { _map: Map<string, unknown> })._map.size).toBe(0)
   })
 })
+
+describe("typed map store", () => {
+  class Stream {
+    readonly dispose = jest.fn()
+
+    constructor(readonly name: string) {
+    }
+  }
+
+  it("returns the stored type from get, extract and iteration", () => {
+    const store = new DisposableMapStore<string, Stream>()
+    const a = new Stream("a")
+    const b = new Stream("b")
+    store.set("a", a)
+    store.set("b", b)
+    expect(store.get("a")?.name).toBe("a")
+    expect(store.size).toBe(2)
+    expect(store.has("a")).toBe(true)
+    expect(store.has("c")).toBe(false)
+    expect(Array.from(store.keys())).toEqual(["a", "b"])
+    expect(Array.from(store.values()).map((s) => s.name)).toEqual(["a", "b"])
+    expect(Array.from(store.entries()).map(([k, s]) => `${k}=${s.name}`)).toEqual(["a=a", "b=b"])
+    expect(Array.from(store).map(([k]) => k)).toEqual(["a", "b"])
+    const extracted: Stream | undefined = store.extract("a")
+    expect(extracted).toBe(a)
+    expect(a.dispose).not.toHaveBeenCalled()
+    expect(store.size).toBe(1)
+  })
+
+  it("accepts only the stored type", () => {
+    const store = new DisposableMapStore<string, Stream>()
+    // @ts-expect-error a function is not a Stream
+    store.set("a", () => {})
+    store.dispose()
+  })
+
+  it("is empty once disposed, and disposes every value", () => {
+    const store = new DisposableMapStore<number, Stream>()
+    const a = new Stream("a")
+    store.set(1, a)
+    store.dispose()
+    expect(a.dispose).toHaveBeenCalledTimes(1)
+    expect(store.size).toBe(0)
+    expect(store.has(1)).toBe(false)
+    expect(Array.from(store)).toEqual([])
+  })
+
+  it("is disposed at the end of a 'using' scope", () => {
+    const a = new Stream("a")
+    {
+      using store = new DisposableMapStore<string, Stream>()
+      store.set("a", a)
+    }
+    expect(a.dispose).toHaveBeenCalledTimes(1)
+  })
+})

@@ -157,13 +157,151 @@ The same rules hold for the sync and async classes:
 - Disposing more than once is safe; only the first call does the work.
 - `disposed` becomes `true` as soon as `dispose` (or `disposeSafely`) is called, before any async work has finished.
   Anything added to a disposed store is disposed immediately.
-- Stores dispose their items in the order they were added.
+- Stores dispose their items in the order they were added, unless they are created with `{ order: "lifo" }`.
 - Every item is disposed even if some of them throw. The error is rethrown afterwards; several errors are wrapped in
-  an `AggregateError`. The `disposeSafely` variants pass each error to the callback instead and never throw.
+  an `AggregateError`. The `disposeSafely` and `disposeCurrentSafely` variants pass each error to the callback instead
+  and never throw.
 - Async `dispose` calls made while a disposal is in progress return the same promise, so they wait for it to finish
   (and reject if it fails). Calls made after it has finished resolve immediately.
 - After disposal the objects release what they hold (the stored items, the action callback), so a disposed object
   that is still referenced does not keep them alive.
+
+## Disposal order
+
+Stores dispose their items in the order they were added (`fifo`). Resources usually depend on the ones created before
+them, so they are often released in reverse (`lifo`), the way the 'using' keyword and `DisposableStack` do it:
+
+```typescript
+import { AsyncDisposableStore, DisposableStore } from '@tioniq/disposiq'
+
+const store = new DisposableStore({ order: 'lifo' })
+store.add(() => console.log('Port released'))
+store.add(() => console.log('Connection closed'))
+store.dispose() // Output: Connection closed, Port released
+
+// The async store awaits each item before it disposes the next one
+const asyncStore = new AsyncDisposableStore({ order: 'lifo' })
+```
+
+The option also exists on `Disposable` and `AsyncDisposable`: `super({ order: 'lifo' })`.
+
+## Async owners
+
+`AsyncDisposable` is the async counterpart of `Disposable`, for classes whose cleanup has to be awaited. Everything
+registered is disposed one after another, and `dispose()` returns a promise:
+
+```typescript
+import { AsyncDisposable } from '@tioniq/disposiq'
+
+class Session extends AsyncDisposable {
+  constructor(private readonly socket: Socket) {
+    super({ order: 'lifo' })
+    this.addDisposable(() => socket.end())
+    this.addTimeout(() => socket.destroy(), 30_000, { unref: true })
+  }
+
+  async openChannel(name: string): Promise<Channel> {
+    this.throwIfDisposed()
+    // if the session is disposed while the channel is opening, the channel is closed as soon as it arrives
+    return this.registerAsync(() => Channel.open(this.socket, name))
+  }
+}
+
+await using session = new Session(socket)
+```
+
+Without the `onError` option, `dispose()` rejects with the errors of the disposal; with it, each error goes to the
+callback and `dispose()` resolves.
+
+### Serial disposal
+
+`AsyncDisposableStore.disposeCurrent` does not wait for a `disposeCurrent` that is already in progress. A store created
+with `{ serial: true }` runs its disposals one after another: each `disposeCurrent` starts after the previous one has
+finished and settles after it, and `dispose` waits for a `disposeCurrent` in progress. Use it when a store is cleared and
+refilled while its previous contents may still be disposing:
+
+```typescript
+import { AsyncDisposableStore } from '@tioniq/disposiq'
+
+const sessionResources = new AsyncDisposableStore({ serial: true })
+await sessionResources.disposeCurrent() // the next session starts after the previous one is fully cleaned up
+```
+
+An item of a serial store must not await `disposeCurrent` or `dispose` of the same store while it is being disposed:
+that call waits for the disposal the item is part of.
+
+## Timers
+
+`addTimeout` and `addInterval` of the stores (and of `AsyncDisposable`) return the timer as a disposable, so a single
+timer can be cleared without clearing the store. A timeout leaves the store once it has fired or has been disposed.
+`{ unref: true }` lets the process exit while the timer is pending, where the platform supports it:
+
+```typescript
+import { DisposableStore, TimeoutDisposable } from '@tioniq/disposiq'
+
+const store = new DisposableStore()
+const retry = store.addTimeout(() => reconnect(), 5_000, { unref: true })
+retry.dispose() // only this timeout is cleared
+
+// Timers can be created on their own as well
+using timeout = new TimeoutDisposable(() => console.log('Too slow'), 1_000)
+```
+
+## Keyed and replaceable async resources
+
+`DisposableMapStore` takes the value type as a second type parameter, and reads like a `Map` (`has`, `size`, `keys`,
+`values`, `entries`, iteration). `AsyncDisposableMapStore` and `AsyncDisposableContainer` are the async counterparts of
+`DisposableMapStore` and `DisposableContainer`: replacing a value disposes the previous one, and the returned promise
+settles when that disposal has finished. Disposing them waits for the disposals already in progress.
+
+```typescript
+import { AsyncDisposableContainer, AsyncDisposableMapStore, DisposableMapStore } from '@tioniq/disposiq'
+
+const streams = new DisposableMapStore<string, VideoStream>()
+streams.set('main', new VideoStream())
+streams.get('main')?.pause() // typed as VideoStream
+
+const devices = new AsyncDisposableMapStore<string, Device>()
+await devices.set(device.id, device)
+await devices.delete(device.id) // resolves once the device has stopped
+
+const connection = new AsyncDisposableContainer<Connection>()
+await connection.set(await Connection.open()) // closes the previous connection first
+```
+
+## Cancellation tokens
+
+`CancellationToken` implements `CancellationTokenLike`. `onCancel` returns a disposable that unregisters the callback,
+and a callback registered on a cancelled token is called at once. `timeoutToken(ms)` is cancelled after a time, and
+`mergeTokens(...tokens)` when any of the given tokens is cancelled.
+
+Disposing a token does **not** cancel it: it detaches the token from its timer or parent tokens, so a `using`
+declaration leaves nothing behind. Use `disposableFromCancellationToken(token)` for a disposable that cancels the token.
+
+```typescript
+import { type CancellationToken, mergeTokens, onCancel, timeoutToken } from '@tioniq/disposiq'
+
+async function download(url: string, token: CancellationToken) {
+  using deadline = timeoutToken(30_000)  // the timer is cleared at the end of the scope
+  using linked = mergeTokens(token, deadline)
+  using _ = onCancel(linked, () => request.abort())
+  linked.throwIfCancelled() // throws OperationCancelledException
+  // ...
+}
+```
+
+## Typed event listeners
+
+`disposableFromEvent` (alias `on`) and `disposableFromEventOnce` (alias `once`) keep the listener's own type, so a
+listener with typed parameters can be passed directly:
+
+```typescript
+import { on } from '@tioniq/disposiq'
+
+using _ = on(childProcess, 'exit', (code: number | null, signal: string | null) => {
+  console.log(`exited with ${code ?? signal}`)
+})
+```
 
 ## Extensions
 
@@ -222,6 +360,8 @@ This library is inspired by the
 | `AsyncDisposableAware`       | An asynchronous disposable that is aware of its state             |
 | `AsyncDisposableCompat`      | An asynchronous disposable compatible with the 'using' keyword    |
 | `AsyncDisposableAwareCompat` | Combines `AsyncDisposableAware` and `AsyncDisposableCompat`       |
+| `DisposalOrder`              | `fifo` or `lifo`: the order in which a container disposes items   |
+| `TimerOptions`               | Options of the timers (`unref`)                                   |
 
 ### Classes
 
@@ -240,6 +380,13 @@ This library is inspired by the
 | `SafeAsyncActionDisposable` | A container for an asynchronous function that is safely called on dispose | `AsyncActionSafeDisposable` |
 | `AbortDisposable`           | A wrapper for AbortController to make it disposable                       | -                           |
 | `ObjectDisposedException`   | An exception thrown when an object is already disposed                    | -                           |
+| `AsyncDisposable`           | Base class for objects whose cleanup is asynchronous                      | -                           |
+| `AsyncDisposableMapStore`   | A container for async disposables stored by a key                         | -                           |
+| `AsyncDisposableContainer`  | A container for an async disposable object                                | -                           |
+| `TimeoutDisposable`         | A timeout that is cleared on dispose                                      | -                           |
+| `IntervalDisposable`        | An interval that is cleared on dispose                                    | -                           |
+| `CancellationToken`         | A cancellation token whose subscriptions are disposables                  | -                           |
+| `OperationCancelledException` | An exception thrown when an operation has been cancelled                | -                           |
 
 ### Functions
 
@@ -259,6 +406,9 @@ This library is inspired by the
 | `isSystemDisposable`      | Check if the object is compatible with the system 'using' keyword                                                    | -                  |
 | `isSystemAsyncDisposable` | Check if the object is compatible with the system 'await using' keyword                                              | -                  |
 | `addEventListener`        | Add an event listener to the target object and return a disposable object. Useful for DOM events                     | -                  |
+| `timeoutToken`            | Create a cancellation token that is cancelled after a time                                                           | -                  |
+| `mergeTokens`             | Create a cancellation token that is cancelled when any of the given tokens is cancelled                              | -                  |
+| `onCancel`                | Register a callback with a cancellation token and return a disposable that unregisters it                            | -                  |
 
 For more information, please check the [type definitions](https://github.com/tioniq/disposiq/blob/main/dist/index.d.ts)
 file.
