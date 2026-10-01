@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-10-01
+
+### Fixed
+
+- The published type definitions declare the private members of the base classes `Disposable` and `AsyncDisposable`
+  (they were stripped as `@internal`). A subclass that declares a member with the same name, such as `_store`, is now a
+  compile error instead of silently replacing the base's state at runtime
+
 ## [1.5.0] - 2026-10-01
 
 ### Added

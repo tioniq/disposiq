@@ -2219,7 +2219,6 @@ var AsyncDisposable = class extends AsyncDisposiq {
   /**
    * Nobody awaits the disposal of something registered after the object was disposed, so its error goes to the
    * `onError` option, or to {@link safeDisposableExceptionHandlerManager} without it
-   * @internal
    */
   _settleLate(disposal) {
     if (!(disposal instanceof Promise)) {

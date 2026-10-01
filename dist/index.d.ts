@@ -344,6 +344,7 @@ type DisposableOptions = DisposableStoreOptions;
  * Disposable is a base class for disposables. It will dispose all added disposables when it is disposed.
  */
 declare abstract class Disposable$1 extends Disposiq implements DisposableCompat {
+    private readonly _store;
     /**
      * @param options the order in which the registered disposables are disposed; `fifo` by default
      */
@@ -1129,6 +1130,8 @@ interface AsyncDisposableOptions {
  * await using connection = new Connection(socket)
  */
 declare abstract class AsyncDisposable$1 extends AsyncDisposiq implements AsyncDisposableAwareCompat {
+    private readonly _store;
+    private readonly _onError;
     constructor(options?: AsyncDisposableOptions);
     /**
      * Returns true if the object has been disposed. It becomes true as soon as dispose is called, before the registered
@@ -1188,6 +1191,11 @@ declare abstract class AsyncDisposable$1 extends AsyncDisposiq implements AsyncD
      * AggregateError). Calls made while the disposal is in progress return a promise that settles with it.
      */
     dispose(): Promise<void>;
+    /**
+     * Nobody awaits the disposal of something registered after the object was disposed, so its error goes to the
+     * `onError` option, or to {@link safeDisposableExceptionHandlerManager} without it
+     */
+    private _settleLate;
 }
 
 type EventListener<T extends Event = Event> = ((this: EventTarget, ev: T) => unknown) | {
