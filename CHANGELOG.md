@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-10-01
+
+### Added
+
+- `order` option (`"fifo"` | `"lifo"`, type `DisposalOrder`) on `DisposableStore`, `AsyncDisposableStore`,
+  `Disposable` and `AsyncDisposable`: `lifo` disposes the items in reverse order of addition. The default stays `fifo`
+- `AsyncDisposable` base class: the async counterpart of `Disposable` (`register`, `registerAsync`,
+  `throwIfDisposed`, `addTimeout`, `addInterval`, `addDisposable(s)`, public `disposed`, `onError` option)
+- `serial` option on `AsyncDisposableStore`: each `disposeCurrent` waits for the previous one, and `dispose` /
+  `disposeSafely` wait for a `disposeCurrent` in progress
+- `disposeCurrentSafely(onError)` on `DisposableStore` and `AsyncDisposableStore`
+- `addTimeout` / `addInterval` on `AsyncDisposableStore`
+- `TimeoutDisposable` and `IntervalDisposable` timer classes with `ref` / `unref`, and the `TimerOptions` type
+- `AsyncDisposableMapStore` and `AsyncDisposableContainer`, the async counterparts of `DisposableMapStore` and
+  `DisposableContainer`
+- `DisposableMapStore` takes the value type as an optional second type parameter, and has `has`, `size`, `keys`,
+  `values`, `entries` and iteration
+- `CancellationToken` class, `timeoutToken`, `mergeTokens`, `onCancel` and `OperationCancelledException`
+
+### Changed
+
+- `DisposableStore.addTimeout(callback, ms)` and `addInterval(callback, ms)` return the timer as a disposable and
+  accept `TimerOptions`. A timer disposed on its own leaves the store
+- `disposableFromEvent` / `disposableFromEventOnce` (`on` / `once`) keep the listener's type, so listeners with typed
+  parameters are accepted, and are typed to return a `Disposiq` (they already returned one), so `disposeWith` is
+  available on the result
+
+### Fixed
+
+- `CancellationTokenDisposable.disposed` called a token's `isCancelled` method without the token as `this`, which
+  failed for tokens implemented as classes
+- `disposeSafely` / `disposeCurrentSafely` (sync and async stores), `disposeAllSafely` and `disposeAllSafelyAsync`
+  stopped at an error callback that threw, so the remaining items were not disposed and the async variants rejected.
+  The remaining items are now disposed, and the callback's own error goes to `safeDisposableExceptionHandlerManager`
+- `disposableFromEventOnce` (`once`) threw a `TypeError` on an emitter without a `once` method, which its type allows.
+  The listener is now added with `on` and removed before its first call
+
 ## [1.4.0] - 2026-09-20
 
 ### Fixed
