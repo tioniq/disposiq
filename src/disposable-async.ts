@@ -42,14 +42,8 @@ export interface AsyncDisposableOptions {
 export abstract class AsyncDisposable
   extends AsyncDisposiq
   implements AsyncDisposableAwareCompat {
-  /**
-   * @internal
-   */
   private readonly _store: AsyncDisposableStore
 
-  /**
-   * @internal
-   */
   private readonly _onError: ((e: unknown) => void) | undefined
 
   constructor(options?: AsyncDisposableOptions) {
@@ -156,7 +150,6 @@ export abstract class AsyncDisposable
   /**
    * Nobody awaits the disposal of something registered after the object was disposed, so its error goes to the
    * `onError` option, or to {@link safeDisposableExceptionHandlerManager} without it
-   * @internal
    */
   private _settleLate(disposal: void | Promise<void>): void {
     if (!(disposal instanceof Promise)) {

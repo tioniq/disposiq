@@ -11,9 +11,6 @@ export type DisposableOptions = DisposableStoreOptions
  * Disposable is a base class for disposables. It will dispose all added disposables when it is disposed.
  */
 export abstract class Disposable extends Disposiq implements DisposableCompat {
-  /**
-   * @internal
-   */
   private readonly _store: DisposableStore
 
   /**
